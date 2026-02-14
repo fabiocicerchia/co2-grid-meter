@@ -1,0 +1,98 @@
+/* Theme tokens */
+:root{
+  --bg:#fff; --fg:#111; --muted:#666; --card:#fff; --border:#ddd;
+  --input:#fff; --btn:#f7f7f7; --btnfg:#111; --canvas:#fff;
+  --grid:#eee; --axis:#bbb; --line:#111; --overlay:#666; --now:#999; --midnight:#c7c7c7;
+  --g:#22c55e; --y:#f59e0b; --r:#ef4444; --ledOff:rgba(127,127,127,.25);
+  --progress:#3b82f6;
+}
+body.dark{
+  --bg:#0f1115; --fg:#e9eaec; --muted:#a7abb3; --card:#151a22; --border:#2a3140;
+  --input:#0f1115; --btn:#1b2230; --btnfg:#e9eaec; --canvas:#0f1115;
+  --grid:#202838; --axis:#3a445a; --line:#e9eaec; --overlay:#b0b6c2; --now:#9aa3b2; --midnight:#5b6781;
+  --ledOff:rgba(180,190,210,.18); --progress:#60a5fa;
+}
+
+/* Base (no scrollbar) */
+html,body{height:100%}
+*,*:before,*:after{box-sizing:border-box}
+body{
+  margin:0; padding:12px 16px 14px; overflow:hidden;
+  font:16px system-ui,sans-serif; background:var(--bg); color:var(--fg);
+}
+
+/* Common UI */
+.card{border:1px solid var(--border); background:var(--card); border-radius:14px; padding:12px}
+.muted{color:var(--muted)}
+.small{font-size:12px; color:var(--muted)}
+.pill{display:inline-block; padding:2px 8px; border:1px solid var(--border); border-radius:999px; font-size:12px}
+code{background:rgba(127,127,127,.15); padding:2px 6px; border-radius:6px}
+
+input,select,button{
+  padding:8px 10px; border:1px solid var(--border); border-radius:10px;
+  background:var(--input); color:var(--fg)
+}
+button{background:var(--btn); color:var(--btnfg); cursor:pointer}
+input{min-width:320px}
+canvas{display:block; width:100%; height:100%; border:1px solid var(--border); border-radius:10px; background:var(--canvas)}
+
+/* Top progress */
+.topProgressWrap{position:fixed; inset:0 0 auto 0; height:3px; background:rgba(127,127,127,.15); z-index:9999}
+.topProgress{height:3px; width:0%; background:var(--progress); transition:width .1s linear}
+
+/* Layout */
+.page{height:100%; display:flex; flex-direction:column; gap:12px; min-height:0}
+.topbar{display:flex; gap:12px; align-items:center; justify-content:space-between; margin:3px 0 10px}
+.right,.controlsRow{display:flex; gap:10px; align-items:center; flex-wrap:wrap}
+
+.headerGrid{
+  display:grid; grid-template-columns:3fr 7fr; gap:12px; align-items:start; margin-bottom:12px; min-height:0
+}
+@media (max-width:980px){
+  .headerGrid{grid-template-columns:1fr}
+  input{min-width:0; width:100%}
+}
+
+/* Toggle */
+.switch{position:relative; display:inline-block; width:48px; height:26px}
+.switch input{display:none}
+.slider{
+  position:absolute; inset:0; cursor:pointer;
+  border:1px solid var(--border); border-radius:999px;
+  background:rgba(127,127,127,.25); transition:.2s
+}
+.slider:before{
+  content:""; position:absolute; left:3px; bottom:2px; width:20px; height:20px;
+  border:1px solid var(--border); border-radius:50%; background:var(--card); transition:.2s
+}
+input:checked + .slider:before{transform:translateX(22px)}
+.toggleLabel{font-size:13px; color:var(--muted); white-space:nowrap}
+
+/* Current (2 columns) */
+.currentGrid{display:grid; grid-template-columns:1fr 1fr; gap:8px 16px; margin-top:6px}
+.kvItem{display:grid; grid-template-columns:118px 1fr; gap:6px 10px; align-items:baseline; min-width:0}
+.k{color:var(--muted); font-size:12px}
+.v{font-size:14px; min-width:0}
+.v b{font-size:18px}
+
+/* LED meter */
+.meterWrap{margin-top:10px}
+.meterTitle{display:flex; align-items:baseline; justify-content:space-between; gap:10px}
+.meterTitle b{font-size:14px}
+.meterHint{font-size:12px; color:var(--muted)}
+.meter{display:flex; gap:6px; align-items:center; margin-top:8px; user-select:none}
+.led{
+  width:14px; height:18px; border-radius:6px; background:var(--ledOff);
+  border:1px solid var(--border); box-shadow:inset 0 0 0 1px rgba(0,0,0,.03)
+}
+.led.on.green{background:var(--g); border-color:rgba(34,197,94,.65)}
+.led.on.yellow{background:var(--y); border-color:rgba(245,158,11,.7)}
+.led.on.red{background:var(--r); border-color:rgba(239,68,68,.7)}
+.legend{display:flex; gap:10px; flex-wrap:wrap; margin-top:8px; font-size:12px; color:var(--muted)}
+.dot{display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:6px; vertical-align:middle}
+.dot.g{background:var(--g)} .dot.y{background:var(--y)} .dot.r{background:var(--r)}
+
+/* Chart fill */
+.chartCard{flex:1; min-height:0; display:flex; flex-direction:column; gap:10px}
+.chartHeader{display:flex; align-items:baseline; justify-content:space-between; gap:10px; flex-wrap:wrap}
+.chartArea{flex:1; min-height:0}

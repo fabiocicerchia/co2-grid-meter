@@ -1,0 +1,121 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>CO₂ Meter Dashboard</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+
+<body>
+  <div class="topProgressWrap" aria-hidden="true">
+    <div class="topProgress" id="topProgress"></div>
+  </div>
+
+  <div class="page">
+    <div class="topbar">
+      <h2 style="margin:0;"><b id="city">—</b> grid CO₂ dashboard (local)</h2>
+
+      <div class="right">
+        <div class="controlsRow">
+          <span class="toggleLabel">Auto refresh</span>
+          <select id="refreshEvery" title="Refresh interval">
+            <option value="5000">5s</option>
+            <option value="10000">10s</option>
+            <option value="15000">15s</option>
+            <option value="30000" selected>30s</option>
+            <option value="60000">1m</option>
+            <option value="120000">2m</option>
+            <option value="300000">5m</option>
+            <option value="600000">10m</option>
+            <option value="900000">15m</option>
+          </select>
+          <button id="toggleAuto" title="Start/Stop auto refresh">Start</button>
+          <button id="refreshNow" title="Refresh once now">Refresh now</button>
+          <span class="pill" id="autoState">off</span>
+        </div>
+
+        <span class="toggleLabel" id="themeText">Light</span>
+        <label class="switch" title="Toggle light/dark">
+          <input id="themeToggle" type="checkbox"/>
+          <span class="slider"></span>
+        </label>
+      </div>
+    </div>
+
+    <div class="headerGrid">
+      <div class="card">
+        <div class="muted">Pico base URL</div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:6px;">
+          <input id="pico" placeholder="http://192.168.1.50:8080" />
+          <button id="save">Save</button>
+          <button id="clear">Clear history</button>
+        </div>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; margin-top:10px;">
+          <span class="muted">Polling</span>
+          <span><span class="pill" id="pollstate">stopped</span> every <span id="pollEvery">—</span></span>
+          <span class="small">Chart+status refresh together.</span>
+        </div>
+        <p class="muted" style="margin:10px 0 0 0;">
+          X-axis shows <b>past 48h + next 12h</b>; the <b>next 12h</b> is shown only as <b>past-week overlay</b>.
+        </p>
+      </div>
+
+      <div class="card">
+        <h3 style="margin:0;">Current</h3>
+
+        <!-- 2-column text -->
+        <div class="currentGrid">
+          <div class="kvItem">
+            <div class="k">Intensity</div>
+            <div class="v"><b id="ci">—</b> gCO₂/kWh</div>
+          </div>
+
+          <div class="kvItem">
+            <div class="k">Recommendation</div>
+            <div class="v"><b id="verdict">—</b></div>
+          </div>
+
+          <div class="kvItem">
+            <div class="k">Reason</div>
+            <div class="v" id="reason">—</div>
+          </div>
+
+          <div class="kvItem">
+            <div class="k">Next window</div>
+            <div class="v" id="next">—</div>
+          </div>
+        </div>
+
+        <div class="meterWrap">
+          <div class="meterTitle">
+            <b>12-LED meter</b>
+            <span class="meterHint"><span id="meterLabel">—</span></span>
+          </div>
+          <div class="meter" id="meter" aria-label="12 LED meter"></div>
+          <div class="legend">
+            <span><span class="dot g"></span>cleaner</span>
+            <span><span class="dot y"></span>average</span>
+            <span><span class="dot r"></span>dirtier</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card chartCard">
+      <div class="chartHeader">
+        <h3 style="margin:0;">Past 48h + Next 12h</h3>
+        <div class="small">
+          Solid = actual • Dotted = past-week overlay • Dashed = now • Bold line/label at midnight
+        </div>
+      </div>
+      <div class="chartArea">
+        <canvas id="chart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/script.js"></script>
+</body>
+</html>
+
