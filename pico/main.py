@@ -14,9 +14,9 @@ same HTTP API:
 # =========================
 
 import gc
-from pico.firmware.fw_config import CONFIG, append_log_line, build_firmware_logger, write_crashdump
-from pico.firmware.fw_network import wifi_connect
-from pico.firmware.fw_http import serve_forever, set_time
+from pico.config import CONFIG, append_log_line, build_firmware_logger, write_crashdump
+from pico.network import wifi_connect
+from pico.http import serve_forever, set_time
 
 # =========================
 # main
@@ -47,3 +47,4 @@ if __name__ == "__main__":
         crash_path = write_crashdump(error, context="http")
         LOGGER.exception("ERROR", error, crash_path)
         append_log_line("ERROR %s" % crash_path)
+    

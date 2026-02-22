@@ -1,13 +1,13 @@
 
 import time
 
-from pico.firmware.fw_app import TtlCache
-from pico.firmware.fw_config import CONFIG
-from pico.firmware.fw_display import EINK_BLACK, draw_current_panel, draw_graph, draw_leds, draw_rect, draw_text, draw_time, draw_wifi_icon, epd_clear_screen, get_epd, intensity_zone_from_percentile, led_level_from_percentile, panel_dimensions
-from pico.firmware.fw_network import wifi_ok, wifi_signal_bars
-from pico.firmware.fw_providers import fetch_window_any
-from pico.firmware.fw_recommendation import recommend_from_week
-from pico.firmware.fw_utils import ProviderError, epoch_to_iso_z, floor_hour_epoch, fmt_hhmm_local, free_mem, http_get_json, iso_z_to_epoch, log, percentile, safe_float, url_decode
+from pico.ttl_cache import TtlCache
+from pico.config import CONFIG
+from pico.display import EINK_BLACK, draw_current_panel, draw_graph, draw_leds, draw_rect, draw_text, draw_time, draw_wifi_icon, epd_clear_screen, get_epd, intensity_zone_from_percentile, led_level_from_percentile, panel_dimensions
+from pico.network import wifi_ok, wifi_signal_bars
+from pico.providers import fetch_window_any
+from pico.recommendation import recommend_from_week
+from pico.utils import ProviderError, epoch_to_iso_z, floor_hour_epoch, fmt_hhmm_local, free_mem, http_get_json, iso_z_to_epoch, log, percentile, safe_float, url_decode
 
 
 _epd = None

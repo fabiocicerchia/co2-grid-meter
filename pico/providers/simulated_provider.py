@@ -4,7 +4,6 @@ import math
 import random
 from datetime import timedelta
 
-from ..config import AppConfig
 from pico.providers.base import EmissionsProvider
 from pico.utils import iso_utc
 
@@ -14,12 +13,8 @@ class SimulatedProvider(EmissionsProvider):
 
     provider_name = "sim_fallback"
 
-    def __init__(self, config: AppConfig):
-        self._config = config
-
     def is_enabled(self, country_code: str) -> bool:
-        del country_code
-        return self._config.providers.allow_fallback
+        return True
 
     def fetch_history(self, latitude, longitude, country_code, start, end):
         del latitude, longitude, country_code

@@ -7,10 +7,10 @@ import time
 
 import ujson
 
-from pico.firmware.fw_app import _display_tick, handle_em_overlay, handle_em_window, handle_status, render_placeholder_screen
-from pico.firmware.fw_config import append_log_line, write_crashdump
-from pico.firmware.fw_display import get_epd
-from pico.firmware.fw_utils import _now_stamp, log
+from pico.app import _display_tick, handle_em_overlay, handle_em_window, handle_status, render_placeholder_screen
+from pico.config import append_log_line, write_crashdump
+from pico.display import get_epd
+from pico.utils import _now_stamp, log
 from pico.firmware_fw_config import CONFIG
 
 

@@ -30,7 +30,11 @@ class TtlCache:
         return value
 
     def get_or_set(self, key, factory, now=None):
+        key_str = " ".join(str(x) for x in key)
+        log("Fetching from key '%s'" % key_str)
         cached = self.get(key, now=now)
         if cached is not None:
+            log("Key '%s' is cached" % key_str)
             return cached
+        log("Key '%s' is not cached" % key_str)
         return self.set(key, factory(), now=now)

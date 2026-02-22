@@ -2,8 +2,8 @@
 import time
 import framebuf
 
-from pico.firmware.fw_config import CONFIG
-from pico.firmware.fw_utils import clamp, log
+from pico.config import CONFIG
+from pico.utils import clamp, log
 from machine import Pin, SPI
 
 

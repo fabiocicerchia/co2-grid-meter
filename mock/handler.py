@@ -1,43 +1,50 @@
 #!/usr/bin/env python3
 import json
+import requests
+
+from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler
-from typing import Any
 from urllib.parse import parse_qs, urlparse
 
-from requests import Session
+from pico.providers.simulated_provider import SimulatedProvider
+from pico.utils import floor_hour, iso_utc
+from pico.recommendation import compute_recommendation
 
-from pico import GeoResolver, WindowService, build_status, providers
-from pico.ttl_cache import TtlCache
-from pico.utils import floor_hour
+@dataclass(frozen=True)
+class GeoLocation:
+    latitude: float
+    longitude: float
+    country: str
+    city: str
+    source: str
+
+def resolve_from_ip():
+    try:
+        response = requests.get("http://ip-api.com/json/", timeout=4)
+        payload = response.json()
+        if payload.get("status") != "success":
+            return None
+        return GeoLocation(
+            latitude=float(payload["lat"]),
+            longitude=float(payload["lon"]),
+            country=(payload.get("countryCode") or "").upper(),
+            city=payload.get("city") or "—",
+            source="ip",
+        )
+    except Exception as error:  # noqa: BLE001
+        LOGGER.warning("Unable to resolve geo from IP: %s", error)
+        return None
 
 
-def _make_window_service(config, http_session: Session) -> WindowService:
-    return WindowService(
-        config,
-        [
-            providers.UKCarbonIntensityProvider(http_session),
-            providers.EntsoeProvider(http_session, config),
-            providers.WattTimeProvider(http_session, config),
-            providers.ElectricityMapsProvider(http_session, config),
-            providers.SimulatedProvider(config),
-        ],
-    )
-
-
-def create_handler(*, config: Any, logger: Any, http_session: Session) -> type[BaseHTTPRequestHandler]:
+def create_handler(*, config, logger) -> type[BaseHTTPRequestHandler]:
     """Create a request handler class bound to the given dependencies."""
 
-    geo_resolver = GeoResolver(config, http_session)
-    window_service = _make_window_service(config, http_session)
-    response_cache = TtlCache(getattr(config, "cache_refresh_seconds", 3600))
+    provider = SimulatedProvider()
 
     class Handler(BaseHTTPRequestHandler):
-        def _cached(self, key, factory):
-            return response_cache.get_or_set(key, factory)
-
         def _window_response(self, location, start_time, end_time):
-            window_payload = window_service.fetch_window(location, start_time, end_time)
+            window_payload = provider.fetch_history(location.latitude, location.longitude, location.country, start_time, end_time)
             return {
                 "city": location.city,
                 "country": location.country,
@@ -51,49 +58,33 @@ def create_handler(*, config: Any, logger: Any, http_session: Session) -> type[B
         def do_GET(self):  # noqa: N802
             url = urlparse(self.path)
             query = parse_qs(url.query)
-            location = geo_resolver.resolve(self)
+            location = resolve_from_ip()
 
             status_code = 404
             payload = {}
 
             try:
                 if url.path == "/status":
-                    cache_key = ("status", location)
-                    payload = self._cached(
-                        cache_key,
-                        lambda: build_status(window_service, location),
-                    )
+                    now_utc = floor_hour(datetime.now(timezone.utc))
+                    start_time = now_utc - timedelta(hours=36) - timedelta(days=7)
+                    end_time = now_utc + timedelta(hours=12) - timedelta(days=7)
+                    payload = self._window_response(location, start_time, end_time)
+                    current_carbon_intensity = float(payload["history"][-1]["carbonIntensity"])
+                    payload["datetime"] = iso_utc(now_utc)
+                    payload["carbonIntensity"] = current_carbon_intensity,
+                    payload["recommendation"] = compute_recommendation(current_carbon_intensity, payload["history"], int(now_utc.timestamp()))
                     status_code = 200
                 elif url.path == "/em/window":
                     back_hours = int(query.get("back_hours", [48])[0])
                     end_time = floor_hour(datetime.now(timezone.utc))
                     start_time = end_time - timedelta(hours=back_hours)
-                    cache_key = (
-                        "window",
-                        location,
-                        back_hours,
-                        start_time.isoformat(),
-                        end_time.isoformat(),
-                    )
-                    payload = self._cached(
-                        cache_key,
-                        lambda: self._window_response(location, start_time, end_time),
-                    )
+                    payload = self._window_response(location, start_time, end_time)
                     status_code = 200
                 elif url.path == "/em/window-overlay":
                     now_time = floor_hour(datetime.now(timezone.utc))
                     start_time = now_time - timedelta(hours=48, days=7)
                     end_time = now_time + timedelta(hours=12) - timedelta(days=7)
-                    cache_key = (
-                        "overlay",
-                        location,
-                        start_time.isoformat(),
-                        end_time.isoformat(),
-                    )
-                    payload = self._cached(
-                        cache_key,
-                        lambda: self._window_response(location, start_time, end_time),
-                    )
+                    payload = self._window_response(location, start_time, end_time)
                     status_code = 200
             except Exception as error:  # noqa: BLE001
                 status_code = 502
