@@ -1,11 +1,12 @@
 """Electricity Maps provider for firmware."""
 
-from pico.utils import ProviderError, http_get_json, epoch_to_iso_z
-from pico.providers import _parse_provider_history
+from utils import ProviderError, http_get_json, epoch_to_iso_z
+from providers.base import parse_provider_history
+from config import CONFIG
 
 
 def parse_em_payload(payload):
-    return _parse_provider_history(
+    return parse_provider_history(
         payload.get("history") or payload.get("data") or [],
         datetime_key="datetime",
         intensity_getter=lambda point: point.get("carbonIntensity"),
@@ -13,8 +14,6 @@ def parse_em_payload(payload):
 
 
 def fetch_em_past_range(lat, lon, start_epoch, end_epoch):
-    global CONFIG
-
     if not (CONFIG.providers.electricity_maps.enabled and CONFIG.providers.electricity_maps.token):
         raise ProviderError("Electricity Maps disabled/missing token")
 

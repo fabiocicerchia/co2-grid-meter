@@ -2,7 +2,7 @@
 
 from requests import Session
 
-from pico.providers.base import EmissionsProvider
+from providers.base import EmissionsProvider
 
 
 class UKCarbonIntensityProvider(EmissionsProvider):

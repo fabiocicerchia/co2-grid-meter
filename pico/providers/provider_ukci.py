@@ -1,8 +1,8 @@
 """UK Carbon Intensity provider for firmware."""
 
 import time
-from pico.utils import _format_timestamp, http_get_json
-from pico.providers import _parse_provider_history
+from utils import _format_timestamp, http_get_json
+from providers.base import parse_provider_history
 
 
 def ukci_format_timestamp(epoch_value):
@@ -10,7 +10,7 @@ def ukci_format_timestamp(epoch_value):
 
 
 def parse_ukci_payload(payload):
-    return _parse_provider_history(
+    return parse_provider_history(
         payload.get("data") or [],
         datetime_key="from",
         intensity_getter=lambda point: (point.get("intensity") or {}).get("actual") or (point.get("intensity") or {}).get("forecast"),

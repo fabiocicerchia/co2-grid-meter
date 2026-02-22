@@ -2,9 +2,9 @@
 
 from requests import Session
 
-from ..config import AppConfig
-from pico.providers.base import EmissionsProvider
-from pico.utils import iso_utc
+from providers.base import EmissionsProvider
+from utils import iso_utc
+from config import CONFIG
 
 
 class ElectricityMapsProvider(EmissionsProvider):
@@ -12,9 +12,9 @@ class ElectricityMapsProvider(EmissionsProvider):
 
     provider_name = "electricitymaps"
 
-    def __init__(self, session: Session, config: AppConfig):
+    def __init__(self, session: Session):
         self._session = session
-        self._config = config
+        self._config = CONFIG
 
     def is_enabled(self, country_code: str) -> bool:
         del country_code

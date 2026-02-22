@@ -2,8 +2,8 @@
 import time
 import network
 
-from pico.config import CONFIG
-from pico.utils import log
+from config import CONFIG
+from utils import log
 
 _wlan = None
 

@@ -1,14 +1,13 @@
 
 import time
 
-from pico.ttl_cache import TtlCache
-from pico.config import CONFIG
-from pico.display import EINK_BLACK, draw_current_panel, draw_graph, draw_leds, draw_rect, draw_text, draw_time, draw_wifi_icon, epd_clear_screen, get_epd, intensity_zone_from_percentile, led_level_from_percentile, panel_dimensions
-from pico.network import wifi_ok, wifi_signal_bars
-from pico.providers import fetch_window_any
-from pico.recommendation import recommend_from_week
-from pico.utils import ProviderError, epoch_to_iso_z, floor_hour_epoch, fmt_hhmm_local, free_mem, http_get_json, iso_z_to_epoch, log, percentile, safe_float, url_decode
-
+from ttl_cache import TtlCache
+from config import CONFIG
+from display import EINK_BLACK, draw_current_panel, draw_graph, draw_leds, draw_rect, draw_text, draw_time, draw_wifi_icon, epd_clear_screen, get_epd, intensity_zone_from_percentile, led_level_from_percentile, panel_dimensions
+from fw_network import wifi_ok, wifi_signal_bars
+from providers import fetch_window_any
+from recommendation import recommend_from_week
+from utils import ProviderError, epoch_to_iso_z, floor_hour_epoch, fmt_hhmm_local, free_mem, http_get_json, iso_z_to_epoch, log, percentile, safe_float, url_decode
 
 _epd = None
 _server_socket = None
@@ -46,7 +45,7 @@ def _auto_geo_defaults():
         log("Auto-geo resolved to %s, %s (%s, %s)" % (city, cc, str(lat), str(lon)))
         return _auto_geo_cache
     except Exception as error:
-        log("Auto-geo failed:", error)
+        log("Auto-geo failed: %s" % error)
         _auto_geo_expires = now + int(CONFIG.geo.failure_retry_seconds)
         return _auto_geo_cache
 
@@ -237,10 +236,10 @@ def _display_tick():
     except Exception as e:
        # Don't crash the server loop if provider/network is down
         try:
-            log("ERROR(_display_tick)", e)
+            log("ERROR(_display_tick) %s" % e)
             render_placeholder_screen("DATA ERROR", str(e))
         except Exception as e:
-            log("ERROR(_display_tick 2)", e)
+            log("ERROR(_display_tick 2) %s" % e)
             pass
 
 def draw_top_bar(_epd):

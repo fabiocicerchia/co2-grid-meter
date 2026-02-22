@@ -6,10 +6,10 @@ from datetime import datetime
 from requests import Session
 from requests.auth import HTTPBasicAuth
 
-from ..config import AppConfig
-from pico.providers.base import EmissionsProvider
-from pico.providers.constants import WT_REGION_MAP
-from pico.utils import floor_hour, iso_utc
+from providers.base import EmissionsProvider
+from providers.constants import WT_REGION_MAP
+from utils import floor_hour, iso_utc
+from config import CONFIG
 
 LBS_PER_MWH_TO_GRAMS_PER_KWH = 0.45359237
 TOKEN_CACHE_TTL_SEC = 1500
@@ -20,9 +20,9 @@ class WattTimeProvider(EmissionsProvider):
 
     provider_name = "watttime"
 
-    def __init__(self, session: Session, config: AppConfig):
+    def __init__(self, session: Session):
         self._session = session
-        self._config = config
+        self._config = CONFIG
         self._cached_token = ""
         self._token_created_at = 0.0
 

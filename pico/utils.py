@@ -4,6 +4,7 @@ import time
 from datetime import timezone
 import urequests
 import ujson
+from config import build_firmware_logger
 
 
 def free_mem():
@@ -89,9 +90,10 @@ def _now_stamp():
     return _format_timestamp(time.localtime(), include_seconds=True, separator=" ")
 
 
-def log(*parts):
+def log(parts):
     global LOGGER
-    LOGGER.info("[%s]" % _now_stamp(), *parts)
+    LOGGER = build_firmware_logger()
+    LOGGER.info(parts)
 
 
 # TODO: Use library
@@ -242,4 +244,5 @@ class TextStream:
         if isinstance(b, bytes):
             return b.decode(self.encoding, "ignore")
         return b
+
 

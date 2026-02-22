@@ -1,8 +1,10 @@
 """Tiny TTL cache used by mock server and firmware orchestration."""
 
-from __future__ import annotations
+#from __futue__ import annotations
 
 import time
+
+from utils import log
 
 
 class TtlCache:

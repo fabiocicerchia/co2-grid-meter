@@ -4,8 +4,8 @@ import math
 import random
 from datetime import timedelta
 
-from pico.providers.base import EmissionsProvider
-from pico.utils import iso_utc
+from providers.base import EmissionsProvider
+from utils import iso_utc
 
 
 class SimulatedProvider(EmissionsProvider):

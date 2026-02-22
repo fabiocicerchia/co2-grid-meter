@@ -2,8 +2,8 @@
 
 import time
 
-from pico.config import CONFIG
-from pico.utils import floor_hour_epoch, fmt_hhmm_local, iso_z_to_epoch, percentile
+from config import CONFIG
+from utils import floor_hour_epoch, fmt_hhmm_local, iso_z_to_epoch, percentile
 
 
 def compute_recommendation(current_carbon_intensity, overlay_history, now_epoch):

@@ -3,7 +3,8 @@ import ubinascii
 import urequests
 import gc
 
-from pico.utils import ProviderError, close_response, epoch_to_iso_z, floor_hour_epoch, http_get_json, iso_z_to_epoch, safe_float, urlencode_simple
+from utils import ProviderError, close_response, epoch_to_iso_z, floor_hour_epoch, http_get_json, iso_z_to_epoch, safe_float, urlencode_simple
+from config import CONFIG
 
 
 _watttime_disabled_until = 0
@@ -24,8 +25,6 @@ def _basic_auth_header(user, password):
 
 
 def _watttime_login_token():
-    global CONFIG
-
     login_url = CONFIG.providers.watttime.base_url + "/login"
 
     # Preferred style (equivalent to requests + HTTPBasicAuth in CPython).

@@ -14,9 +14,10 @@ same HTTP API:
 # =========================
 
 import gc
-from pico.config import CONFIG, append_log_line, build_firmware_logger, write_crashdump
-from pico.network import wifi_connect
-from pico.http import serve_forever, set_time
+import sys
+from config import CONFIG, append_log_line, build_firmware_logger, write_crashdump
+from fw_network import wifi_connect
+from http import serve_forever, set_time
 
 # =========================
 # main
@@ -24,6 +25,7 @@ from pico.http import serve_forever, set_time
 
 LOGGER = None
 def main():
+    global LOGGER
     LOGGER = build_firmware_logger()
 
     gc.enable()
@@ -44,7 +46,7 @@ if __name__ == "__main__":
     try:
         main()
     except Exception as error:
+        sys.print_exception(error)
         crash_path = write_crashdump(error, context="http")
-        LOGGER.exception("ERROR", error, crash_path)
         append_log_line("ERROR %s" % crash_path)
     

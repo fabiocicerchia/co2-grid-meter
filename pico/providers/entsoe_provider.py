@@ -5,10 +5,10 @@ from datetime import datetime, timedelta
 
 from requests import Session
 
-from ..config import AppConfig
-from pico.providers.base import EmissionsProvider
-from pico.providers.constants import ENTSOE_DOMAIN, PSR_EMISSION_FACTOR
-from pico.utils import floor_hour, iso_utc
+from providers.base import EmissionsProvider
+from providers.constants import ENTSOE_DOMAIN, PSR_EMISSION_FACTOR
+from utils import floor_hour, iso_utc
+from config import CONFIG
 
 
 class EntsoeProvider(EmissionsProvider):
@@ -16,9 +16,9 @@ class EntsoeProvider(EmissionsProvider):
 
     provider_name = "entsoe"
 
-    def __init__(self, session: Session, config: AppConfig):
+    def __init__(self, session: Session):
         self._session = session
-        self._config = config
+        self._config = CONFIG
 
     def is_enabled(self, country_code: str) -> bool:
         mapped_country_code = (

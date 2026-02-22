@@ -7,11 +7,10 @@ import time
 
 import ujson
 
-from pico.app import _display_tick, handle_em_overlay, handle_em_window, handle_status, render_placeholder_screen
-from pico.config import append_log_line, write_crashdump
-from pico.display import get_epd
-from pico.utils import _now_stamp, log
-from pico.firmware_fw_config import CONFIG
+from app import _display_tick, handle_em_overlay, handle_em_window, handle_status, render_placeholder_screen
+from config import CONFIG, append_log_line, write_crashdump
+from display import get_epd
+from utils import _now_stamp, log
 
 
 def _readline(conn):
@@ -184,7 +183,7 @@ def set_time(offset=0, delta=2208988800, host="pool.ntp.org"):
     t = val - delta
     tm = time.gmtime(t+offset)
     machine.RTC().datetime((tm[0], tm[1], tm[2], tm[6] + 1, tm[3], tm[4], tm[5], 0))
-    log("Local time:", _now_stamp())
+    log("Local time: %s" % _now_stamp())
 
 
 def handle_http_request(conn):
@@ -260,4 +259,5 @@ def serve_forever(ip):
 
         conn = get_connection()
         handle_http_request(conn)
+
 

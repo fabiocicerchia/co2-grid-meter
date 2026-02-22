@@ -3,8 +3,8 @@ import urequests
 import xmltok
 import io
 
-from pico.utils import ProviderError, close_response, epoch_to_iso_z, floor_hour_epoch, iso_z_to_epoch, log
-from pico.providers import TextStream, _resolution_to_seconds, _to_str, urlencode_simple
+from utils import ProviderError, close_response, epoch_to_iso_z, floor_hour_epoch, iso_z_to_epoch, log, TextStream, _resolution_to_seconds, _to_str, urlencode_simple
+from config import CONFIG
 
 
 ENTSOE_DOMAIN = {
@@ -75,7 +75,6 @@ def entsoe_period_timestamp(epoch_value):
 
 
 def fetch_entsoe_window(country_code, start_epoch, end_epoch):
-    global CONFIG
     if not CONFIG.providers.entsoe.token:
         raise ProviderError("ENTSO-E missing token")
 

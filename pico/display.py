@@ -1,9 +1,10 @@
 
 import time
 import framebuf
+import utime
 
-from pico.config import CONFIG
-from pico.utils import clamp, log
+from config import CONFIG
+from utils import clamp, log
 from machine import Pin, SPI
 
 
@@ -194,6 +195,7 @@ class EPD_2in13_B_V4_Landscape(EPD_2in13_B_V4_Base):
 
 # RENDERING
 
+_epd = None
 
 def get_epd():
     global _epd

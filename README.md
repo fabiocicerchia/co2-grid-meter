@@ -174,6 +174,8 @@ pytest -q
 
 ### Roadmap ideas and missing useful functionality
 
+- [ ] Multithread
+- [ ] Print uptime
 - [ ] Add a graph page under `/html` for quick local visualization without the full dashboard.
 - [ ] Add i18n support for dashboard UI and firmware-visible labels/messages.
 - [ ] Print richer Pico system/network diagnostics (IP, geolocation summary, and ISP/provider) in startup logs and optionally on-device status endpoints.
