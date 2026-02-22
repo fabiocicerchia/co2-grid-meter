@@ -1,16 +1,204 @@
-"""Utility helpers shared across firmware modules.
+import gc
+import time
 
-Implementation lives in :mod:`sim.pico.fw_shared` so the simulator and firmware
-stay consistent.
-"""
 
-from pico.fw_shared import (  # noqa: F401
-    ProviderError,
-    clamp,
-    epoch_to_iso_z,
-    floor_hour_epoch,
-    fmt_hhmm_local,
-    iso_z_to_epoch,
-    safe_float,
-    url_decode,
-)
+def free_mem():
+    log("Memory before free: %d KB" % int(gc.mem_free() / 1024))
+    gc.collect()
+    log("Memory after free: %d KB" % int(gc.mem_free() / 1024))
+
+
+class ProviderError(RuntimeError):
+    pass
+
+
+def clamp(value, minimum, maximum):
+    return minimum if value < minimum else maximum if value > maximum else value
+
+
+def floor_hour_epoch(epoch_seconds):
+    return epoch_seconds - (epoch_seconds % 3600)
+
+
+def epoch_to_iso_z(epoch_seconds):
+    year, month, day, hour, minute, second, *_ = time.gmtime(epoch_seconds)
+    return "%04d-%02d-%02dT%02d:%02d:%02dZ" % (year, month, day, hour, minute, second)
+
+
+def safe_float(value):
+    try:
+        return float(value)
+    except Exception:
+        return None
+
+
+def close_response(response):
+    if response:
+        try:
+            response.close()
+        except Exception:
+            pass
+
+
+def http_get(url, error_label, headers=None, auth=None):
+    if not requests:
+        raise ProviderError("urequests not available")
+
+    response = requests.get(url, headers=headers, auth=auth)
+    if response.status_code != 200:
+        close_response(response)
+        raise ProviderError("%s HTTP %d" % (error_label, response.status_code))
+    return response
+
+
+def http_get_json(url, error_label, headers=None, auth=None, content_parser=False):
+    response = None
+    try:
+        response = http_get(url, error_label, headers=headers, auth=auth)
+        if content_parser:
+            payload = ujson.loads(response.content)
+        else:
+            payload = response.json()
+        return payload or {}
+    finally:
+        close_response(response)
+
+
+def url_decode(value):
+    return (value or "").replace("%20", " ")
+
+
+def fmt_hhmm_local(epoch_seconds):
+    local_time = time.localtime(epoch_seconds)
+    return "%02d:%02d" % (local_time[3], local_time[4])
+
+
+def _format_timestamp(parts, include_seconds=True, separator="T"):
+    year, month, day, hour, minute = parts[:5]
+    if include_seconds:
+        second = parts[5]
+        return "%04d-%02d-%02d%s%02d:%02d:%02d" % (year, month, day, separator, hour, minute, second)
+    return "%04d-%02d-%02d%s%02d:%02d" % (year, month, day, separator, hour, minute)
+
+
+def _now_stamp():
+    return _format_timestamp(time.localtime(), include_seconds=True, separator=" ")
+
+
+def log(*parts):
+    global LOGGER
+    LOGGER.info("[%s]" % _now_stamp(), *parts)
+
+
+# TODO: Use library
+def iso_z_to_epoch(iso_timestamp):
+    """Convert an ISO-8601 timestamp to epoch seconds.
+
+    Supports:
+    - ...Z (UTC)
+    - ...+HH:MM / ...-HH:MM offsets
+
+    Notes:
+    - Uses time.mktime() which may be local-time based on some MicroPython ports.
+      For UTC/Z timestamps on typical Pico builds this is usually acceptable.
+    """
+    try:
+        if not iso_timestamp:
+            return None
+
+        s = iso_timestamp.strip()
+
+        # Handle trailing 'Z'
+        tz_sign = None
+        tz_h = 0
+        tz_m = 0
+
+        if s.endswith("Z"):
+            s = s[:-1]
+        else:
+            # Handle timezone offsets like +01:00 or -05:30
+            # Find last '+' or '-' after the 'T'
+            t_pos = s.find("T")
+            if t_pos != -1:
+                tail = s[t_pos + 1 :]
+                plus = tail.rfind("+")
+                minus = tail.rfind("-")
+                idx = plus if plus > minus else minus
+                if idx != -1:
+                    tz_part = tail[idx:]
+                    s = s[: t_pos + 1 + idx]
+                    tz_sign = tz_part[0]
+                    tz_part = tz_part[1:]
+                    if len(tz_part) >= 5 and tz_part[2] == ":":
+                        tz_h = int(tz_part[0:2])
+                        tz_m = int(tz_part[3:5])
+
+        date_part, time_part = s.split("T")
+        year, month, day = [int(chunk) for chunk in date_part.split("-")]
+
+        fields = time_part.split(":")
+        hour = int(fields[0])
+        minute = int(fields[1]) if len(fields) > 1 else 0
+        second_text = fields[2] if len(fields) > 2 else "0"
+        # Support fractional seconds (e.g. "11:00:00.000Z") from EM payloads.
+        dot = second_text.find(".")
+        if dot != -1:
+            second_text = second_text[:dot]
+        second = int(second_text or "0")
+
+        epoch = int(time.mktime((year, month, day, hour, minute, second, 0, 0)))
+
+        if tz_sign:
+            offset = tz_h * 3600 + tz_m * 60
+            # Local time = UTC + offset for '+', so UTC = local - offset
+            epoch = epoch - offset if tz_sign == "+" else epoch + offset
+
+        return epoch
+    except Exception:
+        return None
+
+
+
+def percentile(sorted_values, target):
+    count = len(sorted_values)
+    if count == 0:
+        return None
+    low, high = 0, count
+    while low < high:
+        middle = (low + high) >> 1
+        if sorted_values[middle] < target:
+            low = middle + 1
+        else:
+            high = middle
+    return low / count
+
+
+class TtlCache:
+    def __init__(self, ttl_seconds):
+        self.ttl_seconds = max(0, int(ttl_seconds))
+        self._store = {}
+
+    def get(self, key):
+        now = time.time()
+        item = self._store.get(key)
+        if not item:
+            return None
+        expires_at, value = item
+        if expires_at <= now:
+            self._store.pop(key, None)
+            return None
+        return value
+
+    def set(self, key, value):
+        self._store[key] = (time.time() + self.ttl_seconds, value)
+        return value
+
+    def get_or_set(self, key, factory):
+        key_str = " ".join(str(x) for x in key)
+        log("Fetching from key '%s'" % key_str)
+        value = self.get(key)
+        if value is not None:
+            log("Key '%s' is cached" % key_str)
+            return value
+        log("Key '%s' is not cached" % key_str)
+        return self.set(key, factory())

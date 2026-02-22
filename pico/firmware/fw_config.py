@@ -1,101 +1,175 @@
-"""Firmware configuration access.
 
-Use `CONFIG` for runtime values. Hardware/display constants below document the
-Waveshare WS-19588 wiring/layout used by this firmware.
-"""
+class CONFIG:
+    class wifi:
+        ssid = "" # TODO: CHANGE ME
+        password = "" # TODO: CHANGE ME
 
-try:
-    from common_config import CONFIG as UNIFIED_CONFIG
+    class defaults:
+        # ENTSOE
+        latitude = 41.9028
+        longitude = 12.4964
+        city = "Rome"
+        country = "IT"
 
-    CONFIG = UNIFIED_CONFIG.firmware
-except Exception:
+        # UKCI
+        #latitude = 51.5072
+        #longitude = 0.1276
+        #city = "London"
+        #country = "GB"
+
+        # ELECTRICITY MAP
+        #latitude = 59.3327
+        #longitude = 18.0656
+        #city = "Stockholm"
+        #country = "SE"
+
+        # WATTTIME
+        #latitude = 37.7749
+        #longitude = 122.4194
+        #city = "San Francisco"
+        #country = "CAISO_NORTH"
+
+    class providers:
+        ukci_enabled = False # TODO: CHANGE ME
+
+        class electricity_maps:
+            enabled = False # TODO: CHANGE ME
+            token = "" # TODO: CHANGE ME
+            base_url = "https://api.electricitymaps.com"
+
+        class watttime:
+            enabled = False # TODO: CHANGE ME
+            username = "" # TODO: CHANGE ME
+            password = "" # TODO: CHANGE ME
+            base_url = "https://api.watttime.org"
+
+        # TODO: it's super slow due to XML response
+        class entsoe:
+            enabled = True # TODO: CHANGE ME
+            token = "" # TODO: CHANGE ME
+            base_url = "https://web-api.tp.entsoe.eu/api"
+            area_override = "IT-CSOUTH" # TODO: CHANGE ME
+
+        watttime_cooldown_sec = 24 * 3600
+        force_dummy = False # TODO: CHANGE ME
+
+    class timeline:
+        back_hours_default = 48
+        past_hours = 36
+        future_hours = 12
+
+    class thresholds:
+        green_percentile_max = 0.25
+        yellow_percentile_max = 0.50
+
+    class server:
+        host = "0.0.0.0"
+        port = 8080
+
+    class display:
+        render_min_interval_sec = 60
+        landscape = True
+
+    class geo:
+        auto_from_public_ip = True
+        ip_lookup_url = "https://ipwho.is/"
+        refresh_seconds = 24 * 3600
+        failure_retry_seconds = 15 * 60
+
+    cache_refresh_seconds = 300 # 5 mins
+
+
+# Simple filesystem persistence helpers for firmware logs/crash dumps.
+
+import logging
+import os
+import time
+
+LOG_DIR = "logs"
+CRASH_DIR = "crashdumps"
+
+
+def _safe_mkdir(path: str) -> None:
     try:
-        import os
-    except Exception:  # pragma: no cover - MicroPython may expose uos only
-        os = None
-
-    def _env(name, default):
-        if not os:
-            return default
-        return os.getenv(name, default)
-
-    class _Wifi:
-        ssid = _env("WIFI_SSID", "YOUR_WIFI_SSID")
-        password = _env("WIFI_PASS", "YOUR_WIFI_PASSWORD")
-
-    class _Defaults:
-        latitude = float(_env("DEFAULT_LAT", "41.9028"))
-        longitude = float(_env("DEFAULT_LON", "12.4964"))
-        city = _env("DEFAULT_CITY", "Rome")
-        country = _env("DEFAULT_CC", "IT")
-
-    class _ElectricityMaps:
-        enabled = _env("EM_ENABLED", "0") == "1"
-        token = _env("EM_TOKEN", "")
-        base_url = _env("EM_BASE", "https://api.electricitymaps.org")
-
-    class _WattTime:
-        enabled = _env("WT_ENABLED", "1") == "1"
-        username = _env("WATTTIME_USERNAME", "")
-        password = _env("WATTTIME_PASSWORD", "")
-        base_url = _env("WT_BASE", "https://api.watttime.org")
-
-    class _Providers:
-        ukci_enabled = _env("UKCI_ENABLED", "1") == "1"
-        electricity_maps = _ElectricityMaps()
-        watttime = _WattTime()
-        watttime_cooldown_sec = int(_env("WT_COOLDOWN_SEC", str(24 * 3600)))
-
-    class _Timeline:
-        back_hours_default = int(_env("BACK_HOURS_DEFAULT", "48"))
-        past_hours = int(_env("PAST_HOURS", "36"))
-        future_hours = int(_env("FUTURE_HOURS", "12"))
-        lookahead_hours = int(_env("LOOKAHEAD_HOURS", "12"))
-
-    class _Thresholds:
-        green_percentile_max = float(_env("P_GREEN_MAX", "0.33"))
-        yellow_percentile_max = float(_env("P_YELLOW_MAX", "0.66"))
-
-    class _Server:
-        host = _env("HOST", "0.0.0.0")
-        port = int(_env("PICO_PORT", "8080"))
-
-    class _Display:
-        render_min_interval_sec = int(_env("RENDER_MIN_INTERVAL_SEC", "60"))
-
-    class _FirmwareConfig:  # pragma: no cover - executed on device
-        wifi = _Wifi()
-        defaults = _Defaults()
-        providers = _Providers()
-        timeline = _Timeline()
-        thresholds = _Thresholds()
-        server = _Server()
-        display = _Display()
-        cache_refresh_seconds = int(_env("PICO_CACHE_REFRESH_SECONDS", "3600"))
-
-    CONFIG = _FirmwareConfig()
+        os.mkdir(path)
+    except OSError:
+        pass
 
 
-# WS-19588 panel resolution in pixels (width x height). Tri-color 2.13" panel.
-EPD_W = 122
-EPD_H = 250
+def _ensure_dirs() -> None:
+    _safe_mkdir(LOG_DIR)
+    _safe_mkdir(CRASH_DIR)
 
-# Framebuffer alignment: framebuf.MONO_HLSB stores 8 horizontal pixels per byte.
-FB_W = ((EPD_W + 7) // 8) * 8
-FB_H = EPD_H
-BYTES_PER_LINE = FB_W // 8
-BUF_LEN = BYTES_PER_LINE * FB_H
 
-# SPI bus used in Waveshare's Pico demo for the 2.13" B V4 panel.
-SPI_BUS = 1
+def _date_from_epoch(epoch: int | None = None) -> str:
+    ts = time.localtime(epoch or time.time())
+    return "%04d-%02d-%02d" % (ts[0], ts[1], ts[2])
 
-# Control pins based on Waveshare's reference script:
-# RST=12, DC=8, CS=9, BUSY=13.
-PIN_SCK = 10   # SPI1 clock (GP10)
-PIN_MOSI = 11  # SPI1 MOSI (GP11)
-PIN_MISO = 12  # SPI1 MISO (GP12), typically unused by panel protocol
-PIN_CS = 9     # Chip-select for the e-paper controller
-PIN_DC = 8     # Data/Command select
-PIN_RST = 12   # Hardware reset
-PIN_BUSY = 13  # Busy line from panel (1 = busy)
-BUSY_ACTIVE = 1
+
+def append_log_line(message: str) -> None:
+    _ensure_dirs()
+    day = _date_from_epoch()
+    path = "%s/%s.log" % (LOG_DIR, day)
+    with open(path, "a", encoding="utf-8") as handle:
+        handle.write("[%d] %s\n" % (int(time.time()), message))
+    prune_old_logs(days=2)
+
+
+def prune_old_logs(days: int = 2) -> None:
+    _ensure_dirs()
+    entries = []
+    for name in os.listdir(LOG_DIR):
+        if not name.endswith(".log"):
+            continue
+        full = "%s/%s" % (LOG_DIR, name)
+        try:
+            mtime = os.stat(full)[8]
+            entries.append((mtime, full))
+        except OSError:
+            continue
+
+    entries.sort(reverse=True)
+    for _, full in entries[days:]:
+        try:
+            os.remove(full)
+        except OSError:
+            pass
+
+
+def write_crashdump(error: Exception, context: str = "runtime") -> str:
+    _ensure_dirs()
+    stamp = int(time.time())
+    path = "%s/%s-%d.txt" % (CRASH_DIR, context, stamp)
+    with open(path, "w", encoding="utf-8") as handle:
+        handle.write("timestamp=%d\n" % stamp)
+        handle.write("context=%s\n" % context)
+        handle.write("error=%s\n" % str(error))
+    return path
+
+
+class _DailyFileLogHandler(logging.Handler):
+    def emit(self, record):
+        try:
+            message = self.format(record)
+            append_log_line(message)
+        except Exception:
+            pass
+
+
+def build_firmware_logger(name: str = "pico.firmware"):
+    logger = logging.getLogger(name)
+    if logger.handlers:
+        return logger
+
+    logger.setLevel(logging.INFO)
+    logger.propagate = False
+
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+
+    file_handler = _DailyFileLogHandler()
+    file_handler.setFormatter(logging.Formatter("%(levelname)s %(message)s"))
+
+    logger.addHandler(stream_handler)
+    logger.addHandler(file_handler)
+    return logger

@@ -1,46 +1,49 @@
-"""Firmware entrypoint: connect Wi-Fi then serve emissions endpoints."""
+"""Single-file Pico firmware bundle.
 
-import network
-import time
+This file is provided so you can copy/paste one script to the device.
+It inlines the behavior from the `pico/firmware/*` modules and keeps the
+same HTTP API:
+- GET /
+- GET /status
+- GET /em/window
+- GET /em/window-overlay
+"""
 
-import fw_config
-from fw_http import serve_forever
+# =========================
+# Runtime imports / fallbacks
+# =========================
 
-try:
-    import urequests as requests
-except Exception:
-    requests = None
+import gc
+from pico.firmware.fw_config import CONFIG, append_log_line, build_firmware_logger, write_crashdump
+from pico.firmware.fw_network import wifi_connect
+from pico.firmware.fw_http import serve_forever, set_time
 
-_wlan = None
+# =========================
+# main
+# =========================
 
-
-def wifi_connect(timeout_ms=15000):
-    global _wlan
-
-    _wlan = network.WLAN(network.STA_IF)
-    _wlan.active(True)
-    if _wlan.isconnected():
-        return True
-
-    _wlan.connect(fw_config.CONFIG.wifi.ssid, fw_config.CONFIG.wifi.password)
-    start_ticks = time.ticks_ms()
-    while not _wlan.isconnected():
-        time.sleep_ms(200)
-        if time.ticks_diff(time.ticks_ms(), start_ticks) > timeout_ms:
-            return False
-    return True
-
-
-def wifi_ok():
-    return bool(_wlan) and _wlan.isconnected()
-
-
+LOGGER = None
 def main():
-    connected = wifi_connect()
-    print("WiFi:", "connected" if connected else "not connected")
-    if not requests:
-        print("WARNING: urequests not available; provider calls will fail.")
-    serve_forever(wifi_ok)
+    LOGGER = build_firmware_logger()
+
+    gc.enable()
+    connected, ip = wifi_connect()
+    
+    if not connected:
+        CONFIG.wifi.ssid = "" # CHANGE ME
+        CONFIG.wifi.password = "" # CHANGE ME
+        connected, ip = wifi_connect()
+    
+    if connected:
+        set_time(2) # ITALY GMT+1 # TODO: FIX DAYLIGHT
+        
+    serve_forever(ip)
 
 
-main()
+if __name__ == "__main__":
+    try:
+        main()
+    except Exception as error:
+        crash_path = write_crashdump(error, context="http")
+        LOGGER.exception("ERROR", error, crash_path)
+        append_log_line("ERROR %s" % crash_path)
