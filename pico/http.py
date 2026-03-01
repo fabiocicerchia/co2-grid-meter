@@ -1,5 +1,6 @@
 
 import struct
+import logging
 
 import machine
 import socket
@@ -11,6 +12,9 @@ from app import _display_tick, handle_em_overlay, handle_em_window, handle_statu
 from config import CONFIG, append_log_line, write_crashdump
 from display import get_epd
 from utils import _now_stamp, log
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 def _readline(conn):
@@ -202,7 +206,7 @@ def handle_http_request(conn):
         process_http_request(conn, method, path, params)
     except Exception as error:
         crash_path = write_crashdump(error, context="http")
-        LOGGER.exception("ERROR", error, crash_path)
+        LOGGER.exception("ERROR %s %s", error, crash_path)
         append_log_line("ERROR %s" % crash_path)
         send_json(conn, 500, {"error": "Internal error", "details": str(error)})
     finally:
@@ -259,5 +263,4 @@ def serve_forever(ip):
 
         conn = get_connection()
         handle_http_request(conn)
-
 
