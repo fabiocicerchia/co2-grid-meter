@@ -76,32 +76,34 @@ ENTSOE_DOMAIN = {
 PSR_EMISSION_FACTOR = {
     # Fossil fuels (kgCO2/MWh)
     "B01": 1050,  # Lignite
-    "B02": 850,  # Hard coal
-    "B03": 750,  # Coal-derived gas
-    "B04": 370,  # Natural gas (avg CCGT)
-    "B05": 720,  # Oil
+    "B02": 850,   # Hard coal
+    "B03": 750,   # Coal-derived gas
+    "B04": 370,   # Natural gas (avg CCGT)
+    "B05": 720,   # Oil
     "B06": 1060,  # Peat
     "B07": 1100,  # Oil shale
-    "B08": 700,  # Fossil mixed
-    "B09": 700,  # Fossil other
+    "B08": 700,   # Fossil mixed
+    "B09": 700,   # Fossil other
+
     # Renewables & nuclear (operational emissions ~0)
-    "B10": 0,  # Hydro run-of-river
-    "B11": 0,  # Hydro reservoir
-    "B12": 0,  # Hydro pumped storage
-    "B13": 0,  # Marine
-    "B14": 0,  # Nuclear
-    "B15": 0,  # Wind offshore
-    "B16": 0,  # Solar
-    "B17": 0,  # Wind onshore
-    "B18": 0,  # Geothermal
-    "B19": 0,  # Biomass (policy zero)
-    "B20": 450,  # Waste (mixed fossil fraction)
+    "B10": 0,     # Hydro run-of-river
+    "B11": 0,     # Hydro reservoir
+    "B12": 0,     # Hydro pumped storage
+    "B13": 0,     # Marine
+    "B14": 0,     # Nuclear
+    "B15": 0,     # Wind offshore
+    "B16": 0,     # Solar
+    "B17": 0,     # Wind onshore
+    "B18": 0,     # Geothermal
+    "B19": 0,     # Biomass (policy zero)
+    "B20": 450,   # Waste (mixed fossil fraction)
+
     # Other categories
-    "B21": 0,  # Other renewable
-    "B22": 500,  # Other
-    "B23": 0,  # Energy storage (depends on charging mix)
-    "B24": 0,  # Demand response
-    "B25": 500,  # Mixed generation (assumed)
+    "B21": 0,     # Other renewable
+    "B22": 500,   # Other
+    "B23": 0,     # Energy storage (depends on charging mix)
+    "B24": 0,     # Demand response
+    "B25": 500,   # Mixed generation (assumed)
 }
 
 
@@ -181,7 +183,6 @@ class EntsoeProvider(EmissionsProvider):
                         psr_code = None
                         emission = None
 
-                        # ---- ADD THESE INITIALIZATIONS ----
                         last_position = None
                         last_quantity = None
                         period_start_epoch = None
@@ -214,17 +215,14 @@ class EntsoeProvider(EmissionsProvider):
                         if ts is not None:
                             period_start_epoch = ts
 
-                    # ---- ADD THIS ----
                     if in_period and current_tag == "end":
                         ts = iso_z_to_epoch(text)
                         if ts is not None:
                             period_end_epoch = ts
-                    # ------------------
 
                     if in_period and current_tag == "resolution":
                         interval_sec = _resolution_to_seconds(text)
 
-                        # ---- ADD THIS ----
                         if (
                             period_start_epoch is not None
                             and period_end_epoch is not None
@@ -233,7 +231,6 @@ class EntsoeProvider(EmissionsProvider):
                             total_positions = int(
                                 (period_end_epoch - period_start_epoch) / interval_sec
                             )
-                        # ------------------
 
                     if in_point and current_tag == "position":
                         try:

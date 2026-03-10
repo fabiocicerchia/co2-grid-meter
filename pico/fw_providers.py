@@ -3,6 +3,7 @@ from providers.electricity_maps import ElectricityMapsProvider
 from providers.ukci import UkciProvider
 from providers.entsoe import ENTSOE_DOMAIN, EntsoeProvider
 from providers.watttime import WattTimeProvider
+from providers.co2signal import Co2SignalProvider
 from utils import ProviderError
 from config import CONFIG
 
@@ -21,6 +22,9 @@ def selected_provider(country_code):
         and CONFIG.providers.electricity_maps.token
     ):
         enabled.append("em")
+
+    if CONFIG.providers.co2signal.enabled and CONFIG.providers.co2signal.token:
+        enabled.append("co2signal")
 
     if (
         CONFIG.providers.watttime.enabled
@@ -55,6 +59,8 @@ def fetch_window_any(lat, lon, city, country_code, start_epoch, end_epoch):
         providerClass = UkciProvider()
     if provider == "em":
         providerClass = ElectricityMapsProvider()
+    if provider == "co2signal":
+        providerClass = Co2SignalProvider()
     if provider == "watttime":
         providerClass = WattTimeProvider()
     if provider == "entsoe":

@@ -99,6 +99,7 @@ def _now_stamp():
     return _format_timestamp(time.localtime(), include_seconds=True, separator=" ")
 
 
+# TODO: _log_rotate(max_files=3)
 def log(parts):
     global LOGGER
     LOGGER = build_firmware_logger()

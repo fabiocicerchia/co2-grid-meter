@@ -16,6 +16,7 @@ from app import (
 from config import CONFIG, append_log_line, write_crashdump
 from display import get_epd
 from utils import _now_stamp, log
+from fw_network import wifi_connect, wifi_ok
 
 
 def _readline(conn):
@@ -231,6 +232,25 @@ def process_http_request(conn, method, path, params):
     send_json(conn, 404, {"error": "Not found", "path": path})
 
 
+def ensure_connected(ip):
+    if wifi_ok():
+        return ip
+
+    log("WiFi disconnected, reconnecting...")
+    close_server_socket()
+    connected, new_ip = wifi_connect()
+    if not connected:
+        raise OSError("WiFi reconnect failed")
+
+    try:
+        set_time(2)  # ITALY GMT+1 # TODO: FIX DAYLIGHT
+    except Exception as error:
+        log("set_time after reconnect failed:", error)
+
+    open_socket(new_ip)
+    return new_ip
+
+
 def get_connection(LOGGER):
     if _server_socket is None:
         return None
@@ -242,8 +262,21 @@ def get_connection(LOGGER):
         return None
 
 
+def close_server_socket():
+    global _server_socket
+    if _server_socket is None:
+        return
+    try:
+        _server_socket.close()
+    except Exception:
+        pass
+    _server_socket = None
+
+
 def open_socket(ip):
     global _server_socket
+
+    close_server_socket()
 
     addr = socket.getaddrinfo(CONFIG.server.host, CONFIG.server.port)[0][-1]
     _server_socket = socket.socket()
@@ -262,7 +295,13 @@ def serve_forever(ip, LOGGER):
 
     render_placeholder_screen("BOOT", "Waiting for data...")
     while True:
-        _display_tick()
+        try:
+            ip = ensure_connected(ip)
+            _display_tick()
 
-        conn = get_connection(LOGGER)
-        handle_http_request(conn, LOGGER)
+            conn = get_connection(LOGGER)
+            handle_http_request(conn, LOGGER)
+        except Exception as error:
+            log("serve_forever loop error:", error)
+            close_server_socket()
+            time.sleep(1)

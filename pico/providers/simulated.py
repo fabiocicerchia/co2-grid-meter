@@ -6,7 +6,6 @@ from datetime import timedelta
 
 from providers.base import EmissionsProvider
 from utils import iso_utc
-from config import CONFIG
 
 
 class SimulatedProvider(EmissionsProvider):
