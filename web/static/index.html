@@ -14,11 +14,12 @@
 
   <div class="page">
     <div class="topbar">
-      <h2 style="margin:0;"><b id="city">—</b> grid CO₂ dashboard (local)</h2>
+      <h2 style="margin:0;"><b id="city">—</b> <span data-i18n="dashboard_title_suffix">grid CO₂ dashboard (local)</span></h2>
 
       <div class="right">
+        <select id="lang" title="Language"><option value="en">EN</option><option value="it">IT</option></select>
         <div class="controlsRow">
-          <span class="toggleLabel">Auto refresh</span>
+          <span class="toggleLabel"><span data-i18n="auto_refresh">Auto refresh</span></span>
           <select id="refreshEvery" title="Refresh interval">
             <option value="5000">5s</option>
             <option value="10000">10s</option>
@@ -31,7 +32,7 @@
             <option value="900000">15m</option>
           </select>
           <button id="toggleAuto" title="Start/Stop auto refresh">Start</button>
-          <button id="refreshNow" title="Refresh once now">Refresh now</button>
+          <button id="refreshNow" title="Refresh once now"><span data-i18n="refresh_now">Refresh now</span></button>
           <span class="pill" id="autoState">off</span>
         </div>
 
@@ -62,27 +63,27 @@
       </div>
 
       <div class="card">
-        <h3 style="margin:0;">Current</h3>
+        <h3 style="margin:0;"><span data-i18n="current">Current</span></h3>
 
         <!-- 2-column text -->
         <div class="currentGrid">
           <div class="kvItem">
-            <div class="k">Intensity</div>
+            <div class="k"><span data-i18n="intensity">Intensity</span></div>
             <div class="v"><b id="ci">—</b> gCO₂/kWh</div>
           </div>
 
           <div class="kvItem">
-            <div class="k">Recommendation</div>
+            <div class="k"><span data-i18n="recommendation">Recommendation</span></div>
             <div class="v"><b id="verdict">—</b></div>
           </div>
 
           <div class="kvItem">
-            <div class="k">Reason</div>
+            <div class="k"><span data-i18n="reason">Reason</span></div>
             <div class="v" id="reason">—</div>
           </div>
 
           <div class="kvItem">
-            <div class="k">Next window</div>
+            <div class="k"><span data-i18n="next_window">Next window</span></div>
             <div class="v" id="next">—</div>
           </div>
         </div>
@@ -104,7 +105,7 @@
 
     <div class="card chartCard">
       <div class="chartHeader">
-        <h3 style="margin:0;">Past 48h + Next 12h</h3>
+        <h3 style="margin:0;"><span data-i18n="chart_title">Past 48h + Next 12h</span></h3>
         <div class="small">
           Solid = actual • Dotted = past-week overlay • Dashed = now • Bold line/label at midnight
         </div>
@@ -118,4 +119,3 @@
   <script src="/static/script.js"></script>
 </body>
 </html>
-

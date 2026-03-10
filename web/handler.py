@@ -110,6 +110,10 @@ def create_handler(
                 status_code = 200
                 content_type = "application/javascript"
                 body = _read_text(static_dir / "script.js")
+            elif url.path in ("/html/graph", "/html/graph.html"):
+                status_code = 200
+                content_type = "text/html"
+                body = _read_text(static_dir / "graph.html")
             elif url.path == "/api/status":
                 content_type = "application/json"
                 body, status_code = _pico_get_json(query, "/status")

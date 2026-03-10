@@ -15,6 +15,27 @@ const ls = { get: (k, d = "") => localStorage.getItem(k) ?? d, set: (k, v) => lo
 const num = (v, d = 0) => (Number.isFinite(+v) ? +v : d);
 const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 
+const I18N = {
+  en: {
+    dashboard_title_suffix: 'grid CO₂ dashboard (local)', auto_refresh: 'Auto refresh', refresh_now: 'Refresh now',
+    current: 'Current', intensity: 'Intensity', recommendation: 'Recommendation', reason: 'Reason',
+    next_window: 'Next window', chart_title: 'Past 48h + Next 12h'
+  },
+  it: {
+    dashboard_title_suffix: 'dashboard CO₂ di rete (locale)', auto_refresh: 'Aggiornamento automatico', refresh_now: 'Aggiorna ora',
+    current: 'Attuale', intensity: 'Intensità', recommendation: 'Raccomandazione', reason: 'Motivo',
+    next_window: 'Prossima finestra', chart_title: 'Ultime 48h + Prossime 12h'
+  }
+};
+
+function applyI18n(lang) {
+  const dict = I18N[lang] || I18N.en;
+  document.querySelectorAll('[data-i18n]').forEach((el) => {
+    const key = el.getAttribute('data-i18n');
+    if (dict[key]) el.textContent = dict[key];
+  });
+}
+
 const loadPico = () => ls.get(K.PICO, "");
 const savePico = (v) => ls.set(K.PICO, v);
 const getTheme = () => ls.get(K.THEME, "");
@@ -357,6 +378,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // auto refresh
   if ($("refreshEvery")) $("refreshEvery").value = String(getInterval());
   $("toggleAuto")?.addEventListener("click", toggleAuto);
+  $("lang")?.addEventListener("change", (e) => { ls.set("co2_meter_lang", e.target.value); applyI18n(e.target.value); });
+  const currentLang = ls.get("co2_meter_lang", "en"); if ($("lang")) $("lang").value = currentLang; applyI18n(currentLang);
+  
   $("refreshEvery")?.addEventListener("change", () => {
     const ms = num($("refreshEvery")?.value, 30000);
     setIntervalStore(ms);

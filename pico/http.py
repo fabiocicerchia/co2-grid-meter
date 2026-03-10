@@ -3,7 +3,7 @@ import struct
 import machine
 import socket
 import time
-
+import network
 import ujson
 
 from app import (
@@ -17,6 +17,21 @@ from config import CONFIG, append_log_line, write_crashdump
 from display import get_epd
 from utils import _now_stamp, log
 from fw_network import wifi_connect, wifi_ok
+
+
+_MINI_HTML = """<!doctype html><html><head><meta charset='utf-8'><title>CO₂ Pico</title></head>
+<body><h3>Pico local pages</h3><ul><li><a href='/html/graph'>Graph</a></li><li><a href='/system-info'>System info JSON</a></li></ul></body></html>"""
+
+_GRAPH_HTML = """<!doctype html><html><head><meta charset='utf-8'><title>CO₂ graph</title></head>
+<body><h3>Last 48h CO₂ (gCO₂/kWh)</h3><canvas id='c' width='640' height='280' style='border:1px solid #ccc'></canvas>
+<script>
+fetch('/em/window?back_hours=48').then(r=>r.json()).then(j=>{
+ const h=(j.history||[]).map(x=>Number(x.carbonIntensity)).filter(Number.isFinite);
+ const c=document.getElementById('c'),ctx=c.getContext('2d'); if(!h.length){ctx.fillText('No data',10,20);return;}
+ const mn=Math.min(...h),mx=Math.max(...h),w=c.width,hg=c.height,pad=20;
+ ctx.beginPath(); h.forEach((v,i)=>{const x=pad+i*(w-2*pad)/Math.max(1,h.length-1);const y=hg-pad-((v-mn)/(Math.max(1,mx-mn)))*(hg-2*pad); i?ctx.lineTo(x,y):ctx.moveTo(x,y)}); ctx.stroke();
+});
+</script></body></html>"""
 
 
 def _readline(conn):
@@ -83,6 +98,19 @@ def send_html(conn, code, body):
         "Connection: close\r\n"
         "Content-Length: %d\r\n\r\n"
     ) % (code, len(body))
+    conn.send(headers.encode())
+    conn.send(body.encode())
+
+
+def send_text(conn, code: int, body: str, content_type: str = "text/plain"):
+    headers = (
+        "HTTP/1.1 %d OK\r\n"
+        "Content-Type: %s\r\n"
+        "Access-Control-Allow-Origin: *\r\n"
+        "Connection: close\r\n"
+        "Content-Length: %d\r\n"
+        "\r\n"
+    ) % (code, content_type, len(body.encode()))
     conn.send(headers.encode())
     conn.send(body.encode())
 
@@ -201,6 +229,7 @@ def handle_http_request(conn, LOGGER):
 
     method, path_qs = request
     path, params = split_path_qs(path_qs)
+    LOGGER.info("%s %s", method, path)
 
     try:
         process_http_request(conn, method, path, params)
@@ -228,6 +257,12 @@ def process_http_request(conn, method, path, params):
         return send_json(conn, 200, handle_em_overlay(params))
     if path == "/status":
         return send_json(conn, 200, handle_status(params))
+    elif path == "/system-info":
+        send_json(conn, 200, handle_system_info(params, wifi_connected_callback))
+    elif path in ("/html", "/html/"):
+        send_text(conn, 200, _MINI_HTML, "text/html")
+    elif path == "/html/graph":
+        send_text(conn, 200, _GRAPH_HTML, "text/html")
 
     send_json(conn, 404, {"error": "Not found", "path": path})
 
@@ -239,7 +274,13 @@ def ensure_connected(ip):
     log("WiFi disconnected, reconnecting...")
     close_server_socket()
     connected, new_ip = wifi_connect()
-    if not connected:
+    if connected:
+        try:
+            ip = network.WLAN(network.STA_IF).ifconfig()[0]
+            print("System info: ip=%s provider=unknown location=%s,%s" % (ip, CONFIG.defaults.city, CONFIG.defaults.country))
+        except Exception:
+            pass
+    else:
         raise OSError("WiFi reconnect failed")
 
     try:

@@ -41,6 +41,7 @@ _last_render = 0
 _cache = TtlCache(CONFIG.cache_refresh_seconds)
 _auto_geo_cache = None
 _auto_geo_expires = 0
+_last_provider_used = "unknown"
 
 
 def _auto_geo_defaults():
@@ -154,7 +155,7 @@ _fresh_data = False
 
 
 def get_window(lat, lon, city, cc, start_epoch, end_epoch):
-    global _fresh_data
+    global _fresh_data, _last_provider_used
     key = ("window", round(lat, 4), round(lon, 4), city, cc, start_epoch, end_epoch)
     _fresh_data = False
 
@@ -172,6 +173,7 @@ def get_window(lat, lon, city, cc, start_epoch, end_epoch):
             )
         log("Provider used: %s" % provider_used)
         data["_provider"] = provider_used
+        _last_provider_used = provider_used
         data["lat"] = lat
         data["lon"] = lon
         data["_resolved"] = {"city": city, "cc": cc}
@@ -324,6 +326,31 @@ def render_placeholder_screen(title, detail):
             draw_text(_epd.black_frame, 5, 50, str(detail), color=EINK_BLACK)
     draw_top_bar(_epd)
     _epd.display()
+    
+
+def _current_ip(wifi_connected_callback):
+    if not wifi_connected_callback():
+        return None
+    try:
+        import network
+
+        wlan = network.WLAN(network.STA_IF)
+        return wlan.ifconfig()[0]
+    except Exception:
+        return None
+
+
+def handle_system_info(params, wifi_connected_callback):
+    lat, lon, city, cc = resolve_geo(params)
+    return {
+        "wifi_connected": bool(wifi_connected_callback()),
+        "ip": _current_ip(wifi_connected_callback),
+        "city": city,
+        "country": cc,
+        "lat": lat,
+        "lon": lon,
+        "provider_last_used": _last_provider_used,
+    }
 
 
 def render_screen(status_json, window_json, overlay_json):
