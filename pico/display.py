@@ -1,4 +1,3 @@
-
 import time
 import framebuf
 import utime
@@ -12,12 +11,12 @@ EINK_BLACK = 0
 EINK_WHITE = 1
 
 
-EPD_WIDTH       = 122
-EPD_HEIGHT      = 250
-RST_PIN         = 12
-DC_PIN          = 8
-CS_PIN          = 9
-BUSY_PIN        = 13
+EPD_WIDTH = 122
+EPD_HEIGHT = 250
+RST_PIN = 12
+DC_PIN = 8
+CS_PIN = 9
+BUSY_PIN = 13
 
 
 class EPD_2in13_B_V4_Base:
@@ -28,7 +27,7 @@ class EPD_2in13_B_V4_Base:
         self.cs_pin = Pin(CS_PIN, Pin.OUT)
         if EPD_WIDTH % 8 == 0:
             self.width = EPD_WIDTH
-        else :
+        else:
             self.width = (EPD_WIDTH // 8) * 8 + 8
         self.height = EPD_HEIGHT
 
@@ -40,31 +39,31 @@ class EPD_2in13_B_V4_Base:
         self.buffer_red = bytearray(self.height * self.width // 8)
 
     def init(self):
-        log('Init e-ink')
+        log("Init e-ink")
         self.reset()
 
         self.ReadBusy()
-        self.send_command(0x12)  #SWRESET
+        self.send_command(0x12)  # SWRESET
         self.ReadBusy()
 
-        self.send_command(0x01) #Driver output control
-        self.send_data(0xf9)
+        self.send_command(0x01)  # Driver output control
+        self.send_data(0xF9)
         self.send_data(0x00)
         self.send_data(0x00)
 
-        self.send_command(0x11) #data entry mode
+        self.send_command(0x11)  # data entry mode
         self.send_data(self.command_code)
 
-        self.SetWindows(0, 0, self.width-1, self.height-1)
+        self.SetWindows(0, 0, self.width - 1, self.height - 1)
         self.SetCursor(0, 0)
 
-        self.send_command(0x3C) #BorderWaveform
+        self.send_command(0x3C)  # BorderWaveform
         self.send_data(0x05)
 
-        self.send_command(0x18) #Read built-in temperature sensor
+        self.send_command(0x18)  # Read built-in temperature sensor
         self.send_data(0x80)
 
-        self.send_command(0x21) #  Display update control
+        self.send_command(0x21)  #  Display update control
         self.send_data(0x80)
         self.send_data(0x80)
 
@@ -96,7 +95,6 @@ class EPD_2in13_B_V4_Base:
         self.digital_write(self.reset_pin, 1)
         self.delay_ms(50)
 
-
     def send_command(self, command):
         self.digital_write(self.dc_pin, 0)
         self.digital_write(self.cs_pin, 0)
@@ -116,7 +114,7 @@ class EPD_2in13_B_V4_Base:
         self.digital_write(self.cs_pin, 1)
 
     def ReadBusy(self):
-        while(self.digital_read(self.busy_pin) == 1):
+        while self.digital_read(self.busy_pin) == 1:
             self.delay_ms(10)
         self.delay_ms(20)
 
@@ -125,21 +123,21 @@ class EPD_2in13_B_V4_Base:
         self.ReadBusy()
 
     def SetWindows(self, Xstart, Ystart, Xend, Yend):
-        self.send_command(0x44) # SET_RAM_X_ADDRESS_START_END_POSITION
-        self.send_data((Xstart>>3) & 0xFF)
-        self.send_data((Xend>>3) & 0xFF)
+        self.send_command(0x44)  # SET_RAM_X_ADDRESS_START_END_POSITION
+        self.send_data((Xstart >> 3) & 0xFF)
+        self.send_data((Xend >> 3) & 0xFF)
 
-        self.send_command(0x45) # SET_RAM_Y_ADDRESS_START_END_POSITION
+        self.send_command(0x45)  # SET_RAM_Y_ADDRESS_START_END_POSITION
         self.send_data(Ystart & 0xFF)
         self.send_data((Ystart >> 8) & 0xFF)
         self.send_data(Yend & 0xFF)
         self.send_data((Yend >> 8) & 0xFF)
 
     def SetCursor(self, Xstart, Ystart):
-        self.send_command(0x4E) # SET_RAM_X_ADDRESS_COUNTER
+        self.send_command(0x4E)  # SET_RAM_X_ADDRESS_COUNTER
         self.send_data(Xstart & 0xFF)
 
-        self.send_command(0x4F) # SET_RAM_Y_ADDRESS_COUNTER
+        self.send_command(0x4F)  # SET_RAM_Y_ADDRESS_COUNTER
         self.send_data(Ystart & 0xFF)
         self.send_data((Ystart >> 8) & 0xFF)
 
@@ -172,6 +170,7 @@ class EPD_2in13_B_V4_Base:
 
         self.TurnOnDisplay()
 
+
 # TODO: TEST IT
 class EPD_2in13_B_V4_Portrait(EPD_2in13_B_V4_Base):
     def __init__(self):
@@ -179,9 +178,14 @@ class EPD_2in13_B_V4_Portrait(EPD_2in13_B_V4_Base):
 
         self.command_code = 0x03
 
-        self.imageblack = framebuf.FrameBuffer(self.buffer_black, self.width, self.height, framebuf.MONO_HLSB)
-        self.imagered = framebuf.FrameBuffer(self.buffer_red, self.width, self.height, framebuf.MONO_HLSB)
+        self.imageblack = framebuf.FrameBuffer(
+            self.buffer_black, self.width, self.height, framebuf.MONO_HLSB
+        )
+        self.imagered = framebuf.FrameBuffer(
+            self.buffer_red, self.width, self.height, framebuf.MONO_HLSB
+        )
         self.init()
+
 
 class EPD_2in13_B_V4_Landscape(EPD_2in13_B_V4_Base):
     def __init__(self):
@@ -189,13 +193,19 @@ class EPD_2in13_B_V4_Landscape(EPD_2in13_B_V4_Base):
 
         self.command_code = 0x07
 
-        self.imageblack = framebuf.FrameBuffer(self.buffer_black, self.height, self.width, framebuf.MONO_VLSB)
-        self.imagered = framebuf.FrameBuffer(self.buffer_red, self.height, self.width, framebuf.MONO_VLSB)
+        self.imageblack = framebuf.FrameBuffer(
+            self.buffer_black, self.height, self.width, framebuf.MONO_VLSB
+        )
+        self.imagered = framebuf.FrameBuffer(
+            self.buffer_red, self.height, self.width, framebuf.MONO_VLSB
+        )
         self.init()
+
 
 # RENDERING
 
 _epd = None
+
 
 def get_epd():
     global _epd
@@ -207,6 +217,7 @@ def get_epd():
         epd_bind_frames(_epd)
 
     return _epd
+
 
 def epd_bind_frames(epd):
     """Normalize framebuffer attribute names across driver variants."""
@@ -261,7 +272,6 @@ def panel_dimensions(epd):
     return width, height
 
 
-
 def intensity_zone_from_percentile(percentile_value):
     if percentile_value is None:
         return "mid"
@@ -271,7 +281,10 @@ def intensity_zone_from_percentile(percentile_value):
         return "mid"
     return "high"
 
+
 _number_leds = 8
+
+
 def led_level_from_percentile(percentile_value):
     if percentile_value is None:
         return 0
@@ -343,6 +356,7 @@ def draw_wifi_icon(epd, x, y, connected, bars=0):
     else:
         frame.rect(x + 13, y + 9, 2, 2, EINK_BLACK)
 
+
 def _fb(epd):
     # Always draw on the black layer framebuffer
     return epd.black_frame
@@ -358,6 +372,7 @@ def draw_time(epd, x, y):
     fb.fill_rect(int(x), int(y), text_w, text_h, EINK_WHITE)
     draw_text(fb, x, y, s)
 
+
 def draw_current_panel(epd, current_ci, verdict, next_line):
     verdict = (verdict or "").strip()
     warning_mode = verdict not in ("OK", "RUN NOW")
@@ -367,8 +382,12 @@ def draw_current_panel(epd, current_ci, verdict, next_line):
     panel_w = max(40, screen_w - 10)
 
     # Clear panel area first.
-    epd.black_frame.fill_rect(panel_x + 1, panel_y + 1, panel_w - 2, panel_h - 2, EINK_WHITE)
-    epd.red_frame.fill_rect(panel_x + 1, panel_y + 1, panel_w - 2, panel_h - 2, EINK_WHITE)
+    epd.black_frame.fill_rect(
+        panel_x + 1, panel_y + 1, panel_w - 2, panel_h - 2, EINK_WHITE
+    )
+    epd.red_frame.fill_rect(
+        panel_x + 1, panel_y + 1, panel_w - 2, panel_h - 2, EINK_WHITE
+    )
 
     # Black background + white text.
     text_frame = epd.black_frame
@@ -417,7 +436,7 @@ def draw_graph(epd, current_line, week_line):
     if not scale_values:
         return
     low, high = min(scale_values), max(scale_values)
-    
+
     def norm(v):
         if v is None:
             return None
@@ -465,7 +484,7 @@ def draw_graph(epd, current_line, week_line):
     # Current timeline: solid black. Previous-week timeline: dotted black.
     draw_line(epd.black_frame, normalized_current, dotted=False)
     draw_line(epd.black_frame, normalized_week, dotted=True)
-    
+
     # Red dashed threshold bands (percentile cutoffs) across the graph.
     def draw_dashed_hline(x0, x1, y, dash=3, gap=5):
         x = int(x0)
@@ -509,7 +528,13 @@ def draw_graph(epd, current_line, week_line):
     # "now" marker line
     now_idx = CONFIG.timeline.back_hours_default
     if 0 <= now_idx < npts:
-        draw_vline(epd.black_frame, x_at(now_idx), base_y + 1, max(1, plot_h - 1), color=EINK_BLACK)
+        draw_vline(
+            epd.black_frame,
+            x_at(now_idx),
+            base_y + 1,
+            max(1, plot_h - 1),
+            color=EINK_BLACK,
+        )
 
     # Day ticks and labels (-48h, -24h, now)
     tick_y0 = base_y + plot_h
@@ -520,5 +545,13 @@ def draw_graph(epd, current_line, week_line):
         if idx < 0 or idx >= npts:
             continue
         x = x_at(idx)
-        draw_vline(epd.black_frame, x, tick_y0, max(1, tick_y1 - tick_y0 + 1), color=EINK_BLACK)
-        draw_text(epd.black_frame, max(base_x + 1, x - 8), base_y + height - 8, label, color=EINK_BLACK)
+        draw_vline(
+            epd.black_frame, x, tick_y0, max(1, tick_y1 - tick_y0 + 1), color=EINK_BLACK
+        )
+        draw_text(
+            epd.black_frame,
+            max(base_x + 1, x - 8),
+            base_y + height - 8,
+            label,
+            color=EINK_BLACK,
+        )

@@ -14,6 +14,7 @@ def parse_provider_history(points, datetime_key, intensity_getter):
     history.sort(key=lambda p: p["datetime"])
     return history
 
+
 class EmissionsProvider(ABC):
     provider_name: str
 

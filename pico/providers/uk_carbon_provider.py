@@ -3,6 +3,7 @@
 from requests import Session
 
 from providers.base import EmissionsProvider
+from config import CONFIG
 
 
 class UKCarbonIntensityProvider(EmissionsProvider):

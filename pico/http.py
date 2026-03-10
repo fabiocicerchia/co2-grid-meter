@@ -1,6 +1,4 @@
-
 import struct
-import logging
 
 import machine
 import socket
@@ -8,13 +6,16 @@ import time
 
 import ujson
 
-from app import _display_tick, handle_em_overlay, handle_em_window, handle_status, render_placeholder_screen
+from app import (
+    _display_tick,
+    handle_em_overlay,
+    handle_em_window,
+    handle_status,
+    render_placeholder_screen,
+)
 from config import CONFIG, append_log_line, write_crashdump
 from display import get_epd
 from utils import _now_stamp, log
-
-
-LOGGER = logging.getLogger(__name__)
 
 
 def _readline(conn):
@@ -71,7 +72,6 @@ def send_json(conn, code, payload):
     ) % (code, len(body))
     conn.send(headers.encode())
     conn.send(body.encode())
-
 
 
 def send_html(conn, code, body):
@@ -185,13 +185,12 @@ def set_time(offset=0, delta=2208988800, host="pool.ntp.org"):
         s.close()
     val = struct.unpack("!I", msg[40:44])[0]
     t = val - delta
-    tm = time.gmtime(t+offset)
+    tm = time.gmtime(t + offset)
     machine.RTC().datetime((tm[0], tm[1], tm[2], tm[6] + 1, tm[3], tm[4], tm[5], 0))
     log("Local time: %s" % _now_stamp())
 
 
-def handle_http_request(conn):
-    global LOGGER
+def handle_http_request(conn, LOGGER):
     if conn is None:
         return
 
@@ -215,6 +214,7 @@ def handle_http_request(conn):
         except Exception:
             pass
 
+
 def process_http_request(conn, method, path, params):
     if method != "GET":
         return send_json(conn, 405, {"error": "Only GET supported"})
@@ -230,14 +230,17 @@ def process_http_request(conn, method, path, params):
 
     send_json(conn, 404, {"error": "Not found", "path": path})
 
-def get_connection():
+
+def get_connection(LOGGER):
     if _server_socket is None:
         return None
     try:
         conn, _ = _server_socket.accept()
         return conn
-    except OSError:
+    except OSError as error:
+        LOGGER.exception("OSError %s", error)
         return None
+
 
 def open_socket(ip):
     global _server_socket
@@ -251,7 +254,7 @@ def open_socket(ip):
     log("Pico running: http://%s:%d" % (ip, CONFIG.server.port))
 
 
-def serve_forever(ip):
+def serve_forever(ip, LOGGER):
     global _epd
 
     open_socket(ip)
@@ -261,6 +264,5 @@ def serve_forever(ip):
     while True:
         _display_tick()
 
-        conn = get_connection()
-        handle_http_request(conn)
-
+        conn = get_connection(LOGGER)
+        handle_http_request(conn, LOGGER)

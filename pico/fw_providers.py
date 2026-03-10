@@ -1,4 +1,3 @@
-
 # https://eepublicdownloads.entsoe.eu/clean-documents/EDI/Library/old-downloads/Market_Areas_v1.0.pdf
 from providers.provider_electricity_maps import fetch_em_past_range
 from providers.provider_ukci import fetch_uk_ci_window
@@ -16,7 +15,10 @@ def selected_provider(country_code):
     if CONFIG.providers.ukci_enabled:
         enabled.append("uk")
 
-    if CONFIG.providers.electricity_maps.enabled and CONFIG.providers.electricity_maps.token:
+    if (
+        CONFIG.providers.electricity_maps.enabled
+        and CONFIG.providers.electricity_maps.token
+    ):
         enabled.append("em")
 
     if (
@@ -34,7 +36,9 @@ def selected_provider(country_code):
         enabled.append("entsoe")
 
     if len(enabled) > 1:
-        raise ProviderError("Enable only one provider at a time: %s" % ",".join(enabled))
+        raise ProviderError(
+            "Enable only one provider at a time: %s" % ",".join(enabled)
+        )
     if not enabled:
         raise ProviderError("No providers available")
     return enabled[0]
@@ -54,4 +58,3 @@ def fetch_window_any(lat, lon, city, country_code, start_epoch, end_epoch):
         return fetch_entsoe_window(country_code, start_epoch, end_epoch), "entsoe"
 
     raise ProviderError("Unknown provider: %s" % provider)
-

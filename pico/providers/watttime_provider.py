@@ -9,10 +9,10 @@ from requests.auth import HTTPBasicAuth
 from providers.base import EmissionsProvider
 from providers.constants import WT_REGION_MAP
 from utils import floor_hour, iso_utc
-from config import CONFIG
 
 LBS_PER_MWH_TO_GRAMS_PER_KWH = 0.45359237
 TOKEN_CACHE_TTL_SEC = 1500
+from config import CONFIG
 
 
 class WattTimeProvider(EmissionsProvider):

@@ -24,22 +24,24 @@ from http import serve_forever, set_time
 # =========================
 
 LOGGER = None
+
+
 def main():
     global LOGGER
     LOGGER = build_firmware_logger()
 
     gc.enable()
     connected, ip = wifi_connect()
-    
+
     if not connected:
-        CONFIG.wifi.ssid = "" # CHANGE ME
-        CONFIG.wifi.password = "" # CHANGE ME
+        CONFIG.wifi.ssid = ""  # CHANGE ME
+        CONFIG.wifi.password = ""  # CHANGE ME
         connected, ip = wifi_connect()
-    
+
     if connected:
-        set_time(2) # ITALY GMT+1 # TODO: FIX DAYLIGHT
-        
-    serve_forever(ip)
+        set_time()  # ITALY GMT+1 # TODO: FIX DAYLIGHT
+
+    serve_forever(ip, LOGGER)
 
 
 if __name__ == "__main__":
@@ -49,4 +51,3 @@ if __name__ == "__main__":
         sys.print_exception(error)
         crash_path = write_crashdump(error, context="http")
         append_log_line("ERROR %s" % crash_path)
-    

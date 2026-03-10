@@ -3,7 +3,16 @@ import ubinascii
 import urequests
 import gc
 
-from utils import ProviderError, close_response, epoch_to_iso_z, floor_hour_epoch, http_get_json, iso_z_to_epoch, safe_float, urlencode_simple
+from utils import (
+    ProviderError,
+    close_response,
+    epoch_to_iso_z,
+    floor_hour_epoch,
+    http_get_json,
+    iso_z_to_epoch,
+    safe_float,
+    urlencode_simple,
+)
 from config import CONFIG
 
 
@@ -32,14 +41,21 @@ def _watttime_login_token():
         payload = http_get_json(
             login_url,
             "WattTime login",
-            auth=(CONFIG.providers.watttime.username, CONFIG.providers.watttime.password),
+            auth=(
+                CONFIG.providers.watttime.username,
+                CONFIG.providers.watttime.password,
+            ),
         )
     except Exception:
         # MicroPython fallback: explicit Authorization header.
-        auth = _basic_auth_header(CONFIG.providers.watttime.username, CONFIG.providers.watttime.password)
+        auth = _basic_auth_header(
+            CONFIG.providers.watttime.username, CONFIG.providers.watttime.password
+        )
         if not auth:
             raise ProviderError("Missing ubinascii for Basic auth")
-        payload = http_get_json(login_url, "WattTime login", headers={"Authorization": auth})
+        payload = http_get_json(
+            login_url, "WattTime login", headers={"Authorization": auth}
+        )
 
     token = payload.get("token")
     if not token:
@@ -55,7 +71,9 @@ def _watttime_login_token():
 # {'signal_type': 'co2_moer', 'region_full_name': 'Kyrgyzstan', 'region': 'KGZ'}
 # TODO: WHY?!
 def _watttime_grid_region(lat, lon, token):
-    query = urlencode_simple({"latitude": str(lat), "longitude": str(lon), "signal_type": "co2_moer"})
+    query = urlencode_simple(
+        {"latitude": str(lat), "longitude": str(lon), "signal_type": "co2_moer"}
+    )
     url = CONFIG.providers.watttime.base_url + "/v3/region-from-loc?" + query
     payload = http_get_json(
         url,
@@ -66,6 +84,7 @@ def _watttime_grid_region(lat, lon, token):
     if not region:
         raise ProviderError("WattTime region missing ba")
     return region
+
 
 def parse_watttime_historical_compact(raw, start_epoch, end_epoch):
     """Parse /v3/historical payload with low memory use.
@@ -139,31 +158,36 @@ def parse_watttime_historical_compact(raw, start_epoch, end_epoch):
     history = []
     for hour in hours:
         total, count = buckets[hour]
-        history.append({"datetime": epoch_to_iso_z(hour), "carbonIntensity": total / count})
+        history.append(
+            {"datetime": epoch_to_iso_z(hour), "carbonIntensity": total / count}
+        )
     return history
-
 
 
 def fetch_watttime_window(lat, lon, start_epoch, end_epoch):
     global CONFIG
     if not (
-        CONFIG.providers.watttime.enabled and CONFIG.providers.watttime.username and CONFIG.providers.watttime.password
+        CONFIG.providers.watttime.enabled
+        and CONFIG.providers.watttime.username
+        and CONFIG.providers.watttime.password
     ):
         raise ProviderError("WattTime disabled/missing credentials")
     if not _watttime_allowed_now():
         raise ProviderError("WattTime temporarily disabled")
 
     token = _watttime_login_token()
-    region = "CAISO_NORTH" # _watttime_grid_region(lat, lon, token) # TODO: FIX THIS
+    region = "CAISO_NORTH"  # _watttime_grid_region(lat, lon, token) # TODO: FIX THIS
 
     response = None
     try:
-        query = urlencode_simple({
-            "region": region,
-            "start": epoch_to_iso_z(start_epoch),
-            "end": epoch_to_iso_z(end_epoch),
-            "signal_type": "co2_moer",
-        })
+        query = urlencode_simple(
+            {
+                "region": region,
+                "start": epoch_to_iso_z(start_epoch),
+                "end": epoch_to_iso_z(end_epoch),
+                "signal_type": "co2_moer",
+            }
+        )
         url = CONFIG.providers.watttime.base_url + "/v3/historical?" + query
         response = urequests.get(
             url,

@@ -24,6 +24,7 @@ def clamp(value, minimum, maximum):
 def floor_hour(dt: datetime) -> datetime:
     return dt.replace(minute=0, second=0, microsecond=0)
 
+
 def floor_hour_epoch(epoch_seconds):
     return epoch_seconds - (epoch_seconds % 3600)
 
@@ -82,7 +83,15 @@ def _format_timestamp(parts, include_seconds=True, separator="T"):
     year, month, day, hour, minute = parts[:5]
     if include_seconds:
         second = parts[5]
-        return "%04d-%02d-%02d%s%02d:%02d:%02d" % (year, month, day, separator, hour, minute, second)
+        return "%04d-%02d-%02d%s%02d:%02d:%02d" % (
+            year,
+            month,
+            day,
+            separator,
+            hour,
+            minute,
+            second,
+        )
     return "%04d-%02d-%02d%s%02d:%02d" % (year, month, day, separator, hour, minute)
 
 
@@ -164,7 +173,6 @@ def iso_z_to_epoch(iso_timestamp):
         return None
 
 
-
 def percentile(sorted_values, target):
     count = len(sorted_values)
     if count == 0:
@@ -194,13 +202,15 @@ def _to_str(x):
 def _quote(s):
     # Minimal percent-encoding suitable for query strings on MicroPython.
     s = _to_str(s)
-    return (s.replace("%", "%25")
-             .replace(" ", "%20")
-             .replace("&", "%26")
-             .replace("=", "%3D")
-             .replace("+", "%2B")
-             .replace("?", "%3F")
-             .replace("#", "%23"))
+    return (
+        s.replace("%", "%25")
+        .replace(" ", "%20")
+        .replace("&", "%26")
+        .replace("=", "%3D")
+        .replace("+", "%2B")
+        .replace("?", "%3F")
+        .replace("#", "%23")
+    )
 
 
 def urlencode_simple(d):
@@ -232,6 +242,7 @@ def _resolution_to_seconds(resolution_text):
 def iso_utc(dt: datetime) -> str:
     return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
+
 class TextStream:
     def __init__(self, raw, encoding="utf-8"):
         self.raw = raw
@@ -244,5 +255,3 @@ class TextStream:
         if isinstance(b, bytes):
             return b.decode(self.encoding, "ignore")
         return b
-
-

@@ -1,4 +1,3 @@
-
 import time
 import network
 
@@ -6,6 +5,7 @@ from config import CONFIG
 from utils import log
 
 _wlan = None
+
 
 def wifi_connect(timeout_ms=15000):
     global _wlan

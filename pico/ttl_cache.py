@@ -1,6 +1,6 @@
 """Tiny TTL cache used by mock server and firmware orchestration."""
 
-#from __futue__ import annotations
+# from _future__ import annotations
 
 import time
 

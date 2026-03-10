@@ -1,8 +1,7 @@
-
 class CONFIG:
     class wifi:
-        ssid = "" # TODO: CHANGE ME
-        password = "" # TODO: CHANGE ME
+        ssid = ""  # TODO: CHANGE ME
+        password = ""  # TODO: CHANGE ME
 
     class defaults:
         # ENTSOE
@@ -12,46 +11,51 @@ class CONFIG:
         country = "IT"
 
         # UKCI
-        #latitude = 51.5072
-        #longitude = 0.1276
-        #city = "London"
-        #country = "GB"
+        # latitude = 51.5072
+        # longitude = 0.1276
+        # city = "London"
+        # country = "GB"
 
         # ELECTRICITY MAP
-        #latitude = 59.3327
-        #longitude = 18.0656
-        #city = "Stockholm"
-        #country = "SE"
+        # latitude = 59.3327
+        # longitude = 18.0656
+        # city = "Stockholm"
+        # country = "SE"
 
         # WATTTIME
-        #latitude = 37.7749
-        #longitude = 122.4194
-        #city = "San Francisco"
-        #country = "CAISO_NORTH"
+        # latitude = 37.7749
+        # longitude = 122.4194
+        # city = "San Francisco"
+        # country = "CAISO_NORTH"
 
     class providers:
-        ukci_enabled = False # TODO: CHANGE ME
+        ukci_enabled = False  # TODO: CHANGE ME
 
         class electricity_maps:
-            enabled = False # TODO: CHANGE ME
-            token = "" # TODO: CHANGE ME
+            enabled = False  # TODO: CHANGE ME
+            token = ""  # TODO: CHANGE ME
             base_url = "https://api.electricitymaps.com"
 
+        class co2signal:
+            enabled = False  # TODO: CHANGE ME
+            token = ""  # TODO: CHANGE ME
+            base_url = "https://api.co2signal.com"
+
         class watttime:
-            enabled = False # TODO: CHANGE ME
-            username = "" # TODO: CHANGE ME
-            password = "" # TODO: CHANGE ME
+            enabled = False  # TODO: CHANGE ME
+            username = ""  # TODO: CHANGE ME
+            password = ""  # TODO: CHANGE ME
             base_url = "https://api.watttime.org"
 
         # TODO: it's super slow due to XML response
         class entsoe:
-            enabled = True # TODO: CHANGE ME
-            token = "" # TODO: CHANGE ME
+            enabled = True  # TODO: CHANGE ME
+            token = ""  # TODO: CHANGE ME
             base_url = "https://web-api.tp.entsoe.eu/api"
-            area_override = "IT-CSOUTH" # TODO: CHANGE ME
+            area_override = "IT-CSOUTH"  # TODO: CHANGE ME
 
         watttime_cooldown_sec = 24 * 3600
-        force_dummy = False # TODO: CHANGE ME
+        force_dummy = False  # TODO: CHANGE ME
 
     class timeline:
         back_hours_default = 48
@@ -76,7 +80,7 @@ class CONFIG:
         refresh_seconds = 24 * 3600
         failure_retry_seconds = 15 * 60
 
-    cache_refresh_seconds = 300 # 5 mins
+    cache_refresh_seconds = 300  # 5 mins
 
 
 # Simple filesystem persistence helpers for firmware logs/crash dumps.
@@ -84,6 +88,7 @@ class CONFIG:
 import logging
 import os
 import time
+import sys
 
 LOG_DIR = "logs"
 CRASH_DIR = "crashdumps"
@@ -139,6 +144,7 @@ def prune_old_logs(days: int = 2) -> None:
 def write_crashdump(error: Exception, context: str = "runtime") -> str:
     _ensure_dirs()
     stamp = int(time.time())
+    sys.print_exception(error)
     path = "%s/%s-%d.txt" % (CRASH_DIR, context, stamp)
     with open(path, "w", encoding="utf-8") as handle:
         handle.write("timestamp=%d\n" % stamp)
@@ -165,7 +171,9 @@ def build_firmware_logger(name: str = "pico.firmware"):
     logger.propagate = False
 
     stream_handler = logging.StreamHandler()
-    stream_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
+    stream_handler.setFormatter(
+        logging.Formatter("%(asctime)s %(levelname)s %(message)s")
+    )
 
     file_handler = _DailyFileLogHandler()
     file_handler.setFormatter(logging.Formatter("%(levelname)s %(message)s"))

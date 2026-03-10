@@ -1,5 +1,3 @@
-
-
 import time
 
 from config import CONFIG
@@ -25,10 +23,25 @@ def compute_recommendation(current_carbon_intensity, overlay_history, now_epoch)
     wait_hours, next_best = _compute_next_best(overlay_history, now_epoch)
 
     if current_percentile <= CONFIG.thresholds.green_percentile_max:
-        return {"verdict": "RUN NOW", "reason": "Cleaner than avg", "next_best": "Now", "wait_hours": 0}
+        return {
+            "verdict": "RUN NOW",
+            "reason": "Cleaner than avg",
+            "next_best": "Now",
+            "wait_hours": 0,
+        }
     if current_percentile <= CONFIG.thresholds.yellow_percentile_max:
-        return {"verdict": "OK", "reason": "Around average", "next_best": next_best, "wait_hours": wait_hours or 0}
-    return {"verdict": "WAIT", "reason": "Dirtier than avg", "next_best": next_best, "wait_hours": wait_hours}
+        return {
+            "verdict": "OK",
+            "reason": "Around average",
+            "next_best": next_best,
+            "wait_hours": wait_hours or 0,
+        }
+    return {
+        "verdict": "WAIT",
+        "reason": "Dirtier than avg",
+        "next_best": next_best,
+        "wait_hours": wait_hours,
+    }
 
 
 def _compute_next_best(overlay_history, now_epoch):
@@ -58,5 +71,3 @@ def _compute_next_best(overlay_history, now_epoch):
 def recommend_from_week(current_ci, week_history_points, *_, **__):
     now_epoch = floor_hour_epoch(int(time.time()))
     return compute_recommendation(current_ci, week_history_points or [], now_epoch)
-
-

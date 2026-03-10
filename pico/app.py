@@ -1,13 +1,39 @@
-
 import time
 
 from ttl_cache import TtlCache
 from config import CONFIG
-from display import EINK_BLACK, draw_current_panel, draw_graph, draw_leds, draw_rect, draw_text, draw_time, draw_wifi_icon, epd_clear_screen, get_epd, intensity_zone_from_percentile, led_level_from_percentile, panel_dimensions
+from display import (
+    EINK_BLACK,
+    draw_current_panel,
+    draw_graph,
+    draw_leds,
+    draw_rect,
+    draw_text,
+    draw_time,
+    draw_wifi_icon,
+    epd_clear_screen,
+    get_epd,
+    intensity_zone_from_percentile,
+    led_level_from_percentile,
+    panel_dimensions,
+)
 from fw_network import wifi_ok, wifi_signal_bars
-from providers import fetch_window_any
+from fw_providers import fetch_window_any
 from recommendation import recommend_from_week
-from utils import ProviderError, epoch_to_iso_z, floor_hour_epoch, fmt_hhmm_local, free_mem, http_get_json, iso_z_to_epoch, log, percentile, safe_float, url_decode
+from utils import (
+    ProviderError,
+    epoch_to_iso_z,
+    floor_hour_epoch,
+    fmt_hhmm_local,
+    free_mem,
+    http_get_json,
+    iso_z_to_epoch,
+    log,
+    percentile,
+    safe_float,
+    url_decode,
+)
+
 
 _epd = None
 _server_socket = None
@@ -90,8 +116,11 @@ def series_points(series_json):
     points.sort(key=lambda item: item[0])
     return points
 
+
 # TODO: add a variable to force switch the provide and the city
 _dummy_rng_state = int(time.time()) & 0x7FFFFFFF
+
+
 def _rand01():
     global _dummy_rng_state
     # Deterministic LCG; avoids depending on CPython random module in MicroPython.
@@ -114,11 +143,16 @@ def dummy_fetch_window_any(lat, lon, city, country_code, start_epoch, end_epoch)
         cursor += 3600
 
     if history:
-        log("DUMMY provider generated %d points in range [%d, %d]" % (len(history), min_ci, max_ci))
+        log(
+            "DUMMY provider generated %d points in range [%d, %d]"
+            % (len(history), min_ci, max_ci)
+        )
     return {"city": "Dummy", "history": history, "_provider": "dummy"}, "dummy"
 
 
 _fresh_data = False
+
+
 def get_window(lat, lon, city, cc, start_epoch, end_epoch):
     global _fresh_data
     key = ("window", round(lat, 4), round(lon, 4), city, cc, start_epoch, end_epoch)
@@ -129,9 +163,13 @@ def get_window(lat, lon, city, cc, start_epoch, end_epoch):
         _fresh_data = True
         log("Fetching data...")
         if CONFIG.providers.force_dummy:
-            data, provider_used = dummy_fetch_window_any(lat, lon, city, cc, start_epoch, end_epoch)
+            data, provider_used = dummy_fetch_window_any(
+                lat, lon, city, cc, start_epoch, end_epoch
+            )
         else:
-            data, provider_used = fetch_window_any(lat, lon, city, cc, start_epoch, end_epoch)
+            data, provider_used = fetch_window_any(
+                lat, lon, city, cc, start_epoch, end_epoch
+            )
         log("Provider used: %s" % provider_used)
         data["_provider"] = provider_used
         data["lat"] = lat
@@ -161,18 +199,29 @@ def handle_em_overlay(params):
 def make_next_line(recommendation):
     wait_hours = recommendation.get("wait_hours")
     if isinstance(wait_hours, int) and wait_hours > 0:
-        return "WAIT %dh (%s)" % (wait_hours, fmt_hhmm_local(int(time.time()) + wait_hours * 3600))
-    return ((recommendation.get("reason") or "")).strip()[:22] # TODO: THIS LINE IS NOT REALLY NEEDED
+        return "WAIT %dh (%s)" % (
+            wait_hours,
+            fmt_hhmm_local(int(time.time()) + wait_hours * 3600),
+        )
+    return ((recommendation.get("reason") or "")).strip()[
+        :22
+    ]  # TODO: THIS LINE IS NOT REALLY NEEDED
+
 
 def build_status_bundle(params):
     log("Fetching data")
     lat, lon, city, cc = resolve_geo(params)
     now = floor_hour_epoch(int(time.time()))
 
-    window_data = handle_em_window({
-        "lat": str(lat), "lon": str(lon), "city": city, "cc": cc,
-        "back_hours": str(CONFIG.timeline.back_hours_default),
-    })
+    window_data = handle_em_window(
+        {
+            "lat": str(lat),
+            "lon": str(lon),
+            "city": city,
+            "cc": cc,
+            "back_hours": str(CONFIG.timeline.back_hours_default),
+        }
+    )
     history = window_data.get("history") or []
     if not history:
         raise ProviderError("No window history")
@@ -181,7 +230,9 @@ def build_status_bundle(params):
     if current_intensity is None:
         raise ProviderError("No carbonIntensity in last point")
 
-    overlay_data = handle_em_overlay({"lat": str(lat), "lon": str(lon), "city": city, "cc": cc})
+    overlay_data = handle_em_overlay(
+        {"lat": str(lat), "lon": str(lon), "city": city, "cc": cc}
+    )
     recommendation = recommend_from_week(
         current_intensity,
         overlay_data.get("history") or [],
@@ -202,6 +253,7 @@ def build_status_bundle(params):
 
     return status, window_data, overlay_data
 
+
 def handle_status(params):
     lat, lon, city, cc = resolve_geo(params)
     # Keep a stable key so /status serves cached payload immediately when present.
@@ -214,8 +266,10 @@ def handle_status(params):
 
     return _cache.get_or_set(key, build)
 
+
 # ---- Periodic e-ink refresh (decoupled from HTTP polling) ----
 _last_display_tick = 0
+
 
 def _display_tick():
     """Refresh the e-ink every CONFIG.display.render_min_interval_sec even if /status is never called."""
@@ -234,7 +288,7 @@ def _display_tick():
         status, window_data, overlay_data = build_status_bundle(params)
         render_screen(status, window_data, overlay_data)
     except Exception as e:
-       # Don't crash the server loop if provider/network is down
+        # Don't crash the server loop if provider/network is down
         try:
             log("ERROR(_display_tick) %s" % e)
             render_placeholder_screen("DATA ERROR", str(e))
@@ -242,10 +296,11 @@ def _display_tick():
             log("ERROR(_display_tick 2) %s" % e)
             pass
 
+
 def draw_top_bar(_epd):
     draw_wifi_icon(_epd, 180, 5, wifi_ok(), wifi_signal_bars())
     draw_time(_epd, 205, 8)
-    
+
 
 def render_placeholder_screen(title, detail):
     global _epd, _has_rendered_data
@@ -256,7 +311,7 @@ def render_placeholder_screen(title, detail):
     panel_w = max(40, screen_w - 10)
     draw_rect(_epd.black_frame, 5, 20, panel_w, 25, color=EINK_BLACK, fill=False)
 
-    title = (title or "Status")
+    title = title or "Status"
     draw_text(_epd.black_frame, 10, 28, title, color=EINK_BLACK)
 
     if detail:
@@ -289,14 +344,21 @@ def render_screen(status_json, window_json, overlay_json):
     overlay_points = series_points(overlay_json)
 
     # Build aligned 60-hour timeline: [-48h, +12h]
-    timeline = [now_epoch - (CONFIG.timeline.back_hours_default * 3600) + i * 3600 for i in range(60)]
+    timeline = [
+        now_epoch - (CONFIG.timeline.back_hours_default * 3600) + i * 3600
+        for i in range(60)
+    ]
     current_map = {ts: v for ts, v in current_points}
     week_map = {ts + (7 * 24 * 3600): v for ts, v in overlay_points}
     current_line = [current_map.get(ts) for ts in timeline]
     week_line = [week_map.get(ts) for ts in timeline]
 
     overlay_values = [v for _, v in overlay_points]
-    percentile_value = percentile(sorted(overlay_values), current_intensity) if len(overlay_values) >= 12 else None
+    percentile_value = (
+        percentile(sorted(overlay_values), current_intensity)
+        if len(overlay_values) >= 12
+        else None
+    )
     zone = intensity_zone_from_percentile(percentile_value)
     level = led_level_from_percentile(percentile_value)
 
@@ -310,5 +372,5 @@ def render_screen(status_json, window_json, overlay_json):
 
     _epd.display()
     _last_render = now
-    
+
     free_mem()
