@@ -1,12 +1,13 @@
 # https://eepublicdownloads.entsoe.eu/clean-documents/EDI/Library/old-downloads/Market_Areas_v1.0.pdf
-from providers.provider_electricity_maps import fetch_em_past_range
-from providers.provider_ukci import fetch_uk_ci_window
-from providers.provider_entsoe import ENTSOE_DOMAIN, fetch_entsoe_window
-from providers.provider_watttime import fetch_watttime_window
+from providers.electricity_maps import ElectricityMapsProvider
+from providers.ukci import UkciProvider
+from providers.entsoe import ENTSOE_DOMAIN, EntsoeProvider
+from providers.watttime import WattTimeProvider
 from utils import ProviderError
 from config import CONFIG
 
 
+# TODO: Refactor to use is_enabled
 def selected_provider(country_code):
     cc = (country_code or "XX").upper()
     entsoe_cc = (CONFIG.providers.entsoe.area_override or cc).upper()
@@ -48,13 +49,21 @@ def fetch_window_any(lat, lon, city, country_code, start_epoch, end_epoch):
     del city
     provider = selected_provider(country_code)
 
+    providerClass = ""
+
     if provider == "uk":
-        return fetch_uk_ci_window(start_epoch, end_epoch), "uk"
+        providerClass = UkciProvider()
     if provider == "em":
-        return fetch_em_past_range(lat, lon, start_epoch, end_epoch), "em"
+        providerClass = ElectricityMapsProvider()
     if provider == "watttime":
-        return fetch_watttime_window(lat, lon, start_epoch, end_epoch), "watttime"
+        providerClass = WattTimeProvider()
     if provider == "entsoe":
-        return fetch_entsoe_window(country_code, start_epoch, end_epoch), "entsoe"
+        providerClass = EntsoeProvider()
+
+    if providerClass != "":
+        return (
+            providerClass.fetch_history(lat, lon, country_code, start_epoch, end_epoch),
+            provider,
+        )
 
     raise ProviderError("Unknown provider: %s" % provider)
