@@ -18,6 +18,7 @@ from display import get_epd
 from utils import _now_stamp, log
 from fw_network import wifi_connect, wifi_ok
 
+_server_socket = None
 
 _MINI_HTML = """<!doctype html><html><head><meta charset='utf-8'><title>CO₂ Pico</title></head>
 <body><h3>Pico local pages</h3><ul><li><a href='/html/graph'>Graph</a></li><li><a href='/system-info'>System info JSON</a></li></ul></body></html>"""

@@ -36,7 +36,6 @@ from utils import (
 
 
 _epd = None
-_server_socket = None
 _last_render = 0
 _cache = TtlCache(CONFIG.cache_refresh_seconds)
 _auto_geo_cache = None
