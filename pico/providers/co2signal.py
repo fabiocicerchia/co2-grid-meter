@@ -99,7 +99,7 @@ class Co2SignalProvider(EmissionsProvider):
 
             os.rename(tmp_file, self._store_file)
         except Exception as error:
-            log("CO2Signal store save failed:", error)
+            log("CO2Signal store save failed: %s" % error)
 
     def _extract_intensity(self, payload):
         data = payload.get("data") if isinstance(payload, dict) else None
@@ -174,7 +174,7 @@ class Co2SignalProvider(EmissionsProvider):
             self._next_collect_after = now + self._collect_interval_sec
             return samples
         except Exception as error:
-            log("CO2Signal collect failed:", error)
+            log("CO2Signal collect failed: %s" % error)
             self._next_collect_after = now + 60
             return samples
 

@@ -230,13 +230,13 @@ def handle_http_request(conn, LOGGER):
 
     method, path_qs = request
     path, params = split_path_qs(path_qs)
-    LOGGER.info("%s %s", method, path)
+    LOGGER.info("%s %s" % (method, path))
 
     try:
         process_http_request(conn, method, path, params)
     except Exception as error:
         crash_path = write_crashdump(error, context="http")
-        LOGGER.exception("ERROR %s %s", error, crash_path)
+        LOGGER.exception("ERROR %s %s" % (error, crash_path))
         append_log_line("ERROR %s" % crash_path)
         send_json(conn, 500, {"error": "Internal error", "details": str(error)})
     finally:
@@ -287,7 +287,7 @@ def ensure_connected(ip):
     try:
         set_time(2)  # ITALY GMT+1 # TODO: FIX DAYLIGHT
     except Exception as error:
-        log("set_time after reconnect failed:", error)
+        log("set_time after reconnect failed: %s" % error)
 
     open_socket(new_ip)
     return new_ip
@@ -300,7 +300,7 @@ def get_connection(LOGGER):
         conn, _ = _server_socket.accept()
         return conn
     except OSError as error:
-        LOGGER.exception("OSError %s", error)
+        LOGGER.exception("OSError %s" % error)
         return None
 
 
@@ -344,6 +344,6 @@ def serve_forever(ip, LOGGER):
             conn = get_connection(LOGGER)
             handle_http_request(conn, LOGGER)
         except Exception as error:
-            log("serve_forever loop error:", error)
+            log("serve_forever loop error: %s" % error)
             close_server_socket()
             time.sleep(1)
