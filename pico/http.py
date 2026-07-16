@@ -11,6 +11,7 @@ from app import (
     handle_em_overlay,
     handle_em_window,
     handle_status,
+    handle_system_info,
     render_placeholder_screen,
 )
 from config import CONFIG, append_log_line, write_crashdump
@@ -258,14 +259,14 @@ def process_http_request(conn, method, path, params):
         return send_json(conn, 200, handle_em_overlay(params))
     if path == "/status":
         return send_json(conn, 200, handle_status(params))
-    elif path == "/system-info":
-        send_json(conn, 200, handle_system_info(params, wifi_connected_callback))
-    elif path in ("/html", "/html/"):
-        send_text(conn, 200, _MINI_HTML, "text/html")
-    elif path == "/html/graph":
-        send_text(conn, 200, _GRAPH_HTML, "text/html")
+    if path == "/system-info":
+        return send_json(conn, 200, handle_system_info(params, wifi_ok))
+    if path == "/html/":
+        return send_text(conn, 200, _MINI_HTML, "text/html")
+    if path == "/html/graph":
+        return send_text(conn, 200, _GRAPH_HTML, "text/html")
 
-    send_json(conn, 404, {"error": "Not found", "path": path})
+    return send_json(conn, 404, {"error": "Not found", "path": path})
 
 
 def ensure_connected(ip):
