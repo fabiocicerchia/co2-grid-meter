@@ -30,8 +30,10 @@ class WattTimeProvider(EmissionsProvider):
         return time.time() >= self._disabled_until
 
     def _disable_for_a_day(self):
-        global CONFIG
-        self._disabled_until = time.time() + CONFIG.providers.watttime_cooldown_sec
+        # fetch_window_any() instantiates a fresh WattTimeProvider() per call,
+        # so an instance attribute here would be discarded immediately. Write
+        # the class attribute so the cooldown actually persists across calls.
+        WattTimeProvider._disabled_until = time.time() + CONFIG.providers.watttime_cooldown_sec
 
     def _basic_auth_header(self, user, password):
         auth_raw = ("%s:%s" % (user, password)).encode()
