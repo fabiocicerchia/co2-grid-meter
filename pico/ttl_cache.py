@@ -28,6 +28,12 @@ class TtlCache:
 
     def set(self, key, value, now=None):
         now = time.time() if now is None else now
+        # ponytail: keys with a moving time-range component (e.g. window
+        # start/end) are never re-queried after expiry, so nothing ever pops
+        # them via get(). Sweep on write or _store grows unbounded (ENOMEM).
+        expired = [k for k, (expires_at, _) in self._store.items() if expires_at <= now]
+        for k in expired:
+            del self._store[k]
         self._store[key] = (now + self.ttl_seconds, value)
         return value
 
