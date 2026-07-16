@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import logging
 import requests
 
 from dataclasses import dataclass
@@ -10,6 +11,9 @@ from urllib.parse import parse_qs, urlparse
 from pico.providers.simulated_provider import SimulatedProvider
 from pico.utils import floor_hour, iso_utc
 from pico.recommendation import compute_recommendation
+
+LOGGER = logging.getLogger(__name__)
+
 
 @dataclass(frozen=True)
 class GeoLocation:
@@ -71,7 +75,7 @@ def create_handler(*, config, logger) -> type[BaseHTTPRequestHandler]:
                     payload = self._window_response(location, start_time, end_time)
                     current_carbon_intensity = float(payload["history"][-1]["carbonIntensity"])
                     payload["datetime"] = iso_utc(now_utc)
-                    payload["carbonIntensity"] = current_carbon_intensity,
+                    payload["carbonIntensity"] = current_carbon_intensity
                     payload["recommendation"] = compute_recommendation(current_carbon_intensity, payload["history"], int(now_utc.timestamp()))
                     status_code = 200
                 elif url.path == "/em/window":
