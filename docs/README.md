@@ -1,5 +1,8 @@
 # Dashboard + Mock Pico notes
 
+- [Getting Started](getting-started.md) — setup and first run.
+- [Architecture](architecture.md) — components and data flow.
+
 This repository ships two local services:
 
 - Mock Pico API (`python -m mock.mock_pico`) on `127.0.0.1:8080`
