@@ -1,5 +1,10 @@
 # CO₂ Grid Meter
 
+[![CI](https://github.com/fabiocicerchia/co2-grid-meter/actions/workflows/code-quality.yml/badge.svg)](https://github.com/fabiocicerchia/co2-grid-meter/actions/workflows/code-quality.yml)
+[![Security](https://github.com/fabiocicerchia/co2-grid-meter/actions/workflows/security.yml/badge.svg)](https://github.com/fabiocicerchia/co2-grid-meter/actions/workflows/security.yml)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/fabiocicerchia/co2-grid-meter/badge)](https://securityscorecards.dev/viewer/?uri=github.com/fabiocicerchia/co2-grid-meter)
+
 A local-first project that helps you decide **when to run energy-hungry appliances** by tracking grid carbon intensity for your region.
 
 ## What you get
@@ -186,4 +191,21 @@ pytest -q
 - [ ] Add lightweight auth (token/basic auth) for HTTP endpoints when exposed outside trusted LAN.
 - [ ] Add OTA-safe update flow (staged firmware update + rollback marker on boot failure).
 - [ ] Add data export endpoints (`/em/window.csv` and compact JSON summaries) for home-automation integrations.
+
+## Documentation
+
+Full docs live in [`docs/`](docs/). Runnable examples live in [`examples/`](examples/).
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md). By participating you agree to the
+[Code of Conduct](CODE_OF_CONDUCT.md).
+
+## Security
+
+Found a vulnerability? See [SECURITY.md](SECURITY.md) — please don't open a public issue.
+
+## License
+
+[MIT](LICENSE) © 2026 Fabio Cicerchia
 
