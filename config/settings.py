@@ -64,7 +64,7 @@ class SimProviderSettings:
 @dataclass(frozen=True)
 class SimServerSettings:
     host: str = field(default="127.0.0.1", metadata={"env": "HOST"})
-    port: int = field(default="8080", metadata={"env": "PICO_PORT"})
+    port: int = field(default=8080, metadata={"env": "PICO_PORT"})
 
 
 @dataclass(frozen=True)
