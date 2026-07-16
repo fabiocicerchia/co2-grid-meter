@@ -231,7 +231,7 @@ def epd_bind_frames(epd):
             epd.red_frame = fb
 
     if not hasattr(epd, "black_buffer"):
-        buf = getattr(epd, "buffer_balck", None)
+        buf = getattr(epd, "buffer_black", None)
         if buf is not None:
             epd.black_buffer = buf
     if not hasattr(epd, "red_buffer"):
