@@ -8,7 +8,7 @@ from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import parse_qs, urlparse
 
-from pico.providers.simulated_provider import SimulatedProvider
+from pico.providers.simulated import SimulatedProvider
 from pico.utils import floor_hour, iso_utc
 from pico.recommendation import compute_recommendation
 
