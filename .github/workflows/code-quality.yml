@@ -28,7 +28,7 @@ jobs:
 
       # pre-commit runs the language-specific hooks defined in
       # .pre-commit-config.yaml (ruff, gitleaks, etc.).
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v7
         with:
           python-version: "3.x"
       - name: pre-commit
