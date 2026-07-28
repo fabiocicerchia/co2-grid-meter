@@ -79,42 +79,29 @@ def split_path_qs(path_qs):
     return path, params
 
 
-def send_json(conn, code, payload):
-    body = ujson.dumps(payload)
-    headers = (
-        "HTTP/1.1 %d OK\r\n"
-        "Content-Type: application/json\r\n"
-        "Access-Control-Allow-Origin: *\r\n"
-        "Connection: close\r\n"
-        "Content-Length: %d\r\n\r\n"
-    ) % (code, len(body))
-    conn.send(headers.encode())
-    conn.send(body.encode())
-
-
-def send_html(conn, code, body):
-    headers = (
-        "HTTP/1.1 %d OK\r\n"
-        "Content-Type: text/html; charset=utf-8\r\n"
-        "Access-Control-Allow-Origin: *\r\n"
-        "Connection: close\r\n"
-        "Content-Length: %d\r\n\r\n"
-    ) % (code, len(body))
-    conn.send(headers.encode())
-    conn.send(body.encode())
-
-
-def send_text(conn, code: int, body: str, content_type: str = "text/plain"):
+def _send_response(conn, code, content_type, body):
+    body_bytes = body.encode()
     headers = (
         "HTTP/1.1 %d OK\r\n"
         "Content-Type: %s\r\n"
         "Access-Control-Allow-Origin: *\r\n"
         "Connection: close\r\n"
-        "Content-Length: %d\r\n"
-        "\r\n"
-    ) % (code, content_type, len(body.encode()))
+        "Content-Length: %d\r\n\r\n"
+    ) % (code, content_type, len(body_bytes))
     conn.send(headers.encode())
-    conn.send(body.encode())
+    conn.send(body_bytes)
+
+
+def send_json(conn, code, payload):
+    _send_response(conn, code, "application/json", ujson.dumps(payload))
+
+
+def send_html(conn, code, body):
+    _send_response(conn, code, "text/html; charset=utf-8", body)
+
+
+def send_text(conn, code: int, body: str, content_type: str = "text/plain"):
+    _send_response(conn, code, content_type, body)
 
 
 def build_index_html():

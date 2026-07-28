@@ -105,6 +105,20 @@ PSR_EMISSION_FACTOR = {
 }
 
 
+def _fill_range(buckets, period_start_epoch, interval_sec, start_pos, end_pos, mw, emission):
+    """Fill hourly buckets for positions [start_pos, end_pos) with a constant mw value
+    (A03 step-curve fill: the last known point holds until the next one)."""
+    if mw <= 0:
+        return
+    for p in range(start_pos, end_pos):
+        point_epoch = period_start_epoch + (p - 1) * interval_sec
+        hour_epoch = floor_hour_epoch(point_epoch)
+        bucket = buckets.setdefault(hour_epoch, {"mw": 0.0, "weighted": 0.0})
+        bucket["mw"] += mw
+        if emission is not None:
+            bucket["weighted"] += mw * emission
+
+
 class EntsoeProvider(EmissionsProvider):
     provider_name = "entsoe"
 
@@ -258,20 +272,15 @@ class EntsoeProvider(EmissionsProvider):
 
                             # Fill gap from last point (A03 step curve)
                             if last_position is not None and last_quantity is not None:
-                                for p in range(last_position, position):
-                                    point_epoch = (
-                                        period_start_epoch + (p - 1) * interval_sec
-                                    )
-                                    hour_epoch = floor_hour_epoch(point_epoch)
-
-                                    mw = last_quantity
-                                    if mw > 0:
-                                        bucket = buckets.setdefault(
-                                            hour_epoch, {"mw": 0.0, "weighted": 0.0}
-                                        )
-                                        bucket["mw"] += mw
-                                        if emission is not None:
-                                            bucket["weighted"] += mw * emission
+                                _fill_range(
+                                    buckets,
+                                    period_start_epoch,
+                                    interval_sec,
+                                    last_position,
+                                    position,
+                                    last_quantity,
+                                    emission,
+                                )
 
                             last_position = position
                             last_quantity = quantity
@@ -284,20 +293,15 @@ class EntsoeProvider(EmissionsProvider):
                             and last_quantity is not None
                             and total_positions is not None
                         ):
-                            for p in range(last_position, total_positions + 1):
-                                point_epoch = (
-                                    period_start_epoch + (p - 1) * interval_sec
-                                )
-                                hour_epoch = floor_hour_epoch(point_epoch)
-
-                                mw = last_quantity
-                                if mw > 0:
-                                    bucket = buckets.setdefault(
-                                        hour_epoch, {"mw": 0.0, "weighted": 0.0}
-                                    )
-                                    bucket["mw"] += mw
-                                    if emission is not None:
-                                        bucket["weighted"] += mw * emission
+                            _fill_range(
+                                buckets,
+                                period_start_epoch,
+                                interval_sec,
+                                last_position,
+                                total_positions + 1,
+                                last_quantity,
+                                emission,
+                            )
 
                         in_period = False
                         last_position = None
