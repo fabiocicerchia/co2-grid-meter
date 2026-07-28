@@ -131,8 +131,7 @@ def create_handler(
                 if "back_hours" in query:
                     extra_params["back_hours"] = int(query["back_hours"][0])
                 if "forward_hours" in query:
-                    extra_params["forward_hours"] = int(
-                        query["forward_hours"][0])
+                    extra_params["forward_hours"] = int(query["forward_hours"][0])
                 body, status_code = _pico_get_json(
                     query, "/em/window-overlay", extra_params=extra_params
                 )

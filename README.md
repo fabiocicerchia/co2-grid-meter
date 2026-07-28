@@ -196,6 +196,10 @@ pytest -q
 
 Full docs live in [`docs/`](docs/). Runnable examples live in [`examples/`](examples/).
 
+## Support
+
+Need help implementing this? [Get in touch](https://fabiocicerchia.it/contact).
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md). By participating you agree to the

@@ -1,5 +1,5 @@
 site_name: CO2 Grid Meter
-site_description: Local-first grid carbon-intensity tracker and run/wait advisor for a Pico W + e-ink display.
+site_description: Carbon-intensity tracker for a Pico W + e-ink display.
 repo_url: https://github.com/fabiocicerchia/co2-grid-meter
 docs_dir: docs
 

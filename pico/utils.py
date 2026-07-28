@@ -21,7 +21,7 @@ def clamp(value, minimum, maximum):
     return minimum if value < minimum else maximum if value > maximum else value
 
 
-def floor_hour(dt: datetime) -> datetime:
+def floor_hour(dt: datetime.datetime) -> datetime.datetime:
     return dt.replace(minute=0, second=0, microsecond=0)
 
 
@@ -240,7 +240,7 @@ def _resolution_to_seconds(resolution_text):
     return 3600
 
 
-def iso_utc(dt: datetime) -> str:
+def iso_utc(dt: datetime.datetime) -> str:
     return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
 
 

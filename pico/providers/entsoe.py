@@ -76,34 +76,32 @@ ENTSOE_DOMAIN = {
 PSR_EMISSION_FACTOR = {
     # Fossil fuels (kgCO2/MWh)
     "B01": 1050,  # Lignite
-    "B02": 850,   # Hard coal
-    "B03": 750,   # Coal-derived gas
-    "B04": 370,   # Natural gas (avg CCGT)
-    "B05": 720,   # Oil
+    "B02": 850,  # Hard coal
+    "B03": 750,  # Coal-derived gas
+    "B04": 370,  # Natural gas (avg CCGT)
+    "B05": 720,  # Oil
     "B06": 1060,  # Peat
     "B07": 1100,  # Oil shale
-    "B08": 700,   # Fossil mixed
-    "B09": 700,   # Fossil other
-
+    "B08": 700,  # Fossil mixed
+    "B09": 700,  # Fossil other
     # Renewables & nuclear (operational emissions ~0)
-    "B10": 0,     # Hydro run-of-river
-    "B11": 0,     # Hydro reservoir
-    "B12": 0,     # Hydro pumped storage
-    "B13": 0,     # Marine
-    "B14": 0,     # Nuclear
-    "B15": 0,     # Wind offshore
-    "B16": 0,     # Solar
-    "B17": 0,     # Wind onshore
-    "B18": 0,     # Geothermal
-    "B19": 0,     # Biomass (policy zero)
-    "B20": 450,   # Waste (mixed fossil fraction)
-
+    "B10": 0,  # Hydro run-of-river
+    "B11": 0,  # Hydro reservoir
+    "B12": 0,  # Hydro pumped storage
+    "B13": 0,  # Marine
+    "B14": 0,  # Nuclear
+    "B15": 0,  # Wind offshore
+    "B16": 0,  # Solar
+    "B17": 0,  # Wind onshore
+    "B18": 0,  # Geothermal
+    "B19": 0,  # Biomass (policy zero)
+    "B20": 450,  # Waste (mixed fossil fraction)
     # Other categories
-    "B21": 0,     # Other renewable
-    "B22": 500,   # Other
-    "B23": 0,     # Energy storage (depends on charging mix)
-    "B24": 0,     # Demand response
-    "B25": 500,   # Mixed generation (assumed)
+    "B21": 0,  # Other renewable
+    "B22": 500,  # Other
+    "B23": 0,  # Energy storage (depends on charging mix)
+    "B24": 0,  # Demand response
+    "B25": 500,  # Mixed generation (assumed)
 }
 
 

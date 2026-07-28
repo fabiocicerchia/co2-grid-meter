@@ -279,7 +279,10 @@ def ensure_connected(ip):
     if connected:
         try:
             ip = network.WLAN(network.STA_IF).ifconfig()[0]
-            print("System info: ip=%s provider=unknown location=%s,%s" % (ip, CONFIG.defaults.city, CONFIG.defaults.country))
+            print(
+                "System info: ip=%s provider=unknown location=%s,%s"
+                % (ip, CONFIG.defaults.city, CONFIG.defaults.country)
+            )
         except Exception:
             pass
     else:

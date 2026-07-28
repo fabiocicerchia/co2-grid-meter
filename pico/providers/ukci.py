@@ -21,8 +21,10 @@ class UkciProvider(EmissionsProvider):
         return parse_provider_history(
             payload.get("data") or [],
             datetime_key="from",
-            intensity_getter=lambda point: (point.get("intensity") or {}).get("actual")
-            or (point.get("intensity") or {}).get("forecast"),
+            intensity_getter=lambda point: (
+                (point.get("intensity") or {}).get("actual")
+                or (point.get("intensity") or {}).get("forecast")
+            ),
         )
 
     def fetch_history(self, latitude, longitude, country_code, start, end):
