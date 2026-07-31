@@ -27,8 +27,7 @@ HTTP_SESSION = Session()
 _SERVER: HTTPServer | None = None
 
 # Backwards-compatible name: code may import `Handler` from this module
-Handler = create_handler(config=CONFIG, logger=LOGGER,
-                         http_session=HTTP_SESSION)
+Handler = create_handler(config=CONFIG, logger=LOGGER, http_session=HTTP_SESSION)
 
 
 def _shutdown_server(*_args) -> None:

@@ -22,8 +22,7 @@ class EntsoeSettings:
 
 @dataclass(frozen=True)
 class ElectricityMapsSettings:
-    enabled: bool = field(default=False, metadata={
-                          "env": "EM_ENABLED"})
+    enabled: bool = field(default=False, metadata={"env": "EM_ENABLED"})
     token: str = field(default="", metadata={"env": "ELECTRICITYMAPS_TOKEN"})
     base_url: str = field(
         default="https://api.electricitymap.org",
@@ -33,14 +32,11 @@ class ElectricityMapsSettings:
 
 @dataclass(frozen=True)
 class WattTimeSettings:
-    enabled: bool = field(default=False, metadata={
-                          "env": "WT_ENABLED"})
+    enabled: bool = field(default=False, metadata={"env": "WT_ENABLED"})
     username: str = field(default="", metadata={"env": "WATTTIME_USERNAME"})
     password: str = field(default="", metadata={"env": "WATTTIME_PASSWORD"})
-    signal: str = field(default="co2_moer", metadata={
-                        "env": "WATTTIME_SIGNAL"})
-    region_override: str = field(
-        default="", metadata={"env": "WATTTIME_REGION"})
+    signal: str = field(default="co2_moer", metadata={"env": "WATTTIME_SIGNAL"})
+    region_override: str = field(default="", metadata={"env": "WATTTIME_REGION"})
     region_by_country: bool = field(
         default=True, metadata={"env": "WATTTIME_REGION_BY_COUNTRY"}
     )
@@ -93,8 +89,7 @@ class WebUpstreamSettings:
     request_timeout_seconds: int = field(
         default=15, metadata={"env": "PICO_REQUEST_TIMEOUT_SEC"}
     )
-    max_retries: int = field(default=3, metadata={
-                             "env": "PICO_REQUEST_RETRIES"})
+    max_retries: int = field(default=3, metadata={"env": "PICO_REQUEST_RETRIES"})
 
 
 @dataclass(frozen=True)
@@ -121,15 +116,15 @@ class WebConfig:
 @dataclass(frozen=True)
 class FirmwareWifiSettings:
     ssid: str = field(default="YOUR_WIFI_SSID", metadata={"env": "WIFI_SSID"})
-    password: str = field(default="YOUR_WIFI_PASSWORD",
-                          metadata={"env": "WIFI_PASS"})
+    password: str = field(default="YOUR_WIFI_PASSWORD", metadata={"env": "WIFI_PASS"})
 
 
 @dataclass(frozen=True)
 class FirmwareProviderSettings:
     ukci_enabled: bool = field(default=True, metadata={"env": "UKCI_ENABLED"})
     electricity_maps: ElectricityMapsSettings = field(
-        default_factory=ElectricityMapsSettings)
+        default_factory=ElectricityMapsSettings
+    )
     watttime: WattTimeSettings = field(default_factory=WattTimeSettings)
     watttime_cooldown_sec: int = field(
         default=24 * 3600, metadata={"env": "WT_COOLDOWN_SEC"}
@@ -138,20 +133,16 @@ class FirmwareProviderSettings:
 
 @dataclass(frozen=True)
 class FirmwareTimelineSettings:
-    back_hours_default: int = field(
-        default=48, metadata={"env": "BACK_HOURS_DEFAULT"})
+    back_hours_default: int = field(default=48, metadata={"env": "BACK_HOURS_DEFAULT"})
     past_hours: int = field(default=36, metadata={"env": "PAST_HOURS"})
     future_hours: int = field(default=12, metadata={"env": "FUTURE_HOURS"})
-    lookahead_hours: int = field(
-        default=12, metadata={"env": "LOOKAHEAD_HOURS"})
+    lookahead_hours: int = field(default=12, metadata={"env": "LOOKAHEAD_HOURS"})
 
 
 @dataclass(frozen=True)
 class FirmwareThresholdSettings:
-    green_percentile_max: float = field(
-        default=0.33, metadata={"env": "P_GREEN_MAX"})
-    yellow_percentile_max: float = field(
-        default=0.66, metadata={"env": "P_YELLOW_MAX"})
+    green_percentile_max: float = field(default=0.33, metadata={"env": "P_GREEN_MAX"})
+    yellow_percentile_max: float = field(default=0.66, metadata={"env": "P_YELLOW_MAX"})
 
 
 @dataclass(frozen=True)

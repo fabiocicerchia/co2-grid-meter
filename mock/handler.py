@@ -23,9 +23,15 @@ class GeoLocation:
     city: str
     source: str
 
+
 def resolve_from_ip():
     try:
-        response = requests.get("http://ip-api.com/json/", timeout=4)
+        # ip-api.com's free tier 403s on https:// (HTTPS is a paid-plan feature) —
+        # plain http is deliberate here, not an oversight. Low-sensitivity lookup
+        # (approximate geo-IP for display defaults), no credentials involved.
+        response = requests.get(
+            "http://ip-api.com/json/", timeout=4
+        )  # nosemgrep: request-with-http
         payload = response.json()
         if payload.get("status") != "success":
             return None
@@ -48,7 +54,13 @@ def create_handler(*, config, logger) -> type[BaseHTTPRequestHandler]:
 
     class Handler(BaseHTTPRequestHandler):
         def _window_response(self, location, start_time, end_time):
-            window_payload = provider.fetch_history(location.latitude, location.longitude, location.country, start_time, end_time)
+            window_payload = provider.fetch_history(
+                location.latitude,
+                location.longitude,
+                location.country,
+                start_time,
+                end_time,
+            )
             return {
                 "city": location.city,
                 "country": location.country,
@@ -73,10 +85,16 @@ def create_handler(*, config, logger) -> type[BaseHTTPRequestHandler]:
                     start_time = now_utc - timedelta(hours=36) - timedelta(days=7)
                     end_time = now_utc + timedelta(hours=12) - timedelta(days=7)
                     payload = self._window_response(location, start_time, end_time)
-                    current_carbon_intensity = float(payload["history"][-1]["carbonIntensity"])
+                    current_carbon_intensity = float(
+                        payload["history"][-1]["carbonIntensity"]
+                    )
                     payload["datetime"] = iso_utc(now_utc)
                     payload["carbonIntensity"] = current_carbon_intensity
-                    payload["recommendation"] = compute_recommendation(current_carbon_intensity, payload["history"], int(now_utc.timestamp()))
+                    payload["recommendation"] = compute_recommendation(
+                        current_carbon_intensity,
+                        payload["history"],
+                        int(now_utc.timestamp()),
+                    )
                     status_code = 200
                 elif url.path == "/em/window":
                     back_hours = int(query.get("back_hours", [48])[0])

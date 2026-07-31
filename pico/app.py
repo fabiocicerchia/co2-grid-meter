@@ -204,7 +204,7 @@ def make_next_line(recommendation):
             wait_hours,
             fmt_hhmm_local(int(time.time()) + wait_hours * 3600),
         )
-    return ((recommendation.get("reason") or "")).strip()[
+    return (recommendation.get("reason") or "").strip()[
         :22
     ]  # TODO: THIS LINE IS NOT REALLY NEEDED
 
@@ -325,7 +325,7 @@ def render_placeholder_screen(title, detail):
             draw_text(_epd.black_frame, 5, 50, str(detail), color=EINK_BLACK)
     draw_top_bar(_epd)
     _epd.display()
-    
+
 
 def _current_ip(wifi_connected_callback):
     if not wifi_connected_callback():

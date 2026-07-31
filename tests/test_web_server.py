@@ -61,7 +61,11 @@ def _config():
 
 def test_api_status_success():
     session = FakeSession(FakeResponse({"carbonIntensity": 120}))
-    handler_cls = web_handler.create_handler(config=_config(), logger=type("L", (), {"warning": lambda *a, **k: None})(), http_session=session)
+    handler_cls = web_handler.create_handler(
+        config=_config(),
+        logger=type("L", (), {"warning": lambda *a, **k: None})(),
+        http_session=session,
+    )
     server, base_url = _serve(handler_cls)
     try:
         status_code, payload = _fetch(f"{base_url}/api/status")
@@ -73,8 +77,14 @@ def test_api_status_success():
 
 
 def test_api_status_handles_provider_http_error():
-    session = FakeSession(FakeResponse({"error": "bad"}, ok=False, status_code=500, text="boom"))
-    handler_cls = web_handler.create_handler(config=_config(), logger=type("L", (), {"warning": lambda *a, **k: None})(), http_session=session)
+    session = FakeSession(
+        FakeResponse({"error": "bad"}, ok=False, status_code=500, text="boom")
+    )
+    handler_cls = web_handler.create_handler(
+        config=_config(),
+        logger=type("L", (), {"warning": lambda *a, **k: None})(),
+        http_session=session,
+    )
     server, base_url = _serve(handler_cls)
     try:
         status_code, payload = _fetch(f"{base_url}/api/status")

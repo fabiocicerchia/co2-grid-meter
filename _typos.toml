@@ -1,0 +1,11 @@
+# Domain vocabulary the typos dictionary mistakes for misspellings.
+
+[default.extend-words]
+# WattTime API: MOER = marginal operating emissions rate, ba = balancing authority.
+moer = "moer"
+ba = "ba"
+# ENTSO-E EIC area codes (10YSE-1--------K, 10YSI-ELES-----O, ...).
+yse = "yse"
+eles = "eles"
+# Italian UI strings in web/static/script.js.
+automatico = "automatico"

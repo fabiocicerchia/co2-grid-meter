@@ -1,3 +1,9 @@
+import logging
+import os
+import sys
+import time
+
+
 class CONFIG:
     class wifi:
         ssid = ""  # TODO: CHANGE ME
@@ -84,11 +90,6 @@ class CONFIG:
 
 
 # Simple filesystem persistence helpers for firmware logs/crash dumps.
-
-import logging
-import os
-import time
-import sys
 
 LOG_DIR = "logs"
 CRASH_DIR = "crashdumps"

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+from collections.abc import Callable
 from dataclasses import MISSING, fields, is_dataclass
 from typing import Any, get_args, get_origin
 from config import UnifiedConfig
@@ -14,10 +15,9 @@ def _to_bool(raw_value: str) -> bool:
 
 def _coerce_value(raw_value: str, target_type):
     origin = get_origin(target_type)
-    normalized_type = get_args(target_type)[
-        0] if origin is not None else target_type
+    normalized_type = get_args(target_type)[0] if origin is not None else target_type
 
-    converters = {
+    converters: dict[type, Callable[[str], Any]] = {
         bool: _to_bool,
         int: int,
         float: float,
@@ -36,8 +36,7 @@ def _env_for_field(
 
     joined_path = ".".join((*current_path, field_name))
     return (
-        env_overrides.get(joined_path) or env_overrides.get(
-            field_name) or metadata_env
+        env_overrides.get(joined_path) or env_overrides.get(field_name) or metadata_env
     )
 
 
