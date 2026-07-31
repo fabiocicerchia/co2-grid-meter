@@ -105,7 +105,9 @@ PSR_EMISSION_FACTOR = {
 }
 
 
-def _fill_range(buckets, period_start_epoch, interval_sec, start_pos, end_pos, mw, emission):
+def _fill_range(
+    buckets, period_start_epoch, interval_sec, start_pos, end_pos, mw, emission
+):
     """Fill hourly buckets for positions [start_pos, end_pos) with a constant mw value
     (A03 step-curve fill: the last known point holds until the next one)."""
     if mw <= 0:

@@ -29,7 +29,9 @@ def resolve_from_ip():
         # ip-api.com's free tier 403s on https:// (HTTPS is a paid-plan feature) —
         # plain http is deliberate here, not an oversight. Low-sensitivity lookup
         # (approximate geo-IP for display defaults), no credentials involved.
-        response = requests.get("http://ip-api.com/json/", timeout=4)  # nosemgrep: request-with-http
+        response = requests.get(
+            "http://ip-api.com/json/", timeout=4
+        )  # nosemgrep: request-with-http
         payload = response.json()
         if payload.get("status") != "success":
             return None

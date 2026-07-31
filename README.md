@@ -212,4 +212,3 @@ Found a vulnerability? See [SECURITY.md](SECURITY.md) — please don't open a pu
 ## License
 
 [MIT](LICENSE) © 2026 Fabio Cicerchia
-

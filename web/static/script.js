@@ -380,7 +380,7 @@ document.addEventListener("DOMContentLoaded", () => {
   $("toggleAuto")?.addEventListener("click", toggleAuto);
   $("lang")?.addEventListener("change", (e) => { ls.set("co2_meter_lang", e.target.value); applyI18n(e.target.value); });
   const currentLang = ls.get("co2_meter_lang", "en"); if ($("lang")) $("lang").value = currentLang; applyI18n(currentLang);
-  
+
   $("refreshEvery")?.addEventListener("change", () => {
     const ms = num($("refreshEvery")?.value, 30000);
     setIntervalStore(ms);

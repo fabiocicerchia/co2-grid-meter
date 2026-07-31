@@ -38,4 +38,3 @@ export PICO_CACHE_REFRESH_SECONDS=1800
 - `http://127.0.0.1:8080/status`
 - `http://127.0.0.1:8080/em/window?back_hours=48`
 - `http://127.0.0.1:8080/em/window-overlay`
-
