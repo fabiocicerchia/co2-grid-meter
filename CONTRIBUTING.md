@@ -38,6 +38,19 @@ you don't tag or edit the changelog manually.
 So `main` is not released per-commit: changes accumulate into the release PR,
 and merging it is the deliberate release step.
 
+### One-time setup
+
+Opening the release PR from CI needs one of the following (a workflow can't
+grant itself this via `permissions:` alone). Without it the `release` workflow
+fails with _"GitHub Actions is not permitted to create or approve pull
+requests"_ — pick **one**:
+
+- **Settings → Actions → General → Workflow permissions**: enable
+  _"Allow GitHub Actions to create and approve pull requests"_. The default
+  token then works, no secret needed. _(Recommended.)_
+- Or add a Personal Access Token with `contents` + `pull-requests` write as the
+  `RELEASE_PLEASE_TOKEN` repo secret; the workflow uses it automatically.
+
 ## Pull requests
 
 Fill out the PR template, link related issues, and request review. Be kind.
