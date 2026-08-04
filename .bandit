@@ -1,0 +1,8 @@
+exclude_dirs:
+  - ./.venv
+  - ./tests
+skips:
+  # B101 (assert) is the normal pytest idiom; only test code trips it and
+  # tests/ is already excluded above, but keep this for direct `bandit tests/`
+  # invocations too.
+  - B101
