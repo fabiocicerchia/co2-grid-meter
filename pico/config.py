@@ -16,6 +16,13 @@ class CONFIG:
         city = "Rome"
         country = "IT"
 
+        # Local wall-clock time: standard (winter) offset from UTC, plus the
+        # EU summer-time rule. Italy and the UK both observe it and change at
+        # the same instants; set observes_eu_dst = False for anywhere that
+        # does not (UTC, most of Asia).
+        utc_offset_hours = 1
+        observes_eu_dst = True
+
         # UKCI
         # latitude = 51.5072
         # longitude = 0.1276
@@ -30,7 +37,7 @@ class CONFIG:
 
         # WATTTIME
         # latitude = 37.7749
-        # longitude = 122.4194
+        # longitude = -122.4194  # west of Greenwich: the sign is load-bearing
         # city = "San Francisco"
         # country = "CAISO_NORTH"
 
@@ -52,6 +59,11 @@ class CONFIG:
             username = ""  # TODO: CHANGE ME
             password = ""  # TODO: CHANGE ME
             base_url = "https://api.watttime.org"
+            # Free WattTime accounts are granted one region (CAISO_NORTH). Set
+            # this to pin it and skip the location lookup entirely; leave it
+            # empty and the region is resolved from lat/lon, which is what a
+            # paid account wants.
+            region = ""
 
         # TODO: it's super slow due to XML response
         class entsoe:

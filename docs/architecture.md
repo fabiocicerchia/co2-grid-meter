@@ -54,3 +54,33 @@ providers, and caches.
 - **TTL cache, not a database.** State only needs to live for the cache
   window; a dict-based cache keeps the firmware's memory footprint small and
   avoids flash writes for anything not explicitly logged.
+
+## Project components
+
+- `mock/mock_pico.py`: local Pico-compatible HTTP server.
+- `mock/handler.py`: request routing for `/status`, `/em/window`, `/em/window-overlay`.
+- `web/server.py` + `web/handler.py`: dashboard static server and `/api/*` proxy to Pico/mock Pico.
+- `pico/firmware/*`: firmware HTTP endpoints, provider calls, recommendations, e-ink rendering.
+
+## Caching and API pressure reduction
+
+Both the mock server and firmware now use a **TTL cache** for endpoint payloads to reduce upstream API calls.
+
+- Env var: `PICO_CACHE_REFRESH_SECONDS`
+- Default: `3600` seconds (1 hour)
+
+Example:
+
+```bash
+export PICO_CACHE_REFRESH_SECONDS=900  # refresh every 15 minutes
+```
+
+## Provider selection order
+
+Provider fallback order remains:
+
+1. UK Carbon Intensity (`GB/UK`)
+2. WattTime (if enabled + credentials)
+3. ENTSO-E (if token + mapped region)
+4. Electricity Maps (if enabled + token)
+5. Simulated fallback (`PICO_ALLOW_SIM_FALLBACK=1`)

@@ -33,3 +33,16 @@ the mock, see [docs/README.md](README.md).
 
 To flash the actual Pico firmware (`pico/`), see the [top-level README](../README.md#firmware-setup-references)
 for Thonny/MicroPython setup references.
+
+## Tests
+
+```bash
+pytest -q
+```
+
+## Environment highlights
+
+- `PICO_BASE_URL` (dashboard upstream target)
+- `PICO_CACHE_REFRESH_SECONDS` (mock + firmware cache TTL)
+- `DEFAULT_COUNTRY`, `DEFAULT_CITY`, `DEFAULT_LAT`, `DEFAULT_LON`
+- Provider auth vars (`ENTSOE_TOKEN`, `WATTTIME_*`, `ELECTRICITYMAPS_TOKEN`)

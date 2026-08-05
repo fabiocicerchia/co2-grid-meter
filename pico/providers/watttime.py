@@ -75,8 +75,12 @@ class WattTimeProvider(EmissionsProvider):
             token = str(token)
         return token
 
-    # {'signal_type': 'co2_moer', 'region_full_name': 'Kyrgyzstan', 'region': 'KGZ'}
-    # TODO: WHY?!
+    # This lookup once answered `{'region_full_name': 'Kyrgyzstan', 'region':
+    # 'KGZ'}` for what was meant to be San Francisco. The cause was a sign, not
+    # the API: the sample coordinates carried `longitude = 122.4194` instead of
+    # `-122.4194`, putting the query the other side of the planet. Fixed in
+    # config.py; recorded here so nobody hardcodes a region again to work
+    # around it.
     def _grid_region(self, lat, lon, token):
         query = urlencode_simple(
             {"latitude": str(lat), "longitude": str(lon), "signal_type": "co2_moer"}
@@ -181,7 +185,12 @@ class WattTimeProvider(EmissionsProvider):
             raise ProviderError("WattTime temporarily disabled")
 
         token = self._login_token()
-        region = "CAISO_NORTH"  # self._grid_region(latitude, longitude, token)  # TODO: RESTORE THIS
+        # A configured region wins (free accounts are granted exactly one);
+        # otherwise resolve it from where the device actually is. Serving one
+        # region's grid intensity to every user is worse than failing.
+        region = getattr(CONFIG.providers.watttime, "region", "") or self._grid_region(
+            latitude, longitude, token
+        )
 
         response = None
         try:

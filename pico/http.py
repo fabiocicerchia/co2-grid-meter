@@ -15,6 +15,7 @@ from app import (
     render_placeholder_screen,
 )
 from config import CONFIG, append_log_line, write_crashdump
+from timeutil import utc_offset_seconds
 from display import get_epd
 from utils import _now_stamp, log
 from fw_network import wifi_connect, wifi_ok
@@ -189,8 +190,14 @@ def build_index_html():
 """
 
 
-# TODO: THIS SHOULD HANDLE CEST/BST
-def set_time(offset=0, delta=2208988800, host="pool.ntp.org"):
+def set_time(offset=None, delta=2208988800, host="pool.ntp.org"):
+    """Set the RTC from NTP, in local wall-clock time.
+
+    `offset` is seconds to add to UTC. Left as None it is derived from
+    `CONFIG.defaults.utc_offset_hours` plus EU summer time, so the clock is
+    right on both sides of the March and October changes instead of running an
+    hour out for seven months of the year.
+    """
     NTP_QUERY = bytearray(48)
     NTP_QUERY[0] = 0x1B
     addr = socket.getaddrinfo(host, 123)[0][-1]
@@ -203,9 +210,18 @@ def set_time(offset=0, delta=2208988800, host="pool.ntp.org"):
         s.close()
     val = struct.unpack("!I", msg[40:44])[0]
     t = val - delta
+    if offset is None:
+        # Decided from the UTC instant, never from the already-shifted one:
+        # applying the rule to local time is what makes the repeated hour
+        # ambiguous.
+        offset = utc_offset_seconds(
+            time.gmtime(t),
+            standard_hours=CONFIG.defaults.utc_offset_hours,
+            observes_dst=CONFIG.defaults.observes_eu_dst,
+        )
     tm = time.gmtime(t + offset)
     machine.RTC().datetime((tm[0], tm[1], tm[2], tm[6] + 1, tm[3], tm[4], tm[5], 0))
-    log("Local time: %s" % _now_stamp())
+    log("Local time: %s (UTC%+d)" % (_now_stamp(), offset // 3600))
 
 
 def handle_http_request(conn, LOGGER):

@@ -39,7 +39,7 @@ def main():
         connected, ip = wifi_connect()
 
     if connected:
-        set_time()  # ITALY GMT+1 # TODO: FIX DAYLIGHT
+        set_time()  # local time from CONFIG.defaults, EU summer time included
 
     serve_forever(ip, LOGGER)
 
