@@ -13,8 +13,9 @@ theme:
 
 nav:
   - Home: README.md
-  - Getting Started: getting-started.md
   - Architecture: architecture.md
+  - Firmware and hardware: firmware.md
+  - Getting Started: getting-started.md
 
 markdown_extensions:
   - admonition
