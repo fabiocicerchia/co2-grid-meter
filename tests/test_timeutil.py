@@ -8,6 +8,7 @@ March to 01:00 UTC on the last Sunday of October. Both boundaries are checked
 on the minute either side, because "an hour out for seven months" was the
 original bug.
 """
+
 import importlib.util
 import pathlib
 
@@ -34,9 +35,9 @@ def test_last_sunday_matches_the_published_changeover_dates():
 
 
 def test_day_of_week_across_a_century_boundary():
-    assert _day_of_week(2000, 3, 1) == 3      # Wednesday — 2000 was a leap year
-    assert _day_of_week(1900, 3, 1) == 4      # Thursday — 1900 was not
-    assert _day_of_week(2026, 3, 29) == 0     # Sunday
+    assert _day_of_week(2000, 3, 1) == 3  # Wednesday — 2000 was a leap year
+    assert _day_of_week(1900, 3, 1) == 4  # Thursday — 1900 was not
+    assert _day_of_week(2026, 3, 29) == 0  # Sunday
 
 
 def test_spring_forward_happens_at_0100_utc_not_midnight():
