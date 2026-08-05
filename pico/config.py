@@ -30,7 +30,7 @@ class CONFIG:
 
         # WATTTIME
         # latitude = 37.7749
-        # longitude = 122.4194
+        # longitude = -122.4194  # west of Greenwich: the sign is load-bearing
         # city = "San Francisco"
         # country = "CAISO_NORTH"
 
@@ -52,6 +52,11 @@ class CONFIG:
             username = ""  # TODO: CHANGE ME
             password = ""  # TODO: CHANGE ME
             base_url = "https://api.watttime.org"
+            # Free WattTime accounts are granted one region (CAISO_NORTH). Set
+            # this to pin it and skip the location lookup entirely; leave it
+            # empty and the region is resolved from lat/lon, which is what a
+            # paid account wants.
+            region = ""
 
         # TODO: it's super slow due to XML response
         class entsoe:
