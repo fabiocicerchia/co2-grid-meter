@@ -16,6 +16,13 @@ class CONFIG:
         city = "Rome"
         country = "IT"
 
+        # Local wall-clock time: standard (winter) offset from UTC, plus the
+        # EU summer-time rule. Italy and the UK both observe it and change at
+        # the same instants; set observes_eu_dst = False for anywhere that
+        # does not (UTC, most of Asia).
+        utc_offset_hours = 1
+        observes_eu_dst = True
+
         # UKCI
         # latitude = 51.5072
         # longitude = 0.1276
