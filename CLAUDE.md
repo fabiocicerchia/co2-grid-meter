@@ -15,7 +15,27 @@ run/wait recommendation, plus a desktop dashboard (`web/`) and a mock Pico
 # test: pytest -q
 # lint: pre-commit run --all-files   (ruff + gitleaks + editorconfig etc.)
 # run:  ./start.sh                   (mock Pico + dashboard together)
+make help    # Show this help
+make setup   # Install the pre-commit hook
+make lint    # Run all pre-commit checks on the whole tree
+make test    # Run tests
 ```
+
+## Tooling
+
+Shared config — the GitHub workflows, `.pre-commit-config.yaml`,
+`.editorconfig`, `.hadolint.yaml`, `SECURITY.md` — comes from
+[repo-skeleton](https://github.com/fabiocicerchia/repo-skeleton). Edit it
+there, not here; a local edit is drift and the next sync overwrites it.
+`check-drift.sh` in that repo reports what has diverged.
+
+- `make setup` installs the pre-commit hook, and that is the whole of it.
+  Don't add a `.githooks/` directory: `core.hooksPath` replaces `.git/hooks/`
+  wholesale, so setting it silently stops every pre-commit hook from running.
+- Hooks are pinned by commit SHA with the tag in a trailing comment. A tag can
+  be moved, a SHA cannot.
+- CI runs this same `.pre-commit-config.yaml` through `pre-commit/action`, so
+  what passes locally is what gates the pull request.
 
 ## Conventions
 

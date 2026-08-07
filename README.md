@@ -4,6 +4,7 @@
 [![Security](https://github.com/fabiocicerchia/co2-grid-meter/actions/workflows/security.yml/badge.svg)](https://github.com/fabiocicerchia/co2-grid-meter/actions/workflows/security.yml)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![OpenSSF Scorecard](https://api.securityscorecards.dev/projects/github.com/fabiocicerchia/co2-grid-meter/badge)](https://securityscorecards.dev/viewer/?uri=github.com/fabiocicerchia/co2-grid-meter)
+[![CI carbon](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/fabiocicerchia/co2-grid-meter/gh-pages/badge.json)](.github/workflows/carbon-badge.yml)
 
 A local-first project that helps you decide **when to run energy-hungry appliances** by tracking grid carbon intensity for your region.
 
