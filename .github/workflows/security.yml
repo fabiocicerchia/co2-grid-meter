@@ -54,8 +54,9 @@ jobs:
     name: codeql
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
-        language: [python]
+        language: [python, javascript-typescript]
     permissions:
       contents: read
       security-events: write  # upload SARIF to the Security tab
