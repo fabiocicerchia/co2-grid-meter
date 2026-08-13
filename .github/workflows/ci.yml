@@ -38,7 +38,7 @@ jobs:
           if [ -f pyproject.toml ]; then
             pip install -e ".[dev]" || pip install -e .
           elif [ -f requirements.txt ]; then
-            pip install -r requirements.txt
+            pip install --require-hashes -r requirements.lock
           fi
           python -m pip show pytest >/dev/null 2>&1 || pip install pytest
 

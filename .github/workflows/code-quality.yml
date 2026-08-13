@@ -39,7 +39,7 @@ jobs:
         uses: pre-commit/action@2c7b3805fd2a0fd8c1884dcaebf91fc102a13ecd  # v3.0.1
 
       - name: Install test dependencies
-        run: pip install -r requirements.txt pytest
+        run: pip install --require-hashes -r requirements.lock && pip install pytest
 
       - name: pytest
         run: pytest -q
