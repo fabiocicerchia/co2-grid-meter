@@ -1,10 +1,11 @@
 # https://eepublicdownloads.entsoe.eu/clean-documents/EDI/Library/old-downloads/Market_Areas_v1.0.pdf
-from providers.electricity_maps import ElectricityMapsProvider
-from providers.ukci import UkciProvider
-from providers.entsoe import ENTSOE_DOMAIN, EntsoeProvider
-from providers.watttime import WattTimeProvider
 from providers.co2signal import Co2SignalProvider
+from providers.electricity_maps import ElectricityMapsProvider
+from providers.entsoe import ENTSOE_DOMAIN, EntsoeProvider
+from providers.ukci import UkciProvider
+from providers.watttime import WattTimeProvider
 from utils import ProviderError
+
 from config import CONFIG
 
 

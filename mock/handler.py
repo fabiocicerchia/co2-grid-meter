@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 import json
 import logging
-import requests
-
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import parse_qs, urlparse
 
+import requests
+
 from pico.providers.simulated import SimulatedProvider
-from pico.utils import floor_hour, iso_utc
 from pico.recommendation import compute_recommendation
+from pico.utils import floor_hour, iso_utc
 
 LOGGER = logging.getLogger(__name__)
 
@@ -71,7 +71,7 @@ def create_handler(*, config, logger) -> type[BaseHTTPRequestHandler]:
                 "_geo_source": location.source,
             }
 
-        def do_GET(self):  # noqa: N802
+        def do_GET(self):
             url = urlparse(self.path)
             query = parse_qs(url.query)
             location = resolve_from_ip()
@@ -108,7 +108,7 @@ def create_handler(*, config, logger) -> type[BaseHTTPRequestHandler]:
                     end_time = now_time + timedelta(hours=12) - timedelta(days=7)
                     payload = self._window_response(location, start_time, end_time)
                     status_code = 200
-            except Exception as error:  # noqa: BLE001
+            except Exception as error:
                 status_code = 502
                 payload = {"error": str(error)}
                 logger.exception("Failed %s", url.path)

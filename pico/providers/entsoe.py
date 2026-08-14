@@ -1,22 +1,22 @@
+import io
 import time
+
 import urequests
 import xmltok
-import io
-
 from utils import (
     ProviderError,
+    TextStream,
+    _resolution_to_seconds,
+    _to_str,
     close_response,
     epoch_to_iso_z,
     floor_hour_epoch,
     iso_z_to_epoch,
     log,
-    TextStream,
-    _resolution_to_seconds,
-    _to_str,
     urlencode_simple,
 )
-from config import CONFIG
 
+from config import CONFIG
 from providers.base import EmissionsProvider
 
 ENTSOE_DOMAIN = {

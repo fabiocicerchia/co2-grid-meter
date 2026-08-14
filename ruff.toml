@@ -1,0 +1,15 @@
+# pico/ is MicroPython firmware, not CPython application code, and three of
+# ruff's defaults argue against how firmware has to be written:
+#
+#   UP031  — %-formatting is the idiomatic and cheaper choice on MicroPython;
+#            str.format and f-strings pull in more of the runtime than a board
+#            with ~264 KB of RAM wants to spend.
+#   BLE001 — a handler that catches everything is the point: an unhandled
+#            exception on the device is a reboot, not a stack trace someone
+#            reads.
+#   S110   — same reason. A pass in a firmware handler is a deliberate
+#            "keep going", not a swallowed bug.
+#
+# Everything else — web/, mock/, tests/, common_config.py — is linted in full.
+[lint.per-file-ignores]
+"pico/**" = ["UP031", "BLE001", "S110", "RUF046", "PLW0602", "TRY401"]

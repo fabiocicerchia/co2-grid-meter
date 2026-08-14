@@ -15,9 +15,11 @@ same HTTP API:
 
 import gc
 import sys
-from config import CONFIG, append_log_line, build_firmware_logger, write_crashdump
-from fw_network import wifi_connect
 from http import serve_forever, set_time
+
+from fw_network import wifi_connect
+
+from config import CONFIG, append_log_line, build_firmware_logger, write_crashdump
 
 # =========================
 # main

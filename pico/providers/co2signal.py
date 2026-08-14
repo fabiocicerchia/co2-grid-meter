@@ -1,13 +1,20 @@
 """CO2Signal provider for firmware."""
 
-import ujson
 import os
 import time
 
-from utils import ProviderError, http_get_json, epoch_to_iso_z
-from config import CONFIG
-from utils import floor_hour_epoch, urlencode_simple, safe_float, log
+import ujson
+from utils import (
+    ProviderError,
+    epoch_to_iso_z,
+    floor_hour_epoch,
+    http_get_json,
+    log,
+    safe_float,
+    urlencode_simple,
+)
 
+from config import CONFIG
 from providers.base import EmissionsProvider
 
 

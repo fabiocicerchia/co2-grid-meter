@@ -2,8 +2,10 @@ import datetime
 import gc
 import time
 from datetime import timezone
-import urequests
+
 import ujson
+import urequests
+
 from config import build_firmware_logger
 
 
@@ -18,7 +20,7 @@ class ProviderError(RuntimeError):
 
 
 def clamp(value, minimum, maximum):
-    return minimum if value < minimum else maximum if value > maximum else value
+    return minimum if value < minimum else min(value, maximum)
 
 
 def floor_hour(dt: datetime.datetime) -> datetime.datetime:
@@ -139,7 +141,7 @@ def iso_z_to_epoch(iso_timestamp):
                 tail = s[t_pos + 1 :]
                 plus = tail.rfind("+")
                 minus = tail.rfind("-")
-                idx = plus if plus > minus else minus
+                idx = max(minus, plus)
                 if idx != -1:
                     tz_part = tail[idx:]
                     s = s[: t_pos + 1 + idx]
