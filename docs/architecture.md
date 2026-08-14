@@ -20,8 +20,14 @@ The project has three deployable pieces that share the same config schema
 - `pico/app.py` — endpoint handlers, geo resolution, status/window/overlay
   assembly, e-ink render scheduling.
 - `pico/providers/*` — one module per data source (UK Carbon Intensity,
-  WattTime, ENTSO-E, Electricity Maps, simulated fallback), tried in that
-  order via `pico/fw_providers.py`.
+  Carbon Intensity API, WattTime, ENTSO-E, Electricity Maps, CO2Signal,
+  simulated fallback), tried in that order via `pico/fw_providers.py`.
+  Sources that publish only a current value (CO2Signal, Carbon Intensity API)
+  extend `SampledProvider`, which polls on a cooldown and keeps its own
+  rolling store on flash — the device needs a curve to rank hours against,
+  and those APIs answer "what is it now" and nothing else.
+- `pico/ci_api_parse.py` — payload handling for the Carbon Intensity API,
+  kept free of MicroPython imports so it is unit-tested under CPython.
 - `pico/recommendation.py` — turns current intensity + a week-shifted
   overlay into a GO/WAIT verdict.
 - `pico/ttl_cache.py` — TTL cache in front of provider calls, shared by
@@ -80,7 +86,14 @@ export PICO_CACHE_REFRESH_SECONDS=900  # refresh every 15 minutes
 Provider fallback order remains:
 
 1. UK Carbon Intensity (`GB/UK`)
-2. WattTime (if enabled + credentials)
-3. ENTSO-E (if token + mapped region)
-4. Electricity Maps (if enabled + token)
-5. Simulated fallback (`PICO_ALLOW_SIM_FALLBACK=1`)
+2. Carbon Intensity API (if enabled — keyless, so there is no token to check)
+3. WattTime (if enabled + credentials)
+4. ENTSO-E (if token + mapped region)
+5. Electricity Maps (if enabled + token)
+6. Simulated fallback (`PICO_ALLOW_SIM_FALLBACK=1`)
+
+The Carbon Intensity API is rate-limited to **1 request per 10s per IP** and
+publishes no freshness flag, so its provider polls at most every five minutes
+and drops any reading whose `basis` is not `measured` or whose `generated_at`
+is over 65 minutes old. An annual average stored as an hourly sample would
+flatten the timeline and make every hour score alike.

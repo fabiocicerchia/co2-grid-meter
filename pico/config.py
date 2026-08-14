@@ -44,6 +44,19 @@ class CONFIG:
     class providers:
         ukci_enabled = False  # TODO: CHANGE ME
 
+        # Keyless, every country, plus bidding zones where the operator
+        # publishes them. Last hour only, so the timeline fills in as the
+        # device polls.
+        class ci_api:
+            enabled = False  # TODO: CHANGE ME
+            base_url = "https://ci-api.fabiocicerchia.it"
+            # Empty follows defaults.country; set it to pin the lookup.
+            country_override = ""
+            # Bidding zone / balancing region within the country — "SICI",
+            # "SE3", "TEX", "NSW1". Zone readings carry no consumption figures,
+            # so they report `lifecycle` instead of `consumption_lifecycle`.
+            zone = ""
+
         class electricity_maps:
             enabled = False  # TODO: CHANGE ME
             token = ""  # TODO: CHANGE ME
