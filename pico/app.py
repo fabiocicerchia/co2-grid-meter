@@ -1,5 +1,6 @@
 import time
 
+from uptime import UPTIME
 from display import (
     EINK_BLACK,
     draw_current_panel,
@@ -250,6 +251,9 @@ def build_status_bundle(params):
         "carbonIntensity": current_intensity,
         "recommendation": recommendation,
         "_provider": window_data.get("_provider") or "—",
+        # Raw seconds, not a formatted string: the caller is a machine, and a
+        # monotonic count is the only thing that survives an unset RTC.
+        "uptime_seconds": UPTIME.seconds(),
     }
 
     return status, window_data, overlay_data
