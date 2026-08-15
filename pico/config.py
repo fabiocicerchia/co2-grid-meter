@@ -41,6 +41,15 @@ class CONFIG:
         # city = "San Francisco"
         # country = "CAISO_NORTH"
 
+    class web:
+        # Serve the dashboard's own files from the device, for an install with
+        # no desktop server. Off by default: an existing deployment must not
+        # start serving files because it was upgraded, and a device without the
+        # assets copied over would answer 404 for every page.
+        serve_static = False
+        # Where those files live on the Pico's filesystem.
+        static_root = "static"
+
     class providers:
         ukci_enabled = False  # TODO: CHANGE ME
 
