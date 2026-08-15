@@ -18,6 +18,7 @@ import sys
 from http import serve_forever, set_time
 
 from fw_network import wifi_connect
+from i18n import set_language
 
 from config import CONFIG, append_log_line, build_firmware_logger, write_crashdump
 
@@ -31,6 +32,13 @@ LOGGER = None
 def main():
     global LOGGER
     LOGGER = build_firmware_logger()
+
+    # Before anything renders: the panel's strings are resolved through the
+    # table, and a device that ignored its own language setting would look like
+    # a broken translation rather than a typo in one line.
+    selected = set_language(CONFIG.ui.language)
+    if selected != CONFIG.ui.language:
+        LOGGER.info("Unknown language %r, using %s" % (CONFIG.ui.language, selected))
 
     gc.enable()
     connected, ip = wifi_connect()

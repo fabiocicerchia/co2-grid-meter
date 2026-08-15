@@ -6,6 +6,7 @@ from machine import SPI, Pin
 from utils import clamp, log
 
 from config import CONFIG
+from i18n import t
 
 EINK_BLACK = 0
 EINK_WHITE = 1
@@ -408,7 +409,7 @@ def draw_current_panel(epd, current_ci, verdict, next_line):
     else:
         _draw_verdict_line(text_x, text_y, verdict)
 
-    draw_text(epd.black_frame, 5, 47, "CO2: %d g/kWh" % int(current_ci))
+    draw_text(epd.black_frame, 5, 47, t("label.co2", int(current_ci)))
 
 
 def draw_graph(epd, current_line, week_line):

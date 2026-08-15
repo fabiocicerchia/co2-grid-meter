@@ -17,6 +17,7 @@ from display import (
 )
 from fw_network import wifi_ok, wifi_signal_bars
 from fw_providers import fetch_window_any
+from i18n import t
 from recommendation import recommend_from_week
 from ttl_cache import TtlCache
 from utils import (
@@ -200,7 +201,8 @@ def handle_em_overlay(params):
 def make_next_line(recommendation):
     wait_hours = recommendation.get("wait_hours")
     if isinstance(wait_hours, int) and wait_hours > 0:
-        return "WAIT %dh (%s)" % (
+        return t(
+            "label.wait_hours",
             wait_hours,
             fmt_hhmm_local(int(time.time()) + wait_hours * 3600),
         )
