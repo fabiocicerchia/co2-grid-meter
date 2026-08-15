@@ -71,7 +71,7 @@ function geoQS(prefix = "&") {
 const percentile = (sorted, x) => {
   const n = sorted.length; if (!n) return null;
   let lo = 0, hi = n;
-  while (lo < hi) { const m = (lo + hi) >> 1; (sorted[m] < x) ? (lo = m + 1) : (hi = m); }
+  while (lo < hi) { const m = (lo + hi) >> 1; if (sorted[m] < x) lo = m + 1; else hi = m; }
   return lo / n;
 };
 
@@ -272,7 +272,7 @@ async function pollPicoStatus() {
   const j = await fetch(`/api/status${qs}`, { cache: "no-store" }).then((r) => r.json());
 
   if (j?.error) {
-    ["ci","verdict","next","device"].forEach((id) => setText(id, "—"));
+    ["ci","verdict","next","device"].forEach((id) => { setText(id, "—"); });
     setText("reason", j.error);
     lastCurrentCi = null;
     return setLedMeter(0, "No current data");
@@ -342,7 +342,7 @@ function startProgressLoop() {
   const step = () => {
     const on = !!autoTimer;
     const ms = num($("refreshEvery")?.value, 30000);
-    if (!on) { setProgress(0); return (progressRAF = requestAnimationFrame(step)); }
+    if (!on) { setProgress(0); progressRAF = requestAnimationFrame(step); return; }
     if (progressStart == null) progressStart = performance.now();
     setProgress(((performance.now() - progressStart) / ms) * 100);
     progressRAF = requestAnimationFrame(step);

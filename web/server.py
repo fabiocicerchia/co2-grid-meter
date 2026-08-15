@@ -10,10 +10,11 @@ import logging
 import signal
 import sys
 from http.server import HTTPServer
-from requests import Session
-from common_config import CONFIG as UNIFIED_CONFIG  # noqa: E402
-from web.handler import create_handler  # noqa: E402
 
+from requests import Session
+
+from common_config import CONFIG as UNIFIED_CONFIG
+from web.handler import create_handler
 
 CONFIG = UNIFIED_CONFIG.web
 
@@ -31,7 +32,7 @@ Handler = create_handler(config=CONFIG, logger=LOGGER, http_session=HTTP_SESSION
 
 
 def _shutdown_server(*_args) -> None:
-    global _SERVER
+    # `global` without an assignment does nothing — _SERVER is only read here.
     LOGGER.info("Shutting down dashboard server")
     try:
         if _SERVER is not None:

@@ -1,8 +1,8 @@
 """CO2Signal provider for firmware."""
 
 from utils import ProviderError, http_get_json, safe_float, urlencode_simple
-from config import CONFIG
 
+from config import CONFIG
 from providers.base import SampledProvider
 
 

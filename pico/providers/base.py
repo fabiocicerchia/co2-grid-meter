@@ -1,9 +1,16 @@
 import os
 import time
-import ujson
 from abc import ABC, abstractmethod
 from datetime import datetime
-from utils import ProviderError, floor_hour_epoch, epoch_to_iso_z, log, safe_float
+
+import ujson
+from utils import (
+    ProviderError,
+    epoch_to_iso_z,
+    floor_hour_epoch,
+    log,
+    safe_float,
+)
 
 
 def parse_provider_history(points, datetime_key, intensity_getter):

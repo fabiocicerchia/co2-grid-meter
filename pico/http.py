@@ -1,11 +1,10 @@
+import socket
 import struct
+import time
 
 import machine
-import socket
-import time
 import network
 import ujson
-
 from app import (
     _display_tick,
     handle_em_overlay,
@@ -14,11 +13,12 @@ from app import (
     handle_system_info,
     render_placeholder_screen,
 )
-from config import CONFIG, append_log_line, write_crashdump
-from timeutil import utc_offset_seconds
 from display import get_epd
-from utils import _now_stamp, log
 from fw_network import wifi_connect, wifi_ok
+from timeutil import utc_offset_seconds
+from utils import _now_stamp, log
+
+from config import CONFIG, append_log_line, write_crashdump
 
 _server_socket = None
 
@@ -38,15 +38,17 @@ fetch('/em/window?back_hours=48').then(r=>r.json()).then(j=>{
 
 
 def _readline(conn):
-    line = b""
+    # Collected then joined once: `line += ch` rebuilt the whole bytes object
+    # on every byte, which is O(n^2) over the line.
+    chars = []
     while True:
         ch = conn.recv(1)
         if not ch:
             break
-        line += ch
-        if line.endswith(b"\r\n") or len(line) > 2048:
+        chars.append(ch)
+        if (chars[-2:] == [b"\r", b"\n"]) or len(chars) > 2048:
             break
-    return line
+    return b"".join(chars)
 
 
 def parse_request(conn):

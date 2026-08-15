@@ -1,10 +1,9 @@
 """Electricity Maps provider for firmware."""
 
-from utils import ProviderError, http_get_json, epoch_to_iso_z
-from providers.base import parse_provider_history
-from config import CONFIG
+from utils import ProviderError, epoch_to_iso_z, http_get_json
 
-from providers.base import EmissionsProvider
+from config import CONFIG
+from providers.base import EmissionsProvider, parse_provider_history
 
 
 class ElectricityMapsProvider(EmissionsProvider):

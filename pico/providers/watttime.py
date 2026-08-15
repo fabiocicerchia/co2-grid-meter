@@ -1,8 +1,8 @@
+import gc
 import time
+
 import ubinascii
 import urequests
-import gc
-
 from utils import (
     ProviderError,
     close_response,
@@ -13,8 +13,8 @@ from utils import (
     safe_float,
     urlencode_simple,
 )
-from config import CONFIG
 
+from config import CONFIG
 from providers.base import EmissionsProvider
 
 

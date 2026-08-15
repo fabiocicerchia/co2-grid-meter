@@ -1,8 +1,9 @@
 import time
+
 import network
+from utils import log
 
 from config import CONFIG
-from utils import log
 
 _wlan = None
 
