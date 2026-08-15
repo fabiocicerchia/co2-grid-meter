@@ -43,6 +43,15 @@ def main():
     if connected:
         set_time()  # local time from CONFIG.defaults, EU summer time included
 
+    # After the network, before serving: the diagnostics are most useful in the
+    # log above the first request, not interleaved with it.
+    try:
+        from app import log_boot_diagnostics
+
+        log_boot_diagnostics()
+    except Exception as error:  # diagnostics must never stop the device serving
+        LOGGER.info("Diagnostics unavailable: %s" % error)
+
     serve_forever(ip, LOGGER)
 
 
