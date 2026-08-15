@@ -29,3 +29,8 @@ Thumbs.db
 
 # Docs site build
 site/
+
+# Device settings: holds Wi-Fi and provider credentials. The template is
+# pico/settings.example.json.
+settings.json
+pico/settings.json

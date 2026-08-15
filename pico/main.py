@@ -19,7 +19,8 @@ from http import serve_forever, set_time
 
 from fw_network import wifi_connect
 
-from config import CONFIG, append_log_line, build_firmware_logger, write_crashdump
+from config import SETTINGS_ERROR as CONFIG_SETTINGS_ERROR
+from config import append_log_line, build_firmware_logger, write_crashdump
 
 # =========================
 # main
@@ -32,12 +33,19 @@ def main():
     global LOGGER
     LOGGER = build_firmware_logger()
 
+    # Settings are read at import; a problem with them is reported here, by
+    # name, before anything tries to use a value that is not there.
+    if CONFIG_SETTINGS_ERROR:
+        LOGGER.info("FATAL: %s" % CONFIG_SETTINGS_ERROR)
+        raise SystemExit(CONFIG_SETTINGS_ERROR)
+
     gc.enable()
     connected, ip = wifi_connect()
 
     if not connected:
-        CONFIG.wifi.ssid = ""  # CHANGE ME
-        CONFIG.wifi.password = ""  # CHANGE ME
+        # One retry: the radio is often not up on the first attempt after a
+        # cold boot. Blanking the credentials here (as this used to) guaranteed
+        # the retry failed.
         connected, ip = wifi_connect()
 
     if connected:
