@@ -65,3 +65,38 @@ Terminal ready
 [2026-02-18 20:47:53] Provider used: entsoe
 [2026-02-18 20:47:53] Finished fetching data
 ```
+
+## The ENTSO-E response
+
+ENTSO-E answers with an A75 XML document that is 95% `<Point>` elements. The
+firmware used to run all of it through `xmltok`, a general tokenizer that emits
+an event per tag, attribute and text node — `pico/config.py` carried a
+`super slow due to XML response` note about it, and on a Pico it stalls the
+refresh loop.
+
+Nothing here needs a general parser. Six fields are read — `psrType`, `start`,
+`end`, `resolution`, `position`, `quantity` — and each is a text node in a tag
+with no attributes, so `pico/providers/entsoe_parse.py` scans for those
+directly with `str.find` (a C-level search in MicroPython) and skips everything
+else without tokenising it.
+
+Measured on CPython 3.13 against a representative day — 4 production types,
+15-minute resolution, 25 KB, 384 points, mean of five runs:
+
+| | parse time | peak heap |
+|---|---:|---:|
+| `xmltok` tokenize | 9.29 ms | 102.2 KB |
+| field scan | **2.64 ms** | **30.2 KB** |
+
+3.5x faster and 3.4x less peak memory. The device figures will differ — a Pico
+is far slower in absolute terms, and the gap should *widen*, since `str.find`
+is native there while the tokenizer's per-character loop is interpreted — but
+the ratio is the part this change controls.
+
+**What it gives up**, stated plainly: this is not an XML parser. It would be
+wrong on a document using attributes on those six tags, CDATA, or a comment
+containing one of the six names. ENTSO-E's A75 is machine-generated from a
+fixed schema and uses none of them, and the scanner fails closed — it yields
+nothing rather than something wrong. The tests cover namespaced tags,
+attributes on structural tags, comments, self-closing tags, truncated
+documents, a non-numeric quantity and an HTML error page.
