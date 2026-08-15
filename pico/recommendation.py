@@ -1,4 +1,6 @@
 import time
+from i18n import t
+
 
 from utils import floor_hour_epoch, fmt_hhmm_local, iso_z_to_epoch, percentile
 
@@ -25,21 +27,21 @@ def compute_recommendation(current_carbon_intensity, overlay_history, now_epoch)
 
     if current_percentile <= CONFIG.thresholds.green_percentile_max:
         return {
-            "verdict": "RUN NOW",
-            "reason": "Cleaner than avg",
-            "next_best": "Now",
+            "verdict": t("verdict.run_now"),
+            "reason": t("reason.cleaner"),
+            "next_best": t("label.now"),
             "wait_hours": 0,
         }
     if current_percentile <= CONFIG.thresholds.yellow_percentile_max:
         return {
-            "verdict": "OK",
-            "reason": "Around average",
+            "verdict": t("verdict.ok"),
+            "reason": t("reason.average"),
             "next_best": next_best,
             "wait_hours": wait_hours or 0,
         }
     return {
-        "verdict": "WAIT",
-        "reason": "Dirtier than avg",
+        "verdict": t("verdict.wait"),
+        "reason": t("reason.dirtier"),
         "next_best": next_best,
         "wait_hours": wait_hours,
     }
