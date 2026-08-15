@@ -1,4 +1,5 @@
 # https://eepublicdownloads.entsoe.eu/clean-documents/EDI/Library/old-downloads/Market_Areas_v1.0.pdf
+from providers.ci_api import CiApiProvider
 from providers.co2signal import Co2SignalProvider
 from providers.electricity_maps import ElectricityMapsProvider
 from providers.entsoe import ENTSOE_DOMAIN, EntsoeProvider
@@ -17,6 +18,10 @@ def selected_provider(country_code):
     enabled = []
     if CONFIG.providers.ukci_enabled:
         enabled.append("uk")
+
+    # No token to check: the API is keyless.
+    if CONFIG.providers.ci_api.enabled:
+        enabled.append("ci_api")
 
     if (
         CONFIG.providers.electricity_maps.enabled
@@ -62,6 +67,8 @@ def fetch_window_any(lat, lon, city, country_code, start_epoch, end_epoch):
         providerClass = ElectricityMapsProvider()
     if provider == "co2signal":
         providerClass = Co2SignalProvider()
+    if provider == "ci_api":
+        providerClass = CiApiProvider()
     if provider == "watttime":
         providerClass = WattTimeProvider()
     if provider == "entsoe":
