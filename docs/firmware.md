@@ -65,3 +65,34 @@ Terminal ready
 [2026-02-18 20:47:53] Provider used: entsoe
 [2026-02-18 20:47:53] Finished fetching data
 ```
+
+## Boot diagnostics
+
+Startup used to log the IP and nothing else, which is the least useful subset:
+grid intensity is derived from where the device thinks it is, so a wrong number
+is far more often a wrong geolocation than a wrong provider.
+
+The boot log now carries the whole interface and the resolved location:
+
+```
+WiFi: connected 192.168.1.50 netmask 255.255.255.0 gateway 192.168.1.1 dns 1.1.1.1
+Network: ip 192.168.1.50 netmask 255.255.255.0 gateway 192.168.1.1 dns 1.1.1.1
+Location: Berlin, Germany (DE)
+ISP: Telekom
+```
+
+The same data is on `/status` under `diagnostics`.
+
+The ISP is there for a specific failure: an IP-based lookup resolves to the
+ISP's egress, so a device behind a VPN or a CGNAT gateway is priced against the
+wrong grid, and the ISP name is the fastest way to see it.
+
+**Location is coarse on purpose.** City, region and country are logged;
+latitude and longitude are not, in the log or on the status endpoint. Logs get
+pasted into issue reports, and a precise coordinate is a home address. The
+exact figures still reach the grid lookup — they simply do not pass through the
+diagnostics path, which is built from the interface and the geo payload alone
+and has no access to config, so no key can reach a log line through it.
+
+A failed geolocation lookup is a warning: the device serves on the configured
+defaults rather than refusing to boot.
