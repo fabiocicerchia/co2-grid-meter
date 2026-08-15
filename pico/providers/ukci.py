@@ -1,11 +1,11 @@
 """UK Carbon Intensity provider for firmware."""
 
 import time
-from utils import _format_timestamp, http_get_json
-from providers.base import parse_provider_history
-from config import CONFIG
 
-from providers.base import EmissionsProvider
+from utils import _format_timestamp, http_get_json
+
+from config import CONFIG
+from providers.base import EmissionsProvider, parse_provider_history
 
 
 class UkciProvider(EmissionsProvider):

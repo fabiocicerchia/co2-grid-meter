@@ -1,11 +1,11 @@
 import time
+
 import framebuf
 import utime
+from machine import SPI, Pin
+from utils import clamp, log
 
 from config import CONFIG
-from utils import clamp, log
-from machine import Pin, SPI
-
 
 EINK_BLACK = 0
 EINK_WHITE = 1
@@ -160,12 +160,12 @@ class EPD_2in13_B_V4_Base:
     def display(self):
         self.send_command(0x24)
         for j in range(int(self.width / 8) - 1, -1, -1):
-            for i in range(0, self.height):
+            for i in range(self.height):
                 self.send_data(self.buffer_black[i + j * self.height])
 
         self.send_command(0x26)
         for j in range(int(self.width / 8) - 1, -1, -1):
-            for i in range(0, self.height):
+            for i in range(self.height):
                 self.send_data(self.buffer_red[i + j * self.height])
 
         self.TurnOnDisplay()
@@ -174,7 +174,7 @@ class EPD_2in13_B_V4_Base:
 # TODO: TEST IT
 class EPD_2in13_B_V4_Portrait(EPD_2in13_B_V4_Base):
     def __init__(self):
-        super(EPD_2in13_B_V4_Portrait, self).__init__()
+        super().__init__()
 
         self.command_code = 0x03
 
@@ -189,7 +189,7 @@ class EPD_2in13_B_V4_Portrait(EPD_2in13_B_V4_Base):
 
 class EPD_2in13_B_V4_Landscape(EPD_2in13_B_V4_Base):
     def __init__(self):
-        super(EPD_2in13_B_V4_Landscape, self).__init__()
+        super().__init__()
 
         self.command_code = 0x07
 

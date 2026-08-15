@@ -1,7 +1,5 @@
 import time
 
-from ttl_cache import TtlCache
-from config import CONFIG
 from display import (
     EINK_BLACK,
     draw_current_panel,
@@ -20,6 +18,7 @@ from display import (
 from fw_network import wifi_ok, wifi_signal_bars
 from fw_providers import fetch_window_any
 from recommendation import recommend_from_week
+from ttl_cache import TtlCache
 from utils import (
     ProviderError,
     epoch_to_iso_z,
@@ -34,6 +33,7 @@ from utils import (
     url_decode,
 )
 
+from config import CONFIG
 
 _epd = None
 _last_render = 0
@@ -295,7 +295,6 @@ def _display_tick():
             render_placeholder_screen("DATA ERROR", str(e))
         except Exception as e:
             log("ERROR(_display_tick 2) %s" % e)
-            pass
 
 
 def draw_top_bar(_epd):

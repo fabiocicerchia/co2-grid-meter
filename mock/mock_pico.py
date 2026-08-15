@@ -4,10 +4,11 @@ import logging
 import signal
 import sys
 from http.server import HTTPServer
-from requests import Session
-from common_config import CONFIG as UNIFIED_CONFIG  # noqa: E402
-from mock.handler import create_handler  # noqa: E402
 
+from requests import Session
+
+from common_config import CONFIG as UNIFIED_CONFIG
+from mock.handler import create_handler
 
 CONFIG = UNIFIED_CONFIG.mock
 
@@ -25,7 +26,7 @@ Handler = create_handler(config=CONFIG, logger=LOGGER)
 
 
 def _shutdown_server(*_args) -> None:
-    global _SERVER
+    # `global` without an assignment does nothing — _SERVER is only read here.
     LOGGER.info("Shutting down dashboard server")
     try:
         if _SERVER is not None:

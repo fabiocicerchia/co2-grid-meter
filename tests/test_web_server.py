@@ -35,7 +35,7 @@ def _serve(handler_cls):
 
 def _fetch(url):
     try:
-        with urlopen(url) as response:  # noqa: S310
+        with urlopen(url) as response:
             return response.status, json.loads(response.read().decode("utf-8"))
     except HTTPError as error:
         return error.code, json.loads(error.read().decode("utf-8"))

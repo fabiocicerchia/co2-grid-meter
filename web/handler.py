@@ -14,6 +14,7 @@ from http.server import BaseHTTPRequestHandler
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
+
 from requests import Session
 from requests.exceptions import RequestException
 
@@ -90,7 +91,7 @@ def create_handler(
     class Handler(BaseHTTPRequestHandler):
         """Serves static dashboard assets and proxies API calls to Pico."""
 
-        def do_GET(self):  # noqa: N802
+        def do_GET(self):
             url = urlparse(self.path)
             query = parse_qs(url.query)
 

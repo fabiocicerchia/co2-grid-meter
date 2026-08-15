@@ -4,8 +4,9 @@ import math
 import random
 from datetime import timedelta
 
-from providers.base import EmissionsProvider
 from utils import iso_utc
+
+from providers.base import EmissionsProvider
 
 
 class SimulatedProvider(EmissionsProvider):
