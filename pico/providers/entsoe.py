@@ -1,11 +1,9 @@
-import io
 import time
 
 import urequests
-import xmltok
+from providers.entsoe_parse import parse_series
 from utils import (
     ProviderError,
-    TextStream,
     _resolution_to_seconds,
     _to_str,
     close_response,
@@ -159,164 +157,59 @@ class EntsoeProvider(EmissionsProvider):
             if response.status_code != 200:
                 raise ProviderError("ENTSO-E HTTP %d" % response.status_code)
 
-            # Prefer streaming parse to avoid large RAM usage, fall back to StringIO.
+            # One pass over the six fields this actually reads, rather than
+            # tokenising every tag in a document that is 95% <Point>. See
+            # pico/providers/entsoe_parse.py for what that gives up.
             log("Processing data")
-            stream = getattr(response, "raw", None)
-            if not (stream and hasattr(stream, "read")):
-                stream = io.StringIO(
-                    _to_str(
-                        getattr(response, "text", "")
-                        or getattr(response, "content", b"")
-                    )
-                )
-
-            tok = xmltok.tokenize(TextStream(stream))
-
-            in_timeseries = False
-            in_period = False
-            in_point = False
-
-            current_tag = None
-            psr_code = None
-            emission = None
-
-            period_start_epoch = None
-            interval_sec = 3600
-
-            point_position = None
-            point_quantity = None
-            for t in tok:
-                event = _to_str(t[0])
-
-                if event == "START_TAG":
-                    tag = t[1][1] if isinstance(t[1], tuple) else t[1]
-                    current_tag = tag
-
-                    if tag == "TimeSeries":
-                        in_timeseries = True
-                        psr_code = None
-                        emission = None
-
-                        last_position = None
-                        last_quantity = None
-                        period_start_epoch = None
-                        period_end_epoch = None
-                        interval_sec = 3600
-                        total_positions = None
-
-                    elif in_timeseries and tag == "Period":
-                        in_period = True
-                        period_start_epoch = None
-                        interval_sec = 3600
-
-                    elif in_period and tag == "Point":
-                        in_point = True
-                        point_position = None
-                        point_quantity = None
-
-                elif event == "TEXT":
-                    text = _to_str(t[1]).strip()
-                    if not text or not current_tag:
+            text = _to_str(
+                getattr(response, "text", "") or getattr(response, "content", b"")
+            )
+            for series in parse_series(text):
+                emission = PSR_EMISSION_FACTOR.get(series["psr"])
+                for period in series["periods"]:
+                    period_start_epoch = iso_z_to_epoch(period["start"])
+                    period_end_epoch = iso_z_to_epoch(period["end"])
+                    if period_start_epoch is None:
                         continue
+                    interval_sec = _resolution_to_seconds(period["resolution"]) or 3600
+                    total_positions = None
+                    if period_end_epoch is not None and interval_sec:
+                        total_positions = int(
+                            (period_end_epoch - period_start_epoch) / interval_sec
+                        )
 
-                    # ENTSO-E uses <MktPSRType><psrType>Bxx</psrType></MktPSRType>
-                    if in_timeseries and current_tag == "psrType":
-                        psr_code = text
-                        emission = PSR_EMISSION_FACTOR.get(psr_code)
-
-                    if in_period and current_tag == "start":
-                        ts = iso_z_to_epoch(text)
-                        if ts is not None:
-                            period_start_epoch = ts
-
-                    if in_period and current_tag == "end":
-                        ts = iso_z_to_epoch(text)
-                        if ts is not None:
-                            period_end_epoch = ts
-
-                    if in_period and current_tag == "resolution":
-                        interval_sec = _resolution_to_seconds(text)
-
-                        if (
-                            period_start_epoch is not None
-                            and period_end_epoch is not None
-                            and interval_sec
-                        ):
-                            total_positions = int(
-                                (period_end_epoch - period_start_epoch) / interval_sec
-                            )
-
-                    if in_point and current_tag == "position":
-                        try:
-                            point_position = int(text)
-                        except Exception:
-                            point_position = None
-
-                    if in_point and current_tag == "quantity":
-                        try:
-                            point_quantity = float(text)
-                        except Exception:
-                            point_quantity = None
-
-                elif event == "END_TAG":
-                    tag = t[1][1] if isinstance(t[1], tuple) else t[1]
-                    current_tag = None
-
-                    # ---- HANDLE POINT ----
-                    if tag == "Point" and in_point:
-                        if (
-                            period_start_epoch is not None
-                            and point_position
-                            and (point_quantity is not None)
-                        ):
-                            position = int(point_position)
-                            quantity = float(point_quantity)
-
-                            # Fill gap from last point (A03 step curve)
-                            if last_position is not None and last_quantity is not None:
-                                _fill_range(
-                                    buckets,
-                                    period_start_epoch,
-                                    interval_sec,
-                                    last_position,
-                                    position,
-                                    last_quantity,
-                                    emission,
-                                )
-
-                            last_position = position
-                            last_quantity = quantity
-                        in_point = False
-
-                    # ---- HANDLE PERIOD END (extend final value) ----
-                    elif tag == "Period" and in_period:
-                        if (
-                            last_position is not None
-                            and last_quantity is not None
-                            and total_positions is not None
-                        ):
+                    # A03 step curve: each point holds until the next one, and
+                    # the last holds to the end of the period.
+                    last_position = None
+                    last_quantity = None
+                    for position, quantity in period["points"]:
+                        if last_position is not None and last_quantity is not None:
                             _fill_range(
                                 buckets,
                                 period_start_epoch,
                                 interval_sec,
                                 last_position,
-                                total_positions + 1,
+                                position,
                                 last_quantity,
                                 emission,
                             )
+                        last_position = position
+                        last_quantity = quantity
 
-                        in_period = False
-                        last_position = None
-                        last_quantity = None
-
-                    elif tag == "TimeSeries" and in_timeseries:
-                        in_timeseries = False
-                        psr_code = None
-                        emission = None
-                        last_position = None
-                        last_quantity = None
-                        period_end_epoch = None
-                        total_positions = None
+                    if (
+                        last_position is not None
+                        and last_quantity is not None
+                        and total_positions is not None
+                    ):
+                        _fill_range(
+                            buckets,
+                            period_start_epoch,
+                            interval_sec,
+                            last_position,
+                            total_positions + 1,
+                            last_quantity,
+                            emission,
+                        )
 
         finally:
             close_response(response)
