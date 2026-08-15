@@ -26,3 +26,8 @@ Thumbs.db
 .idea/
 .vscode/
 *.swp
+
+# Device settings: holds Wi-Fi and provider credentials. The template is
+# pico/settings.example.json.
+settings.json
+pico/settings.json
