@@ -1,6 +1,5 @@
 import time
 
-from uptime import UPTIME
 from display import (
     EINK_BLACK,
     draw_current_panel,
@@ -20,6 +19,7 @@ from fw_network import wifi_ok, wifi_signal_bars
 from fw_providers import fetch_window_any
 from recommendation import recommend_from_week
 from ttl_cache import TtlCache
+from uptime import UPTIME
 from utils import (
     ProviderError,
     epoch_to_iso_z,

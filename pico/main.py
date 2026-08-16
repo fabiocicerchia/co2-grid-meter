@@ -18,9 +18,9 @@ import sys
 from http import serve_forever, set_time
 
 from fw_network import wifi_connect
+from uptime import UPTIME
 
 from config import CONFIG, append_log_line, build_firmware_logger, write_crashdump
-from uptime import UPTIME
 
 # =========================
 # main
