@@ -69,10 +69,9 @@ def parse_request(conn):
         h = _readline(conn)
         if not h or h == b"\r\n":
             break
-        try:
-            line = h.decode().strip()
-        except Exception:
-            continue
+        # A header that is not valid UTF-8 is not one this server acts on, and
+        # a malformed request must not take the connection down.
+        line = h.decode("utf-8", "replace").strip()
         if line[:14].lower() == "if-none-match:":
             inm = line[14:].strip()
     return method, path_qs, inm
@@ -271,9 +270,10 @@ def process_http_request(conn, method, path, params, if_none_match=""):
     # Static files first: with serving enabled the dashboard's own paths must
     # not be shadowed by the JSON routes below, and with it disabled this costs
     # one attribute read.
-    if getattr(CONFIG.web, "serve_static", False):
-        if serve_static_file(conn, path, if_none_match):
-            return
+    if getattr(CONFIG.web, "serve_static", False) and serve_static_file(
+        conn, path, if_none_match
+    ):
+        return
 
     if path == "/html":
         return send_html(conn, 200, build_index_html())

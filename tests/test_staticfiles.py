@@ -122,7 +122,7 @@ class TestConditionalGet:
 
     def test_a_list_of_candidates_matches(self):
         tag = etag(1, 2)
-        assert not_modified('"other", %s' % tag, tag)
+        assert not_modified(f'"other", {tag}', tag)
 
     def test_a_wildcard_matches(self):
         assert not_modified("*", etag(1, 2))
