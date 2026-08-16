@@ -65,3 +65,36 @@ Terminal ready
 [2026-02-18 20:47:53] Provider used: entsoe
 [2026-02-18 20:47:53] Finished fetching data
 ```
+
+## Language
+
+The dashboard resolved `data-i18n` keys already; the panel did not, so the half
+of the product a non-English speaker actually looks at was English only.
+
+```python
+CONFIG.ui.language = "it"  # or via settings.json once that lands
+```
+
+Shipping `en` and `it`, the same pair the dashboard has — a test asserts the two
+halves have not drifted to different sets.
+
+**A missing key renders the English default, never blank.** A blank line on an
+e-ink panel is indistinguishable from a broken refresh, and the panel is the
+only output some installs have. An unknown key renders the key itself, which is
+a poor label but a visible and searchable one. A locale whose placeholders do
+not match — a dropped `%d` — renders the English form rather than raising, so
+the reading still reaches the panel.
+
+**An unknown language falls back to English and says so** in the log, because a
+device silently ignoring its own configuration looks like a broken translation
+rather than a typo in one line.
+
+**Memory: 592 bytes for both locales**, roughly 296 bytes each, against the tens
+of KB of heap a Pico W has left after this firmware. A test holds the whole
+table under 4 KB and each locale under 1 KB, which is what keeps that true as
+locales are added.
+
+**Length is checked, not trusted.** The smallest supported panel is 122 px, or
+about 20 characters at the built-in font, and an overflowing translation is
+clipped silently — so the test renders each string with its placeholders filled
+and asserts it fits.
