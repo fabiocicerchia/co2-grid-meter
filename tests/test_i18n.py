@@ -139,9 +139,7 @@ class TestDashboardParity:
         script = (REPO / "web" / "static" / "script.js").read_text()
         block = script[script.index("const I18N") : script.index("function applyI18n")]
         for code in LOCALES:
-            assert re.search(r"\b%s\s*:" % code, block), (
-                f"dashboard has no {code} locale"
-            )
+            assert re.search(rf"\b{code}\s*:", block), f"dashboard has no {code} locale"
 
 
 def test_firmware_strings_are_not_hardcoded_any_more():

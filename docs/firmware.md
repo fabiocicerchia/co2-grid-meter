@@ -72,7 +72,7 @@ The dashboard resolved `data-i18n` keys already; the panel did not, so the half
 of the product a non-English speaker actually looks at was English only.
 
 ```python
-CONFIG.ui.language = "it"   # or via settings.json once that lands
+CONFIG.ui.language = "it"  # or via settings.json once that lands
 ```
 
 Shipping `en` and `it`, the same pair the dashboard has — a test asserts the two
