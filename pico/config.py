@@ -203,10 +203,11 @@ class _DailyFileLogHandler(logging.Handler):
 # the device's own values, not the defaults above. Import-time failure is
 # deliberate: a device that boots with no Wi-Fi password shows a dummy reading,
 # which reads as a broken provider rather than an empty setting.
-from settings import SettingsError, apply as _apply_settings  # noqa: E402
-from settings import load as _load_settings  # noqa: E402
-from settings import require as _require_settings  # noqa: E402
-from settings import required_names as _required_settings  # noqa: E402
+from settings import SettingsError
+from settings import apply as _apply_settings
+from settings import load as _load_settings
+from settings import require as _require_settings
+from settings import required_names as _required_settings
 
 SETTINGS_ERROR = None
 try:
