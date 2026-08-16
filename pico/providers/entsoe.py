@@ -1,7 +1,6 @@
 import time
 
 import urequests
-from providers.entsoe_parse import parse_series
 from utils import (
     ProviderError,
     _resolution_to_seconds,
@@ -16,6 +15,7 @@ from utils import (
 
 from config import CONFIG
 from providers.base import EmissionsProvider
+from providers.entsoe_parse import parse_series
 
 ENTSOE_DOMAIN = {
     # Core ENTSO-E domains + common aliases.

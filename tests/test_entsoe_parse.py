@@ -10,7 +10,10 @@ import random
 
 _spec = importlib.util.spec_from_file_location(
     "pico_entsoe_parse",
-    pathlib.Path(__file__).resolve().parents[1] / "pico" / "providers" / "entsoe_parse.py",
+    pathlib.Path(__file__).resolve().parents[1]
+    / "pico"
+    / "providers"
+    / "entsoe_parse.py",
 )
 _parse = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_parse)
@@ -118,15 +121,15 @@ def build_document(series=4, points=96):
     parts = ['<?xml version="1.0"?>', "<GL_MarketDocument>"]
     for psr in ("B01", "B04", "B16", "B19")[:series]:
         parts.append("<TimeSeries><mRID>1</mRID>")
-        parts.append("<MktPSRType><psrType>%s</psrType></MktPSRType>" % psr)
+        parts.append(f"<MktPSRType><psrType>{psr}</psrType></MktPSRType>")
         parts.append(
             "<Period><timeInterval><start>2026-08-15T00:00Z</start>"
             "<end>2026-08-16T00:00Z</end></timeInterval><resolution>PT15M</resolution>"
         )
         for pos in range(1, points + 1):
             parts.append(
-                "<Point><position>%d</position><quantity>%d</quantity></Point>"
-                % (pos, random.randint(100, 9000))
+                f"<Point><position>{pos}</position>"
+                f"<quantity>{random.randint(100, 9000)}</quantity></Point>"
             )
         parts.append("</Period></TimeSeries>")
     parts.append("</GL_MarketDocument>")
@@ -141,5 +144,8 @@ def test_a_full_day_parses_completely():
     assert sum(len(p["points"]) for s in series for p in s["periods"]) == 384
     # Every quantity survived as a number, which is what the bucket fill needs.
     assert all(
-        isinstance(q, float) for s in series for p in s["periods"] for _, q in p["points"]
+        isinstance(q, float)
+        for s in series
+        for p in s["periods"]
+        for _, q in p["points"]
     )
