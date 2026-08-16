@@ -6,12 +6,12 @@ from datetime import timezone
 import ujson
 import urequests
 
-from config import build_firmware_logger
-
 # Bare-name import, like every other module under pico/. These live in
 # textutil so they can be tested under CPython — utils itself cannot be
 # imported there — and are re-exported here so no call site has to change.
 from textutil import _quote, _to_str, iso_z_to_epoch, urlencode_simple
+
+from config import build_firmware_logger
 
 # Re-exported, not used here: providers import these from utils and there is no
 # reason to churn every call site over where the code physically lives.
