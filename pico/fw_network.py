@@ -1,10 +1,10 @@
 import time
 
 import network
+from diagnostics import network_summary
 from utils import log
 
 from config import CONFIG
-from diagnostics import network_summary
 
 _wlan = None
 
