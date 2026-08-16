@@ -39,8 +39,15 @@ def _log_interface():
     both fail later as a provider timeout, which is where the time goes.
     """
     net = network_summary(_wlan.ifconfig())
-    log("WiFi: connected %s netmask %s gateway %s dns %s"
-        % (net["ip"] or "?", net["netmask"] or "?", net["gateway"] or "?", net["dns"] or "?"))
+    log(
+        "WiFi: connected %s netmask %s gateway %s dns %s"
+        % (
+            net["ip"] or "?",
+            net["netmask"] or "?",
+            net["gateway"] or "?",
+            net["dns"] or "?",
+        )
+    )
     return net["ip"]
 
 
