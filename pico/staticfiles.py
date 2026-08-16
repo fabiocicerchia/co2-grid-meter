@@ -127,8 +127,7 @@ def not_modified(request_etag, current_etag):
         return False
     for candidate in request_etag.split(","):
         candidate = candidate.strip()
-        if candidate.startswith("W/"):
-            candidate = candidate[2:]
+        candidate = candidate.removeprefix("W/")
         if candidate == "*" or candidate == current_etag:
             return True
     return False
