@@ -314,7 +314,10 @@ def serve_static_file(conn, path, if_none_match=""):
         # A reload of an unchanged asset is a header exchange, not a transfer:
         # the radio is the most expensive thing on the board.
         conn.send(
-            ("HTTP/1.1 304 Not Modified\r\nETag: %s\r\nConnection: close\r\n\r\n" % tag).encode()
+            (
+                "HTTP/1.1 304 Not Modified\r\nETag: %s\r\nConnection: close\r\n\r\n"
+                % tag
+            ).encode()
         )
         return True
 
