@@ -8,9 +8,9 @@ publishes below national level. It serves the last hour only, so this is a
 import time
 
 from ci_api_parse import freshness_error, pick_intensity, reading_path
-from config import CONFIG
 from utils import ProviderError, floor_hour_epoch, http_get_json, iso_z_to_epoch, log
 
+from config import CONFIG
 from providers.base import SampledProvider
 
 

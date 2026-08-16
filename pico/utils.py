@@ -6,7 +6,16 @@ from datetime import timezone
 import ujson
 import urequests
 
+# Bare-name import, like every other module under pico/. These live in
+# textutil so they can be tested under CPython — utils itself cannot be
+# imported there — and are re-exported here so no call site has to change.
+from textutil import _quote, _to_str, iso_z_to_epoch, urlencode_simple
+
 from config import build_firmware_logger
+
+# Re-exported, not used here: providers import these from utils and there is no
+# reason to churn every call site over where the code physically lives.
+__all__ = ["_quote", "_to_str", "iso_z_to_epoch", "urlencode_simple"]
 
 
 def free_mem():
@@ -106,122 +115,6 @@ def log(parts):
     global LOGGER
     LOGGER = build_firmware_logger()
     LOGGER.info(parts)
-
-
-# TODO: Use library
-def iso_z_to_epoch(iso_timestamp):
-    """Convert an ISO-8601 timestamp to epoch seconds.
-
-    Supports:
-    - ...Z (UTC)
-    - ...+HH:MM / ...-HH:MM offsets
-
-    Notes:
-    - Uses time.mktime() which may be local-time based on some MicroPython ports.
-      For UTC/Z timestamps on typical Pico builds this is usually acceptable.
-    """
-    try:
-        if not iso_timestamp:
-            return None
-
-        s = iso_timestamp.strip()
-
-        # Handle trailing 'Z'
-        tz_sign = None
-        tz_h = 0
-        tz_m = 0
-
-        if s.endswith("Z"):
-            s = s[:-1]
-        else:
-            # Handle timezone offsets like +01:00 or -05:30
-            # Find last '+' or '-' after the 'T'
-            t_pos = s.find("T")
-            if t_pos != -1:
-                tail = s[t_pos + 1 :]
-                plus = tail.rfind("+")
-                minus = tail.rfind("-")
-                idx = max(minus, plus)
-                if idx != -1:
-                    tz_part = tail[idx:]
-                    s = s[: t_pos + 1 + idx]
-                    tz_sign = tz_part[0]
-                    tz_part = tz_part[1:]
-                    if len(tz_part) >= 5 and tz_part[2] == ":":
-                        tz_h = int(tz_part[0:2])
-                        tz_m = int(tz_part[3:5])
-
-        date_part, time_part = s.split("T")
-        year, month, day = [int(chunk) for chunk in date_part.split("-")]
-
-        fields = time_part.split(":")
-        hour = int(fields[0])
-        minute = int(fields[1]) if len(fields) > 1 else 0
-        second_text = fields[2] if len(fields) > 2 else "0"
-        # Support fractional seconds (e.g. "11:00:00.000Z") from EM payloads.
-        dot = second_text.find(".")
-        if dot != -1:
-            second_text = second_text[:dot]
-        second = int(second_text or "0")
-
-        epoch = int(time.mktime((year, month, day, hour, minute, second, 0, 0)))
-
-        if tz_sign:
-            offset = tz_h * 3600 + tz_m * 60
-            # Local time = UTC + offset for '+', so UTC = local - offset
-            epoch = epoch - offset if tz_sign == "+" else epoch + offset
-
-        return epoch
-    except Exception:
-        return None
-
-
-def percentile(sorted_values, target):
-    count = len(sorted_values)
-    if count == 0:
-        return None
-    low, high = 0, count
-    while low < high:
-        middle = (low + high) >> 1
-        if sorted_values[middle] < target:
-            low = middle + 1
-        else:
-            high = middle
-    return low / count
-
-
-def _to_str(x):
-    if isinstance(x, bytes):
-        try:
-            return x.decode()
-        except Exception:
-            return str(x)
-    if x is None:
-        return ""
-    return str(x)
-
-
-# TODO: Use library
-def _quote(s):
-    # Minimal percent-encoding suitable for query strings on MicroPython.
-    s = _to_str(s)
-    return (
-        s.replace("%", "%25")
-        .replace(" ", "%20")
-        .replace("&", "%26")
-        .replace("=", "%3D")
-        .replace("+", "%2B")
-        .replace("?", "%3F")
-        .replace("#", "%23")
-    )
-
-
-def urlencode_simple(d):
-    # MicroPython-friendly query-string builder; coerces bytes->str.
-    parts = []
-    for k, v in d.items():
-        parts.append("%s=%s" % (_quote(k), _quote(v)))
-    return "&".join(parts)
 
 
 def _resolution_to_seconds(resolution_text):
