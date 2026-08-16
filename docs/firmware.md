@@ -65,3 +65,32 @@ Terminal ready
 [2026-02-18 20:47:53] Provider used: entsoe
 [2026-02-18 20:47:53] Finished fetching data
 ```
+
+## Device settings
+
+Wi-Fi credentials and provider tokens are **not** in source. `pico/config.py`
+holds defaults that describe the shape of the configuration; the device's own
+values live in `settings.json` on its filesystem, which is gitignored.
+
+```sh
+cp pico/settings.example.json settings.json   # then fill it in, then copy to the Pico
+```
+
+Anything omitted keeps the default. The overlay is applied at import, so every
+module that does `from config import CONFIG` sees the device's values.
+
+**A missing required value fails at startup, by name.** Falling back silently
+produces a device that boots, connects to nothing and shows a dummy reading —
+which reads as a broken provider rather than an empty password. All missing
+values are listed in one error, because someone setting up a fresh device wants
+the whole list at once.
+
+**Only enabled providers need credentials.** The keyless ci-api needs no token;
+demanding one would be a fallback of a different kind.
+
+**An unknown setting is an error naming it.** A typo is the usual cause, and a
+device that ignores half its configuration without saying which half is the
+worst of the available outcomes.
+
+The desktop side is unchanged: `config/settings.py` still reads environment
+variables, and remains the source of truth there.
