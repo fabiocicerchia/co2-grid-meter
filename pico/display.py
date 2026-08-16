@@ -2,11 +2,11 @@ import time
 
 import framebuf
 import utime
+from i18n import t
 from machine import SPI, Pin
 from utils import clamp, log
 
 from config import CONFIG
-from i18n import t
 
 EINK_BLACK = 0
 EINK_WHITE = 1
