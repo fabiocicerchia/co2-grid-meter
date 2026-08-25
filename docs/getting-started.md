@@ -31,7 +31,7 @@ the mock, see [docs/README.md](README.md).
 
 ## Firmware
 
-To flash the actual Pico firmware (`pico/`), see the [top-level README](../README.md#firmware-setup-references)
+To flash the actual Pico firmware (`pico/`), see the [top-level README](README.md#firmware-setup-references)
 for Thonny/MicroPython setup references.
 
 ## Tests
