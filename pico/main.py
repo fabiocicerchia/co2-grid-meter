@@ -21,8 +21,8 @@ from fw_network import wifi_connect
 from i18n import set_language
 from uptime import UPTIME
 
+from config import CONFIG, append_log_line, build_firmware_logger, write_crashdump
 from config import SETTINGS_ERROR as CONFIG_SETTINGS_ERROR
-from config import append_log_line, build_firmware_logger, write_crashdump
 
 # =========================
 # main
