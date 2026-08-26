@@ -1,5 +1,6 @@
 import time
 
+from diagnostics import boot_lines, format_location, geo_summary
 from display import (
     EINK_BLACK,
     draw_current_panel,
@@ -17,8 +18,10 @@ from display import (
 )
 from fw_network import wifi_ok, wifi_signal_bars
 from fw_providers import fetch_window_any
+from i18n import t
 from recommendation import recommend_from_week
 from ttl_cache import TtlCache
+from uptime import UPTIME
 from utils import (
     ProviderError,
     epoch_to_iso_z,
@@ -40,6 +43,8 @@ _last_render = 0
 _cache = TtlCache(CONFIG.cache_refresh_seconds)
 _auto_geo_cache = None
 _auto_geo_expires = 0
+# Coarse geolocation for the logs and /status. Never holds coordinates.
+_geo_details = {}
 _last_provider_used = "unknown"
 
 
@@ -68,12 +73,49 @@ def _auto_geo_defaults():
 
         _auto_geo_cache = {"lat": lat, "lon": lon, "city": city, "cc": cc}
         _auto_geo_expires = now + int(CONFIG.geo.refresh_seconds)
-        log("Auto-geo resolved to %s, %s (%s, %s)" % (city, cc, str(lat), str(lon)))
+        # Coarse on purpose: logs get pasted into issues, and a precise
+        # coordinate is a home address. The exact figures stay in the cache
+        # above, where the grid lookup needs them.
+        global _geo_details
+        _geo_details = geo_summary(payload)
+        log("Auto-geo resolved to %s" % format_location(_geo_details))
+        if _geo_details.get("isp"):
+            log("ISP: %s" % _geo_details["isp"])
         return _auto_geo_cache
     except Exception as error:
         log("Auto-geo failed: %s" % error)
         _auto_geo_expires = now + int(CONFIG.geo.failure_retry_seconds)
         return _auto_geo_cache
+
+
+def log_boot_diagnostics():
+    """Resolve geolocation once at boot and log what was found.
+
+    Called from main so the answer is in the log before the first request,
+    rather than appearing whenever a browser happens to hit /status. A failed
+    lookup is a warning and nothing more: the device still serves, falling back
+    to the configured defaults, and saying so is more useful than refusing to
+    boot over it.
+    """
+    try:
+        _auto_geo_defaults()
+    except Exception as error:  # never let diagnostics stop the boot
+        log("Auto-geo unavailable: %s" % error)
+    summary = diagnostics_summary()
+    for line in boot_lines(summary["network"], summary["location"]):
+        log(line)
+
+
+def diagnostics_summary():
+    """Coarse location, ISP and interface — the boot log, as JSON."""
+    try:
+        from fw_network import interface_summary
+
+        net = interface_summary()
+    except Exception:
+        # Not running on a Pico (mock/dev server): the geo half still applies.
+        net = {}
+    return {"network": net, "location": dict(_geo_details)}
 
 
 def resolve_geo(params):
@@ -200,7 +242,8 @@ def handle_em_overlay(params):
 def make_next_line(recommendation):
     wait_hours = recommendation.get("wait_hours")
     if isinstance(wait_hours, int) and wait_hours > 0:
-        return "WAIT %dh (%s)" % (
+        return t(
+            "label.wait_hours",
             wait_hours,
             fmt_hhmm_local(int(time.time()) + wait_hours * 3600),
         )
@@ -250,6 +293,12 @@ def build_status_bundle(params):
         "carbonIntensity": current_intensity,
         "recommendation": recommendation,
         "_provider": window_data.get("_provider") or "—",
+        # Same diagnostics the boot log prints: coarse location, ISP and the
+        # interface. No coordinates, no credentials — see pico/diagnostics.py.
+        "diagnostics": diagnostics_summary(),
+        # Raw seconds, not a formatted string: the caller is a machine, and a
+        # monotonic count is the only thing that survives an unset RTC.
+        "uptime_seconds": UPTIME.seconds(),
     }
 
     return status, window_data, overlay_data
