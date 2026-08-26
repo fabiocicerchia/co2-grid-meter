@@ -18,6 +18,7 @@ import sys
 from http import serve_forever, set_time
 
 from fw_network import wifi_connect
+from i18n import set_language
 from uptime import UPTIME
 
 from config import SETTINGS_ERROR as CONFIG_SETTINGS_ERROR
@@ -39,6 +40,13 @@ def main():
     if CONFIG_SETTINGS_ERROR:
         LOGGER.info("FATAL: %s" % CONFIG_SETTINGS_ERROR)
         raise SystemExit(CONFIG_SETTINGS_ERROR)
+
+    # Before anything renders: the panel's strings are resolved through the
+    # table, and a device that ignored its own language setting would look like
+    # a broken translation rather than a typo in one line.
+    selected = set_language(CONFIG.ui.language)
+    if selected != CONFIG.ui.language:
+        LOGGER.info("Unknown language %r, using %s" % (CONFIG.ui.language, selected))
 
     gc.enable()
     connected, ip = wifi_connect()
