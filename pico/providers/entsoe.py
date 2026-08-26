@@ -15,7 +15,7 @@ from utils import (
 
 from config import CONFIG
 from providers.base import EmissionsProvider
-from providers.entsoe_parse import parse_series
+from providers.entsoe_parse import iter_series
 
 ENTSOE_DOMAIN = {
     # Core ENTSO-E domains + common aliases.
@@ -160,11 +160,19 @@ class EntsoeProvider(EmissionsProvider):
             # One pass over the six fields this actually reads, rather than
             # tokenising every tag in a document that is 95% <Point>. See
             # pico/providers/entsoe_parse.py for what that gives up.
+            #
+            # Streamed off the socket, not read into a string first: a 60-hour
+            # window over a PT15M zone is a 180-250 KB response and the board
+            # has 264 KB of SRAM in total. Each series is folded into the
+            # hourly buckets below and dropped, so the peak is one read window
+            # plus one series rather than the document plus a tree of it.
             log("Processing data")
-            text = _to_str(
-                getattr(response, "text", "") or getattr(response, "content", b"")
-            )
-            for series in parse_series(text):
+            source = getattr(response, "raw", None)
+            if not (source and hasattr(source, "read")):
+                source = getattr(response, "content", b"") or getattr(
+                    response, "text", ""
+                )
+            for series in iter_series(source):
                 emission = PSR_EMISSION_FACTOR.get(series["psr"])
                 for period in series["periods"]:
                     period_start_epoch = iso_z_to_epoch(period["start"])

@@ -5,8 +5,10 @@ standard library's `http` package and break every other test in the run.
 """
 
 import importlib.util
+import io
 import pathlib
 import random
+import tracemalloc
 
 _spec = importlib.util.spec_from_file_location(
     "pico_entsoe_parse",
@@ -20,6 +22,7 @@ _spec.loader.exec_module(_parse)
 
 parse_series = _parse.parse_series
 iter_events = _parse.iter_events
+iter_series = _parse.iter_series
 
 # A trimmed A75, in the shape ENTSO-E actually sends: a default namespace, a
 # nested MktPSRType, and one Period per TimeSeries.
@@ -116,10 +119,17 @@ class TestRobustness:
 
 
 def build_document(series=4, points=96):
-    """A representative response: four production types, a day of 15-min points."""
+    """A representative response: four production types, a day of 15-min points.
+
+    `series` may exceed the four codes; they cycle. A real zone publishes ten
+    to fifteen, and the memory tests need to vary the count independently of
+    the points in each.
+    """
     random.seed(7)
+    codes = ("B01", "B04", "B16", "B19")
     parts = ['<?xml version="1.0"?>', "<GL_MarketDocument>"]
-    for psr in ("B01", "B04", "B16", "B19")[:series]:
+    for index in range(series):
+        psr = codes[index % len(codes)]
         parts.append("<TimeSeries><mRID>1</mRID>")
         parts.append(f"<MktPSRType><psrType>{psr}</psrType></MktPSRType>")
         parts.append(
@@ -149,3 +159,81 @@ def test_a_full_day_parses_completely():
         for p in s["periods"]
         for _, q in p["points"]
     )
+
+
+class TestStreaming:
+    """The document must never be held whole.
+
+    A 60-hour window over a zone publishing at PT15M is a 180-250 KB response
+    and the board has 264 KB of SRAM in total, so reading the body into a
+    string before parsing it is the difference between working and an
+    allocation failure. These pin the property, not the implementation.
+    """
+
+    def test_a_stream_and_a_string_agree(self):
+        doc = build_document()
+        assert parse_series(io.BytesIO(doc.encode())) == parse_series(doc)
+
+    def test_series_arrive_before_the_document_has_been_read(self):
+        # The point of iter_series: the first TimeSeries is usable while the
+        # rest of the response is still on the socket. If this ever buffers
+        # the whole body first, the read position would be at EOF here.
+        doc = build_document(series=4, points=96)
+        raw = doc.encode()
+        stream = io.BytesIO(raw)
+        first = next(iter_series(stream))
+        assert first["psr"] == "B01"
+        assert stream.tell() < len(raw), "whole document was read before yielding"
+
+    def test_peak_memory_does_not_track_document_size(self):
+        # Points per series are held constant and only the number of series
+        # varies, because that is the actual claim: one series is live at a
+        # time, so a document with sixteen times as many costs the same.
+        def peak(series, points):
+            raw = build_document(series, points).encode()
+            stream = io.BytesIO(raw)
+            tracemalloc.start()
+            for _ in iter_series(stream):
+                pass
+            _, high = tracemalloc.get_traced_memory()
+            tracemalloc.stop()
+            return len(raw), high
+
+        _, small = peak(2, 96)
+        size, large = peak(32, 96)
+        # 16x the document, same peak. Anything that buffered the body would
+        # show the ratio instead.
+        assert large < small * 2, "peak grew with the document: %d -> %d" % (
+            small,
+            large,
+        )
+        # And the absolute claim the device depends on: the window is a small
+        # fraction of the response, not a copy of it.
+        assert large < size // 4, "peak %d is not small against a %d byte body" % (
+            large,
+            size,
+        )
+
+    def test_a_stream_that_stops_mid_document_yields_what_was_read(self):
+        # A dropped connection is a partial curve, not an exception and not a
+        # silent empty result.
+        doc = build_document(series=4, points=96)
+        truncated = doc.encode()[: len(doc) // 2]
+        got = parse_series(io.BytesIO(truncated))
+        assert 0 < len(got) < 4
+        assert got[0]["periods"][0]["points"]
+
+    def test_a_value_split_across_two_reads_is_not_corrupted(self):
+        # The scan refills mid-token whenever a value straddles a chunk
+        # boundary; a one-byte reader forces that on every single token.
+        class Dribble:
+            def __init__(self, data):
+                self.data, self.i = data, 0
+
+            def read(self, n):
+                block = self.data[self.i : self.i + 1]
+                self.i += len(block)
+                return block
+
+        doc = build_document(series=2, points=8)
+        assert parse_series(Dribble(doc.encode())) == parse_series(doc)
