@@ -4,7 +4,9 @@ import time
 
 import machine
 import network
+import staticfiles
 import ujson
+import uos
 from app import (
     _display_tick,
     handle_em_overlay,
@@ -59,11 +61,24 @@ def parse_request(conn):
     if len(parts) < 2:
         return None
     method, path_qs = parts[0], parts[1]
+    # Only If-None-Match is kept: it is the one header this server acts on, and
+    # holding a whole header dict per request costs heap the device needs for
+    # the response.
+    inm = ""
     while True:
         h = _readline(conn)
         if not h or h == b"\r\n":
             break
-    return method, path_qs
+        # Matched as bytes: decoding every header to find the one that matters
+        # allocates a string per header per request, which is the heap this
+        # was trying to save. Only the value that is actually kept is decoded,
+        # and a header that is not valid UTF-8 is not one this server acts on.
+        if h[:14].lower() == b"if-none-match:":
+            try:
+                inm = h[14:].decode().strip()
+            except Exception:
+                inm = ""
+    return method, path_qs, inm
 
 
 def split_path_qs(path_qs):
@@ -234,12 +249,12 @@ def handle_http_request(conn, LOGGER):
     if not request:
         return
 
-    method, path_qs = request
+    method, path_qs, if_none_match = request
     path, params = split_path_qs(path_qs)
     LOGGER.info("%s %s" % (method, path))
 
     try:
-        process_http_request(conn, method, path, params)
+        process_http_request(conn, method, path, params, if_none_match)
     except Exception as error:
         crash_path = write_crashdump(error, context="http")
         LOGGER.exception("ERROR %s %s" % (error, crash_path))
@@ -252,9 +267,17 @@ def handle_http_request(conn, LOGGER):
             pass
 
 
-def process_http_request(conn, method, path, params):
+def process_http_request(conn, method, path, params, if_none_match=""):
     if method != "GET":
         return send_json(conn, 405, {"error": "Only GET supported"})
+
+    # Static files first: with serving enabled the dashboard's own paths must
+    # not be shadowed by the JSON routes below, and with it disabled this costs
+    # one attribute read.
+    if getattr(CONFIG.web, "serve_static", False) and serve_static_file(
+        conn, path, if_none_match
+    ):
+        return
 
     if path == "/html":
         return send_html(conn, 200, build_index_html())
@@ -272,6 +295,49 @@ def process_http_request(conn, method, path, params):
         return send_text(conn, 200, _GRAPH_HTML, "text/html")
 
     return send_json(conn, 404, {"error": "Not found", "path": path})
+
+
+def serve_static_file(conn, path, if_none_match=""):
+    """Serve `path` from the static root. False means "not mine" — the caller
+    then tries the JSON routes, so enabling this cannot break the API.
+
+    Streamed in chunks: a 15 KB script read whole would be a memory failure on
+    a device with tens of KB of heap, and would hold the refresh loop for the
+    duration of the read.
+    """
+    target = staticfiles.resolve(CONFIG.web.static_root, path)
+    if target is None:
+        return False
+    try:
+        stat = uos.stat(target)
+    except OSError:
+        return False
+
+    tag = staticfiles.etag(stat[6], stat[8])
+    if staticfiles.not_modified(if_none_match, tag):
+        # A reload of an unchanged asset is a header exchange, not a transfer:
+        # the radio is the most expensive thing on the board.
+        conn.send(
+            (
+                "HTTP/1.1 304 Not Modified\r\nETag: %s\r\nConnection: close\r\n\r\n"
+                % tag
+            ).encode()
+        )
+        return True
+
+    headers = (
+        "HTTP/1.1 200 OK\r\n"
+        "Content-Type: %s\r\n"
+        "Content-Length: %d\r\n"
+        "ETag: %s\r\n"
+        "Cache-Control: max-age=300\r\n"
+        "Connection: close\r\n\r\n"
+    ) % (staticfiles.content_type(target), stat[6], tag)
+    conn.send(headers.encode())
+    with open(target, "rb") as fh:
+        for block in staticfiles.chunks(fh):
+            conn.send(block)
+    return True
 
 
 def ensure_connected(ip):

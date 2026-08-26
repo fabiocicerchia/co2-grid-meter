@@ -3,11 +3,30 @@ import os
 import sys
 import time
 
+# Bare-name import, like every other module under pico/. settings.py imports
+# nothing from here, so there is no cycle; only the overlay *call* has to wait
+# for CONFIG to exist, and that is at the bottom of the file.
+from settings import SettingsError
+from settings import apply as _apply_settings
+from settings import load as _load_settings
+from settings import require as _require_settings
+from settings import required_names as _required_settings
+
 
 class CONFIG:
+    """Firmware defaults.
+
+    Secrets are NOT here. Everything in this file is a default that describes
+    the shape of the configuration; the device's own values are overlaid from
+    settings.json at import (see pico/settings.py), which is gitignored so a
+    filled-in device cannot be committed by accident.
+    """
+
     class wifi:
-        ssid = ""  # TODO: CHANGE ME
-        password = ""  # TODO: CHANGE ME
+        # Overlaid from settings.json — an empty value here fails at startup
+        # with a named error rather than booting into a dummy reading.
+        ssid = ""
+        password = ""
 
     class defaults:
         # ENTSOE
@@ -41,14 +60,23 @@ class CONFIG:
         # city = "San Francisco"
         # country = "CAISO_NORTH"
 
+    class web:
+        # Serve the dashboard's own files from the device, for an install with
+        # no desktop server. Off by default: an existing deployment must not
+        # start serving files because it was upgraded, and a device without the
+        # assets copied over would answer 404 for every page.
+        serve_static = False
+        # Where those files live on the Pico's filesystem.
+        static_root = "static"
+
     class providers:
-        ukci_enabled = False  # TODO: CHANGE ME
+        ukci_enabled = False
 
         # Keyless, every country, plus bidding zones where the operator
         # publishes them. Last hour only, so the timeline fills in as the
         # device polls.
         class ci_api:
-            enabled = False  # TODO: CHANGE ME
+            enabled = False
             base_url = "https://ci-api.fabiocicerchia.it"
             # Empty follows defaults.country; set it to pin the lookup.
             country_override = ""
@@ -58,19 +86,19 @@ class CONFIG:
             zone = ""
 
         class electricity_maps:
-            enabled = False  # TODO: CHANGE ME
-            token = ""  # TODO: CHANGE ME
+            enabled = False
+            token = ""
             base_url = "https://api.electricitymaps.com"
 
         class co2signal:
-            enabled = False  # TODO: CHANGE ME
-            token = ""  # TODO: CHANGE ME
+            enabled = False
+            token = ""
             base_url = "https://api.co2signal.com"
 
         class watttime:
-            enabled = False  # TODO: CHANGE ME
-            username = ""  # TODO: CHANGE ME
-            password = ""  # TODO: CHANGE ME
+            enabled = False
+            username = ""
+            password = ""
             base_url = "https://api.watttime.org"
             # Free WattTime accounts are granted one region (CAISO_NORTH). Set
             # this to pin it and skip the location lookup entirely; leave it
@@ -80,13 +108,13 @@ class CONFIG:
 
         # TODO: it's super slow due to XML response
         class entsoe:
-            enabled = True  # TODO: CHANGE ME
-            token = ""  # TODO: CHANGE ME
+            enabled = True
+            token = ""
             base_url = "https://web-api.tp.entsoe.eu/api"
-            area_override = "IT-CSOUTH"  # TODO: CHANGE ME
+            area_override = "IT-CSOUTH"
 
         watttime_cooldown_sec = 24 * 3600
-        force_dummy = False  # TODO: CHANGE ME
+        force_dummy = False
 
     class timeline:
         back_hours_default = 48
@@ -193,6 +221,21 @@ class _DailyFileLogHandler(logging.Handler):
             append_log_line(message)
         except Exception:
             pass
+
+
+# --- settings.json overlay ---------------------------------------------------
+# Applied at import so every module that does `from config import CONFIG` sees
+# the device's own values, not the defaults above. Import-time failure is
+# deliberate: a device that boots with no Wi-Fi password shows a dummy reading,
+# which reads as a broken provider rather than an empty setting.
+SETTINGS_ERROR = None
+try:
+    _apply_settings(CONFIG, _load_settings())
+    _require_settings(CONFIG, _required_settings(CONFIG))
+except SettingsError as _err:
+    # Held rather than raised here: main.py reports it in one place, with the
+    # crash-dump handling the rest of the boot already has.
+    SETTINGS_ERROR = str(_err)
 
 
 def build_firmware_logger(name: str = "pico.firmware"):

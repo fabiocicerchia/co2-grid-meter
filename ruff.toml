@@ -1,4 +1,4 @@
-# pico/ is MicroPython firmware, not CPython application code, and three of
+# pico/ is MicroPython firmware, not CPython application code, and four of
 # ruff's defaults argue against how firmware has to be written:
 #
 #   UP031  — %-formatting is the idiomatic and cheaper choice on MicroPython;
@@ -9,7 +9,11 @@
 #            reads.
 #   S110   — same reason. A pass in a firmware handler is a deliberate
 #            "keep going", not a swallowed bug.
+#   FURB188 — str.removeprefix/removesuffix do not exist in MicroPython. The
+#            rule rewrites a startswith-and-slice into one, autofix included,
+#            so leaving it on turns correct firmware into an AttributeError on
+#            the device that no CPython test run can see.
 #
 # Everything else — web/, mock/, tests/, common_config.py — is linted in full.
 [lint.per-file-ignores]
-"pico/**" = ["UP031", "BLE001", "S110", "RUF046", "PLW0602", "TRY401"]
+"pico/**" = ["UP031", "BLE001", "S110", "RUF046", "PLW0602", "TRY401", "FURB188"]
