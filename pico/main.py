@@ -18,6 +18,7 @@ import sys
 from http import serve_forever, set_time
 
 from fw_network import wifi_connect
+from uptime import UPTIME
 
 from config import CONFIG, append_log_line, build_firmware_logger, write_crashdump
 
@@ -51,6 +52,11 @@ def main():
         log_boot_diagnostics()
     except Exception as error:  # diagnostics must never stop the device serving
         LOGGER.info("Diagnostics unavailable: %s" % error)
+
+    # Logged after the network, so the line lands in whatever the logger is
+    # actually writing to. Reads 0s on a fresh boot, which is the point: it is
+    # how you tell a reboot loop from a device that has been up for days.
+    LOGGER.info("Uptime at start of serving: %s" % UPTIME.human())
 
     serve_forever(ip, LOGGER)
 
