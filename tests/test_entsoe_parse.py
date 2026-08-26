@@ -203,15 +203,11 @@ class TestStreaming:
         size, large = peak(32, 96)
         # 16x the document, same peak. Anything that buffered the body would
         # show the ratio instead.
-        assert large < small * 2, "peak grew with the document: %d -> %d" % (
-            small,
-            large,
-        )
+        assert large < small * 2, f"peak grew with the document: {small} -> {large}"
         # And the absolute claim the device depends on: the window is a small
         # fraction of the response, not a copy of it.
-        assert large < size // 4, "peak %d is not small against a %d byte body" % (
-            large,
-            size,
+        assert large < size // 4, (
+            f"peak {large} is not small against a {size} byte body"
         )
 
     def test_a_stream_that_stops_mid_document_yields_what_was_read(self):
