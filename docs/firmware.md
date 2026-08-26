@@ -66,6 +66,43 @@ Terminal ready
 [2026-02-18 20:47:53] Finished fetching data
 ```
 
+## Serving the dashboard from the device
+
+For an offline install the Pico can serve the dashboard itself, instead of
+needing the desktop server running somewhere:
+
+```json
+{ "web": { "serve_static": true, "static_root": "static" } }
+```
+
+Then copy `web/static/*` to `static/` on the device. **Off by default** — an
+existing deployment must not start serving files because it was upgraded, and a
+device without the assets copied over would answer 404 for every page.
+
+The four files are ~24 KB against roughly 800 KB free on a Pico W after
+MicroPython and this firmware, so the budget is not close. A test asserts they
+stay under 200 KB, which is where it would first become a question.
+
+Static paths are tried before the JSON routes but fall through when the file
+does not exist, so enabling this cannot shadow `/status` or `/em/window`.
+
+**Files are streamed in 1 KB chunks**, never read whole: a 15 KB script in a
+variable is a memory failure on a device with tens of KB of heap, and it would
+hold the refresh loop for the length of the read.
+
+**Conditional GET**: each response carries an ETag built from size and mtime,
+and a matching `If-None-Match` gets a 304 with no body. A reload of an
+unchanged asset becomes a header exchange, and the radio is the most expensive
+thing on the board.
+
+**On path traversal.** The device's flash holds `settings.json` — Wi-Fi
+password, provider tokens — and the crash dumps, with no user accounts between
+a request and any of it. `..`, absolute paths, backslashes and percent-encoded
+separators are all refused *before* anything opens a file, decoding first so
+`%2e%2e%2f` cannot slip past a check that only reads the raw URL. Every refusal
+returns the same 404 as a missing file, so a probe learns nothing about what
+exists.
+
 ## Device settings
 
 Wi-Fi credentials and provider tokens are **not** in source. `pico/config.py`
