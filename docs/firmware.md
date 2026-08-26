@@ -65,3 +65,19 @@ Terminal ready
 [2026-02-18 20:47:53] Provider used: entsoe
 [2026-02-18 20:47:53] Finished fetching data
 ```
+
+## Uptime
+
+`/status` carries `uptime_seconds`, and the boot sequence logs a readable form
+(`Uptime at start of serving: 3d 4h 12m`) once the network is up.
+
+It is counted from `time.ticks_ms()`, not the wall clock. The RTC starts unset
+and only gets a value if Wi-Fi came up and `set_time()` ran — which is exactly
+the path that has failed when you are trying to work out whether the device is
+wedged or freshly rebooted.
+
+That counter wraps roughly every 12.4 days, comfortably inside the uptimes this
+is meant to report, so elapsed time is accumulated from `ticks_diff` deltas
+rather than subtracted from a boot value. Anything that samples it more often
+than the wrap period keeps it accurate; `/status` and the display tick both do,
+by a wide margin.

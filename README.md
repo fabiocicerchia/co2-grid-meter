@@ -10,7 +10,8 @@ A local-first project that helps you decide **when to run energy-hungry applianc
 
 ## What you get
 
-- `/status` endpoint with current intensity and a run/wait recommendation.
+- `/status` endpoint with current intensity, a run/wait recommendation and the
+  firmware's uptime in seconds.
 - `/em/window` endpoint with recent history.
 - `/em/window-overlay` endpoint with week-shifted overlay data used for recommendations.
 - Web dashboard (`web/static/*`) with trend chart, LED meter, and auto refresh controls.
