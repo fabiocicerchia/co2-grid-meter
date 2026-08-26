@@ -117,6 +117,20 @@ def log(parts):
     LOGGER.info(parts)
 
 
+def percentile(sorted_values, target):
+    count = len(sorted_values)
+    if count == 0:
+        return None
+    low, high = 0, count
+    while low < high:
+        middle = (low + high) >> 1
+        if sorted_values[middle] < target:
+            low = middle + 1
+        else:
+            high = middle
+    return low / count
+
+
 def _resolution_to_seconds(resolution_text):
     # Typical: PT60M, PT15M, PT30M, PT1H
     if not resolution_text:
