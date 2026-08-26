@@ -1,6 +1,7 @@
 import time
 
 import network
+from diagnostics import network_summary
 from utils import log
 
 from config import CONFIG
@@ -15,8 +16,7 @@ def wifi_connect(timeout_ms=15000):
     _wlan.active(True)
 
     if _wlan.isconnected():
-        ip = _wlan.ifconfig()[0]
-        log("WiFi: connected %s" % ip)
+        ip = _log_interface()
         return True, ip
 
     _wlan.connect(CONFIG.wifi.ssid, CONFIG.wifi.password)
@@ -27,9 +27,35 @@ def wifi_connect(timeout_ms=15000):
             log("WiFi: not connected")
             return False, ""
 
-    ip = _wlan.ifconfig()[0]
-    log("WiFi: connected %s" % ip)
+    ip = _log_interface()
     return True, ip
+
+
+def _log_interface():
+    """Log the whole interface, not just the address.
+
+    A device that gets an IP but no gateway, or a DNS server it cannot reach,
+    looks identical to a healthy one when only the address is printed — and
+    both fail later as a provider timeout, which is where the time goes.
+    """
+    net = network_summary(_wlan.ifconfig())
+    log(
+        "WiFi: connected %s netmask %s gateway %s dns %s"
+        % (
+            net["ip"] or "?",
+            net["netmask"] or "?",
+            net["gateway"] or "?",
+            net["dns"] or "?",
+        )
+    )
+    return net["ip"]
+
+
+def interface_summary():
+    """The same dict for the status endpoint, or empty when down."""
+    if not wifi_ok():
+        return network_summary(())
+    return network_summary(_wlan.ifconfig())
 
 
 def wifi_ok():
