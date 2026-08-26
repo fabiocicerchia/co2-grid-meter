@@ -106,7 +106,6 @@ class CONFIG:
             # paid account wants.
             region = ""
 
-        # TODO: it's super slow due to XML response
         class entsoe:
             enabled = True
             token = ""
