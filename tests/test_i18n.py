@@ -8,6 +8,7 @@ import importlib.util
 import json
 import pathlib
 import re
+import sys
 
 _spec = importlib.util.spec_from_file_location(
     "pico_i18n",
@@ -167,12 +168,23 @@ def test_the_language_setting_the_firmware_reads_exists():
     config.py has no MicroPython-only imports, so it loads here directly — and
     without this the call is an AttributeError at boot, which no other test in
     the suite would reach.
+
+    pico/ goes on sys.path for the load and comes straight back off. config.py
+    imports its siblings by bare name, as everything under pico/ does, so it
+    cannot be loaded by path alone; leaving the directory on sys.path would let
+    pico/http.py shadow the standard library's `http` for the rest of the run.
     """
-    spec = importlib.util.spec_from_file_location(
-        "pico_config_for_i18n", REPO / "pico" / "config.py"
-    )
-    config = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(config)
+    pico = str(REPO / "pico")
+    sys.path.insert(0, pico)
+    try:
+        spec = importlib.util.spec_from_file_location(
+            "pico_config_for_i18n", REPO / "pico" / "config.py"
+        )
+        config = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(config)
+    finally:
+        sys.path.remove(pico)
+        sys.modules.pop("settings", None)
     assert config.CONFIG.ui.language in LOCALES
 
 
