@@ -130,7 +130,8 @@ def not_modified(request_etag, current_etag):
         # Not str.removeprefix: MicroPython does not implement it, and this
         # module runs on the device. The tests run under CPython, where it
         # exists, so the failure would only ever have shown up on hardware.
-        candidate = candidate.removeprefix("W/")
+        if candidate.startswith("W/"):
+            candidate = candidate[2:]
         if candidate == "*" or candidate == current_etag:
             return True
     return False
