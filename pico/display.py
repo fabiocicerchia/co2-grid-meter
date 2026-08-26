@@ -376,7 +376,10 @@ def draw_time(epd, x, y):
 
 def draw_current_panel(epd, current_ci, verdict, next_line):
     verdict = (verdict or "").strip()
-    warning_mode = verdict not in ("OK", "RUN NOW")
+    # Compared against the active locale, not the English literals: the verdict
+    # arrives already translated, so hardcoding "OK"/"RUN NOW" put every
+    # non-English device permanently in warning mode — on a clean grid too.
+    warning_mode = verdict not in (t("verdict.ok"), t("verdict.run_now"))
 
     screen_w, _ = panel_dimensions(epd)
     panel_x, panel_y, panel_h = 5, 20, 25

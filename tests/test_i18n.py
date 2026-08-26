@@ -151,11 +151,29 @@ def test_firmware_strings_are_not_hardcoded_any_more():
     for name, literals in (
         ("pico/recommendation.py", ('"RUN NOW"', '"WAIT"', '"Cleaner than avg"')),
         ("pico/app.py", ('"WAIT %dh (%s)"',)),
-        ("pico/display.py", ('"CO2: %d g/kWh"',)),
+        # The warning-mode branch compared the verdict against the English
+        # literals, so every non-English device drew warning styling on a clean
+        # grid. It has to resolve through the table like everything else.
+        ("pico/display.py", ('"CO2: %d g/kWh"', '("OK", "RUN NOW")')),
     ):
         source = (REPO / name).read_text()
         for literal in literals:
             assert literal not in source, f"{name} still hardcodes {literal}"
+
+
+def test_the_language_setting_the_firmware_reads_exists():
+    """main.py does set_language(CONFIG.ui.language); the key has to be there.
+
+    config.py has no MicroPython-only imports, so it loads here directly — and
+    without this the call is an AttributeError at boot, which no other test in
+    the suite would reach.
+    """
+    spec = importlib.util.spec_from_file_location(
+        "pico_config_for_i18n", REPO / "pico" / "config.py"
+    )
+    config = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(config)
+    assert config.CONFIG.ui.language in LOCALES
 
 
 def test_the_settings_template_documents_the_language_key():

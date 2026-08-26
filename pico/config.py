@@ -105,6 +105,13 @@ class CONFIG:
         render_min_interval_sec = 60
         landscape = True
 
+    class ui:
+        # Language for the strings the device renders itself — see pico/i18n.py
+        # for the table and what each locale must fit. An unknown code falls
+        # back to English and says so in the boot log, rather than leaving the
+        # panel blank.
+        language = "en"
+
     class geo:
         auto_from_public_ip = True
         ip_lookup_url = "https://ipwho.is/"
