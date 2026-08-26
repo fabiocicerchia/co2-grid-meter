@@ -67,8 +67,8 @@ def test_bare_name_imports_resolve():
                     continue
                 if alias.name not in defined[target]:
                     missing.append(
-                        "pico/%s.py imports %r from %s, which does not define it"
-                        % (name, alias.name, target)
+                        f"pico/{name}.py imports {alias.name!r} from "
+                        f"{target}, which does not define it"
                     )
 
     assert not missing, "\n".join(missing)
