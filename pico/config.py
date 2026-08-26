@@ -3,6 +3,15 @@ import os
 import sys
 import time
 
+# Bare-name import, like every other module under pico/. settings.py imports
+# nothing from here, so there is no cycle; only the overlay *call* has to wait
+# for CONFIG to exist, and that is at the bottom of the file.
+from settings import SettingsError
+from settings import apply as _apply_settings
+from settings import load as _load_settings
+from settings import require as _require_settings
+from settings import required_names as _required_settings
+
 
 class CONFIG:
     """Firmware defaults.
@@ -203,12 +212,6 @@ class _DailyFileLogHandler(logging.Handler):
 # the device's own values, not the defaults above. Import-time failure is
 # deliberate: a device that boots with no Wi-Fi password shows a dummy reading,
 # which reads as a broken provider rather than an empty setting.
-from settings import SettingsError
-from settings import apply as _apply_settings
-from settings import load as _load_settings
-from settings import require as _require_settings
-from settings import required_names as _required_settings
-
 SETTINGS_ERROR = None
 try:
     _apply_settings(CONFIG, _load_settings())
