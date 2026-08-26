@@ -69,11 +69,15 @@ def parse_request(conn):
         h = _readline(conn)
         if not h or h == b"\r\n":
             break
-        # A header that is not valid UTF-8 is not one this server acts on, and
-        # a malformed request must not take the connection down.
-        line = h.decode("utf-8", "replace").strip()
-        if line[:14].lower() == "if-none-match:":
-            inm = line[14:].strip()
+        # Matched as bytes: decoding every header to find the one that matters
+        # allocates a string per header per request, which is the heap this
+        # was trying to save. Only the value that is actually kept is decoded,
+        # and a header that is not valid UTF-8 is not one this server acts on.
+        if h[:14].lower() == b"if-none-match:":
+            try:
+                inm = h[14:].decode().strip()
+            except Exception:
+                inm = ""
     return method, path_qs, inm
 
 
