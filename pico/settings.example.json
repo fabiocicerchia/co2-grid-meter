@@ -1,0 +1,29 @@
+{
+  "_comment": "Copy to settings.json on the Pico and fill in. settings.json is gitignored: it holds credentials and must never be committed. Anything omitted keeps the default in pico/config.py.",
+
+  "wifi": {
+    "ssid": "your-network",
+    "password": "your-password"
+  },
+
+  "defaults": {
+    "latitude": 41.9028,
+    "longitude": 12.4964,
+    "city": "Rome",
+    "country": "IT",
+    "utc_offset_hours": 1,
+    "observes_eu_dst": true
+  },
+
+  "providers": {
+    "ci_api": {
+      "enabled": true,
+      "country_override": "",
+      "zone": ""
+    },
+    "electricity_maps": { "enabled": false, "token": "" },
+    "co2signal": { "enabled": false, "token": "" },
+    "watttime": { "enabled": false, "username": "", "password": "", "region": "" },
+    "entsoe": { "enabled": false, "token": "", "area_override": "IT-CSOUTH" }
+  }
+}
