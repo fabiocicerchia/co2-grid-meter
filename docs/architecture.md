@@ -22,10 +22,10 @@ The project has three deployable pieces that share the same config schema
 - `pico/providers/*` — one module per data source (UK Carbon Intensity,
   Carbon Intensity API, WattTime, ENTSO-E, Electricity Maps, CO2Signal,
   simulated fallback), tried in that order via `pico/fw_providers.py`.
-  Sources that publish only a current value (CO2Signal, Carbon Intensity API)
-  extend `SampledProvider`, which polls on a cooldown and keeps its own
-  rolling store on flash — the device needs a curve to rank hours against,
-  and those APIs answer "what is it now" and nothing else.
+  Sources that publish only a current value (CO2Signal) extend
+  `SampledProvider`, which polls on a cooldown and keeps its own rolling store
+  on flash — the device needs a curve to rank hours against, and those APIs
+  answer "what is it now" and nothing else.
 - `pico/ci_api_parse.py` — payload handling for the Carbon Intensity API,
   kept free of MicroPython imports so it is unit-tested under CPython.
 - `pico/recommendation.py` — turns current intensity + a week-shifted
@@ -92,8 +92,37 @@ Provider fallback order remains:
 5. Electricity Maps (if enabled + token)
 6. Simulated fallback (`PICO_ALLOW_SIM_FALLBACK=1`)
 
-The Carbon Intensity API is rate-limited to **1 request per 10s per IP** and
-publishes no freshness flag, so its provider polls at most every five minutes
-and drops any reading whose `basis` is not `measured` or whose `generated_at`
-is over 65 minutes old. An annual average stored as an hourly sample would
-flatten the timeline and make every hour score alike.
+### Carbon Intensity API
+
+The provider talks to **v2** (`/v2/<CODE>/history/<YYYY-MM-DD>`, and
+`/v2/<CODE>/<ZONE>/history/…` for a bidding zone). v1 is frozen upstream and
+will be removed; it served one provider data point — 15 minutes wide for
+ENTSO-E — under a name promising an hour, and no history at all, so the device
+had to sample its own curve into existence over a week of uptime.
+
+A v2 day document is columnar: one array per figure, index-aligned to the hour
+beginning `start + i*3600`, with a **null for a missing hour that is present in
+the array**. Compacting those nulls away would slide every later value into the
+wrong hour, which is why `hour_points()` skips them by position.
+
+The API is rate-limited to **1 request per 10s per IP** and asks callers to
+cache what they fetch, so:
+
+- `ci_api_days.json` on flash caches the figure's hourly array per UTC date. A
+  past day never changes upstream and is fetched once; only today's document is
+  re-read, because it grows an hour at a time.
+- Requests are spaced ≥11s apart, so a cold start fills the two windows
+  (`[-48h, now]` and the week-shifted overlay) over several refreshes instead
+  of walking into 429s. A day that is rate-limited, absent (404) or malformed
+  is skipped, not fatal — the window is drawn from the days already held.
+- The store is keyed by country/zone and dropped when either changes: the
+  cached arrays are one figure for one place.
+
+Freshness is still the caller's to derive. `basis` must be `measured` — an
+annual average is a yearly constant, and a timeline drawn from one is flat, so
+every hour scores alike — and a window that ends at the present is refused when
+its newest hour is over 65 minutes old. The overlay window is exempt: it is
+seven days old by construction.
+
+Upgrading a device that ran the v1 provider leaves an orphaned
+`ci_api_store.json` on flash; delete it.

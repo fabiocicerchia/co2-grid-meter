@@ -13,6 +13,52 @@ from utils import (
 )
 
 
+def load_json_store(path):
+    """A JSON file written by `save_json_store`, or {} if there is none.
+
+    The `.bak` and `.tmp` fallbacks are the other half of the atomic write: a
+    power cut mid-rename is the normal way a Pico's filesystem loses a file,
+    and one of the three is always intact.
+    """
+    for candidate in (path, path + ".bak", path + ".tmp"):
+        try:
+            with open(candidate, "r") as fh:
+                payload = ujson.loads(fh.read())
+                if isinstance(payload, dict):
+                    return payload
+        except Exception:
+            pass
+    return {}
+
+
+def save_json_store(path, payload, label=""):
+    """Write via a temp file and a rename, keeping the previous copy as `.bak`.
+
+    Never raises: a store is a cache, and failing a page load because flash is
+    full would turn a degraded device into a dead one.
+    """
+    tmp_file = path + ".tmp"
+    bak_file = path + ".bak"
+
+    try:
+        with open(tmp_file, "w") as fh:
+            fh.write(ujson.dumps(payload))
+
+        try:
+            os.remove(bak_file)
+        except Exception:
+            pass
+
+        try:
+            os.rename(path, bak_file)
+        except Exception:
+            pass
+
+        os.rename(tmp_file, path)
+    except Exception as error:
+        log("%s store save failed: %s" % (label or path, error))
+
+
 def parse_provider_history(points, datetime_key, intensity_getter):
     history = []
     for point in points:
@@ -80,43 +126,11 @@ class SampledProvider(EmissionsProvider):
         type(self)._next_collect_after = int(time.time()) + seconds
 
     def _load_store(self):
-        for candidate in (
-            self.store_file,
-            self.store_file + ".bak",
-            self.store_file + ".tmp",
-        ):
-            try:
-                with open(candidate, "r") as fh:
-                    payload = ujson.loads(fh.read()) or {}
-                    samples = payload.get("samples") or []
-                    if isinstance(samples, list):
-                        return samples
-            except Exception:
-                pass
-        return []
+        samples = load_json_store(self.store_file).get("samples")
+        return samples if isinstance(samples, list) else []
 
     def _save_store(self, samples):
-        payload = {"samples": samples}
-        tmp_file = self.store_file + ".tmp"
-        bak_file = self.store_file + ".bak"
-
-        try:
-            with open(tmp_file, "w") as fh:
-                fh.write(ujson.dumps(payload))
-
-            try:
-                os.remove(bak_file)
-            except Exception:
-                pass
-
-            try:
-                os.rename(self.store_file, bak_file)
-            except Exception:
-                pass
-
-            os.rename(tmp_file, self.store_file)
-        except Exception as error:
-            log("%s store save failed: %s" % (self.provider_name, error))
+        save_json_store(self.store_file, {"samples": samples}, self.provider_name)
 
     def _collect_if_due(self, latitude, longitude, country_code):
         now = int(time.time())
