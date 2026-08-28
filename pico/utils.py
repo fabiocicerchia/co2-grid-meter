@@ -10,8 +10,9 @@ import urequests
 # textutil so they can be tested under CPython — utils itself cannot be
 # imported there — and are re-exported here so no call site has to change.
 from textutil import _quote, _to_str, iso_z_to_epoch, urlencode_simple
+from timeutil import utc_offset_seconds
 
-from config import build_firmware_logger
+from config import CONFIG, build_firmware_logger
 
 # Re-exported, not used here: providers import these from utils and there is no
 # reason to churn every call site over where the code physically lives.
@@ -83,6 +84,24 @@ def http_get_json(url, error_label, headers=None, auth=None, content_parser=Fals
 
 def url_decode(value):
     return (value or "").replace("%20", " ")
+
+
+def utc_offset_now():
+    """Seconds the device clock runs ahead of UTC.
+
+    `set_time()` puts local wall-clock time in the RTC, so `time.time()` is not
+    a UTC epoch and a timestamp parsed out of an API payload cannot be compared
+    with it directly — in summer that reads two hours older than it is. The
+    summer-time rule wants the UTC instant, approximated here by removing the
+    standard offset: within an hour of a changeover that can be an hour out,
+    which no freshness window here is narrow enough to notice.
+    """
+    standard = CONFIG.defaults.utc_offset_hours * 3600
+    return utc_offset_seconds(
+        time.gmtime(int(time.time()) - standard),
+        standard_hours=CONFIG.defaults.utc_offset_hours,
+        observes_dst=CONFIG.defaults.observes_eu_dst,
+    )
 
 
 def fmt_hhmm_local(epoch_seconds):

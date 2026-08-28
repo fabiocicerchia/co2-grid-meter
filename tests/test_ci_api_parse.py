@@ -1,11 +1,12 @@
-"""Carbon Intensity API payload handling.
+"""Carbon Intensity API v2 payload handling.
 
 `pico/ci_api_parse.py` deliberately has no MicroPython-only imports so this
 runs under CPython — the reason it lives apart from `pico/providers/ci_api.py`.
 
-The two cases worth guarding are the ones the API's own README warns about: a
-zone reading carries no consumption figures, and nothing in the response says
-whether it is stale, so the client has to work that out itself.
+The cases worth guarding are the ones that corrupt a timeline silently: a null
+hour that shifts every later value if it is compacted away, a zone document
+with no consumption arrays, and a window whose newest hour is too old to
+describe now.
 """
 
 import importlib.util
@@ -21,65 +22,101 @@ _parse = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_parse)
 
 MAX_AGE_SEC = _parse.MAX_AGE_SEC
-freshness_error = _parse.freshness_error
-pick_intensity = _parse.pick_intensity
-reading_path = _parse.reading_path
+day_starts = _parse.day_starts
+day_values = _parse.day_values
+history_path = _parse.history_path
+hour_points = _parse.hour_points
+stale_error = _parse.stale_error
 
-NOW = 1_755_000_000
+# 2026-08-27T00:00:00Z, so the arithmetic below reads as clock hours.
+MIDNIGHT = 1_787_788_800
+NOW = MIDNIGHT + 3 * 3600
 
-COUNTRY_PAYLOAD = {
-    "country": "Italy",
+COUNTRY_DAY = {
     "country_code": "IT",
+    "zone": "IT",
     "basis": "measured",
-    "unit": "gCO2eq/kWh",
-    "direct": 274,
-    "lifecycle": 319,
-    "consumption_direct": 339,
-    "consumption_lifecycle": 384,
+    "date": "2026-08-27",
+    "start": "2026-08-27T00:00:00Z",
+    "step_sec": 3600,
+    "direct": [297, None, 292],
+    "lifecycle": [342, None, 337],
+    "consumption_direct": [362, None, 357],
+    "consumption_lifecycle": [407, None, 402],
 }
 
-ZONE_PAYLOAD = {
+ZONE_DAY = {
     "country_code": "IT",
     "zone": "SICI",
     "basis": "measured",
-    "direct": 411,
-    "lifecycle": 456,
+    "start": "2026-08-27T00:00:00Z",
+    "step_sec": 3600,
+    "direct": [411, 405, None],
+    "lifecycle": [456, 450, None],
 }
 
 
 def test_country_and_zone_paths():
-    assert reading_path("it") == "/v1/last-hour/IT"
-    assert reading_path("IT", "sici") == "/v1/zones/IT/SICI"
+    assert history_path("it", "2026-08-27") == "/v2/IT/history/2026-08-27"
+    assert history_path("IT", "2026-08-27", "sici") == "/v2/IT/SICI/history/2026-08-27"
 
 
 def test_reports_consumption_lifecycle_for_a_country():
-    assert pick_intensity(COUNTRY_PAYLOAD) == (384.0, "consumption_lifecycle")
+    values, figure = day_values(COUNTRY_DAY)
+    assert figure == "consumption_lifecycle"
+    assert values == [407, None, 402]
 
 
 def test_falls_back_to_lifecycle_for_a_zone():
-    # Zones omit both consumption figures; the import adjustment is national.
-    assert pick_intensity(ZONE_PAYLOAD) == (456.0, "lifecycle")
-
-
-def test_no_figure_at_all_is_reported_as_missing():
-    assert pick_intensity({"basis": "measured"}) == (None, None)
-
-
-def test_fresh_measurement_passes():
-    assert freshness_error(COUNTRY_PAYLOAD, NOW - 600, NOW) is None
+    # Zones omit both consumption arrays; the import adjustment is national.
+    assert day_values(ZONE_DAY)[1] == "lifecycle"
 
 
 def test_annual_average_is_rejected():
-    # A yearly constant in an hourly reading's shape: stored as samples it
-    # draws a flat line and every hour scores the same.
-    annual = dict(COUNTRY_PAYLOAD, basis="annual-average", hour_start=None)
-    assert freshness_error(annual, NOW - 60, NOW) is not None
+    # A yearly constant in an hourly document's shape: drawn as a timeline it
+    # is a flat line and every hour scores the same.
+    assert day_values(dict(COUNTRY_DAY, basis="annual-average")) == ([], None)
+
+
+def test_a_day_of_only_nulls_has_no_figure():
+    assert day_values(dict(COUNTRY_DAY, **{k: [None] for k in _parse.FIGURES}))[0] == []
+
+
+def test_an_unexpected_step_is_refused_not_guessed():
+    # Nothing downstream carries a step, so a 1800s document would file every
+    # value under the wrong hour.
+    assert day_values(dict(COUNTRY_DAY, step_sec=1800)) == ([], None)
+
+
+def test_a_null_hour_keeps_the_hours_after_it_in_place():
+    # The whole point of the columnar form: index is the hour.
+    assert hour_points([407, None, 402], MIDNIGHT) == [
+        (MIDNIGHT, 407.0),
+        (MIDNIGHT + 2 * 3600, 402.0),
+    ]
+
+
+def test_no_values_is_no_points():
+    assert hour_points([], MIDNIGHT) == []
+    assert hour_points([407], None) == []
+
+
+def test_window_covers_the_day_on_each_side_of_midnight():
+    assert day_starts(MIDNIGHT - 1800, MIDNIGHT + 1800) == [
+        MIDNIGHT - 86400,
+        MIDNIGHT,
+    ]
+    assert day_starts(MIDNIGHT, MIDNIGHT) == [MIDNIGHT]
+
+
+def test_fresh_hour_passes():
+    assert stale_error(NOW - 600, NOW) is None
 
 
 def test_missed_pipeline_run_is_rejected():
-    assert freshness_error(COUNTRY_PAYLOAD, NOW - MAX_AGE_SEC - 1, NOW) is not None
-    assert freshness_error(COUNTRY_PAYLOAD, NOW - MAX_AGE_SEC + 1, NOW) is None
+    assert stale_error(NOW - MAX_AGE_SEC - 1, NOW) is not None
+    assert stale_error(NOW - MAX_AGE_SEC + 1, NOW) is None
 
 
-def test_unparsable_generated_at_is_rejected():
-    assert freshness_error(COUNTRY_PAYLOAD, None, NOW) is not None
+def test_an_empty_window_is_rejected():
+    assert stale_error(None, NOW) is not None
