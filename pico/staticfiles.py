@@ -69,6 +69,23 @@ def _unquote(text):
     return "".join(out)
 
 
+def _safe_segments(path):
+    """The path's segments, or None if it tries to leave the root.
+
+    `..` is refused outright rather than resolved and re-checked: the string
+    never gets the chance to normalise back into something that looks inside
+    the root. Empty and `.` segments are dropped.
+    """
+    parts = []
+    for part in path.split("/"):
+        if part in ("", "."):
+            continue
+        if part == "..":
+            return None
+        parts.append(part)
+    return parts or None
+
+
 def resolve(root, url_path):
     """Map a URL path to a file under `root`, or None if it must not be served.
 
@@ -91,18 +108,10 @@ def resolve(root, url_path):
     if "\\" in path or path.startswith("/"):
         return None
 
-    parts = []
-    for part in path.split("/"):
-        if part in ("", "."):
-            continue
-        if part == "..":
-            return None  # refused outright rather than resolved and re-checked
-        parts.append(part)
-    if not parts:
+    parts = _safe_segments(path)
+    if parts is None:
         return None
-
-    name = parts[-1]
-    if content_type(name) is None:
+    if content_type(parts[-1]) is None:
         return None
     return root.rstrip("/") + "/" + "/".join(parts)
 
