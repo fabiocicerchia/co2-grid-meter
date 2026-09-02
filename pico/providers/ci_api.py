@@ -48,6 +48,21 @@ def _dates_between(start_epoch, end_epoch):
     return [_date_of(day) for day in day_starts(start_epoch, end_epoch)]
 
 
+def _hours_in_window(days, dates, start_utc, end_utc):
+    """The measured hours the window covers, keyed by hour epoch (UTC).
+
+    `hour_points` skips a day's nulls by position; compacting them would slide
+    every later value into the wrong hour. See docs/architecture.md.
+    """
+    by_hour = {}
+    for date in dates:
+        midnight = iso_z_to_epoch(date + "T00:00:00Z")
+        for hour, value in hour_points(days.get(date) or [], midnight):
+            if start_utc <= hour <= end_utc:
+                by_hour[hour] = value
+    return by_hour
+
+
 class CiApiProvider(EmissionsProvider):
     provider_name = "ci_api"
     store_file = "ci_api_days.json"
@@ -83,45 +98,17 @@ class CiApiProvider(EmissionsProvider):
         start_utc = floor_hour_epoch(int(start) - offset)
         end_utc = floor_hour_epoch(int(end) - offset)
 
-        days = self._load(code, zone)
         dates = _dates_between(start_utc, end_utc)
-        today = _date_of(now_utc)
-        added = False
-
-        for date in dates:
-            if date > today:
-                continue  # not written yet; the future is the overlay's job
-            if date in days and date != today:
-                continue  # a past day never changes again
-            values = self._fetch_day(code, zone, date)
-            # Compared, not just assigned: today's document is re-read on every
-            # refresh and is usually identical, and a flash write every five
-            # minutes for nothing is wear for nothing.
-            if values is not None and days.get(date) != values:
-                days[date] = values
-                added = True
-
-        by_hour = {}
-        for date in dates:
-            midnight = iso_z_to_epoch(date + "T00:00:00Z")
-            for hour, value in hour_points(days.get(date) or [], midnight):
-                if start_utc <= hour <= end_utc:
-                    by_hour[hour] = value
-
+        days, added = self._refresh_days(code, zone, dates, _date_of(now_utc))
         if added:
             self._save(code, zone, days, now_utc)
 
+        by_hour = _hours_in_window(days, dates, start_utc, end_utc)
         if not by_hour:
             raise ProviderError(
                 "Carbon Intensity API: no measured hours in %s" % (",".join(dates),)
             )
-
-        # Only a window ending at the present can be stale; the week-shifted
-        # overlay is seven days old by construction.
-        if end_utc >= floor_hour_epoch(now_utc):
-            problem = stale_error(max(by_hour), now_utc)
-            if problem:
-                raise ProviderError("Carbon Intensity API: %s" % problem)
+        self._check_freshness(by_hour, end_utc, now_utc)
 
         history = [
             {
@@ -138,6 +125,42 @@ class CiApiProvider(EmissionsProvider):
             "history": history,
             "_provider": self.provider_name,
         }
+
+    def _refresh_days(self, code, zone, dates, today):
+        """The cached day documents, refreshed where they can be. `(days, changed)`.
+
+        A closed day never changes upstream and is fetched once; today's grows
+        an hour at a time and is re-read. Nothing here is fatal — a day that is
+        rate-limited, absent or malformed is skipped, and the window is drawn
+        from the days already held.
+        """
+        days = self._load(code, zone)
+        changed = False
+        for date in dates:
+            if date > today:
+                continue  # not written yet; the future is the overlay's job
+            if date in days and date != today:
+                continue  # a past day never changes again
+            values = self._fetch_day(code, zone, date)
+            # Compared, not just assigned: today's document is re-read on every
+            # refresh and is usually identical, and a flash write every five
+            # minutes for nothing is wear for nothing.
+            if values is not None and days.get(date) != values:
+                days[date] = values
+                changed = True
+        return days, changed
+
+    def _check_freshness(self, by_hour, end_utc, now_utc):
+        """Refuse a present-day window whose newest hour is too old.
+
+        Only a window ending at the present can be stale; the week-shifted
+        overlay is seven days old by construction and is exempt.
+        """
+        if end_utc < floor_hour_epoch(now_utc):
+            return
+        problem = stale_error(max(by_hour), now_utc)
+        if problem:
+            raise ProviderError("Carbon Intensity API: %s" % problem)
 
     def _fetch_day(self, code, zone, date):
         """One day document as its figure's hourly array, or None.

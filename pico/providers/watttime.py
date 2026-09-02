@@ -17,6 +17,54 @@ from utils import (
 from config import CONFIG
 from providers.base import EmissionsProvider
 
+# The two keys a /v3/historical point is found by. Scanned for directly rather
+# than parsed: response.json() builds a large nested object, and on a Pico that
+# allocation is the one that fails.
+POINT_TIME_KEY = b'"point_time":"'
+POINT_VALUE_KEY = b'"value":'
+
+# The bytes that end a JSON number: ',' and '}'.
+NUMBER_END = (44, 125)
+
+
+def _iter_readings(raw):
+    """Yield (epoch, value) for every point in a /v3/historical body.
+
+    A point whose timestamp or value will not read is skipped rather than
+    failing the response: the rest of the curve is still worth drawing.
+    """
+    idx = 0
+    size = len(raw)
+    while idx < size:
+        ts_pos = raw.find(POINT_TIME_KEY, idx)
+        if ts_pos < 0:
+            return
+        ts_start = ts_pos + len(POINT_TIME_KEY)
+        ts_end = raw.find(b'"', ts_start)
+        if ts_end < 0:
+            return
+
+        value_pos = raw.find(POINT_VALUE_KEY, ts_end)
+        if value_pos < 0:
+            idx = ts_end + 1
+            continue
+
+        value_start = value_pos + len(POINT_VALUE_KEY)
+        value_end = value_start
+        while value_end < size and raw[value_end] not in NUMBER_END:
+            value_end += 1
+        idx = value_end + 1
+
+        try:
+            epoch = iso_z_to_epoch(raw[ts_start:ts_end].decode())
+            value = safe_float(raw[value_start:value_end].decode())
+        except Exception:
+            # Not valid UTF-8, so not a point this can read. The scan has
+            # already moved past it; the rest of the body still yields.
+            epoch = value = None
+        if epoch is not None and value is not None:
+            yield epoch, value
+
 
 class WattTimeProvider(EmissionsProvider):
     provider_name = "watttime"
@@ -107,66 +155,22 @@ class WattTimeProvider(EmissionsProvider):
         if isinstance(raw, str):
             raw = raw.encode()
 
-        key_ts = b'"point_time":"'
-        key_value = b'"value":'
-
         buckets = {}
-        idx = 0
-        size = len(raw)
-        while idx < size:
-            ts_pos = raw.find(key_ts, idx)
-            if ts_pos < 0:
-                break
-            ts_start = ts_pos + len(key_ts)
-            ts_end = raw.find(b'"', ts_start)
-            if ts_end < 0:
-                break
-
-            ts_bytes = raw[ts_start:ts_end]
-            value_pos = raw.find(key_value, ts_end)
-            if value_pos < 0:
-                idx = ts_end + 1
+        for epoch, value in _iter_readings(raw):
+            if epoch < start_epoch or epoch > end_epoch:
                 continue
+            hour = floor_hour_epoch(epoch)
+            # Mutated in place, not rebuilt: one list per hour rather than one
+            # tuple per five-minute point is the difference that matters here.
+            item = buckets.get(hour)
+            if item:
+                item[0] += value
+                item[1] += 1
+            else:
+                buckets[hour] = [value, 1]
 
-            value_start = value_pos + len(key_value)
-            value_end = value_start
-            while value_end < size:
-                c = raw[value_end]
-                if c in (44, 125):  # ',' or '}'
-                    break
-                value_end += 1
-
-            try:
-                ts = ts_bytes.decode()
-                epoch = iso_z_to_epoch(ts)
-                if epoch is None:
-                    idx = value_end + 1
-                    continue
-                if epoch < start_epoch or epoch > end_epoch:
-                    idx = value_end + 1
-                    continue
-
-                value = safe_float(raw[value_start:value_end].decode())
-                if value is None:
-                    idx = value_end + 1
-                    continue
-
-                hour = floor_hour_epoch(epoch)
-                item = buckets.get(hour)
-                if item:
-                    item[0] += value
-                    item[1] += 1
-                else:
-                    buckets[hour] = [value, 1]
-            except Exception:
-                pass
-
-            idx = value_end + 1
-
-        hours = list(buckets.keys())
-        hours.sort()
         history = []
-        for hour in hours:
+        for hour in sorted(buckets.keys()):
             total, count = buckets[hour]
             history.append(
                 {"datetime": epoch_to_iso_z(hour), "carbonIntensity": total / count}

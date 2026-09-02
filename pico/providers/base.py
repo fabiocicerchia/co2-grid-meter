@@ -70,6 +70,74 @@ def parse_provider_history(points, datetime_key, intensity_getter):
     return history
 
 
+def _upsert_sample(samples, sample, retention_hours):
+    """This hour's reading written into the store, aged out and sorted.
+
+    An upsert rather than an append: the hour is the key, so a second poll
+    inside the same hour replaces the first instead of leaving two points on
+    the same bucket.
+    """
+    hour = sample["ts"]
+    for idx, item in enumerate(samples):
+        if int(item.get("ts") or 0) == hour:
+            samples[idx] = sample
+            break
+    else:
+        samples.append(sample)
+
+    cutoff = hour - (retention_hours * 3600)
+    kept = [item for item in samples if int(item.get("ts") or 0) >= cutoff]
+    kept.sort(key=lambda item: int(item.get("ts") or 0))
+    return kept
+
+
+def _window_history(samples, start, end):
+    """The stored samples covering [start, end], hour by hour.
+
+    Returns (history, city, country_code); the city is the first one named in
+    the window and the country the last, which is how they were picked when
+    this was part of `fetch_history`.
+    """
+    by_hour = {}
+    for item in samples:
+        ts = int(item.get("ts") or 0)
+        if ts > 0:
+            by_hour[ts] = item
+
+    history = []
+    city = None
+    resolved_cc = None
+    hour = floor_hour_epoch(start)
+    end_hour = floor_hour_epoch(end)
+    while hour <= end_hour:
+        sample = by_hour.get(hour)
+        value = safe_float(sample.get("carbonIntensity")) if sample else None
+        if value is not None:
+            history.append({"datetime": epoch_to_iso_z(hour), "carbonIntensity": value})
+            city = city or sample.get("city")
+            resolved_cc = sample.get("cc") or resolved_cc
+        hour += 3600
+    return history, city, resolved_cc
+
+
+def _latest_history(samples, end):
+    """One point from the newest sample, or None when it has no usable value.
+
+    The fallback for a window the store cannot cover yet — the first day of
+    uptime, while the curve is still filling in.
+    """
+    latest = samples[-1]
+    latest_ci = safe_float(latest.get("carbonIntensity"))
+    if latest_ci is None:
+        return None
+    latest_ts = int(latest.get("ts") or floor_hour_epoch(end))
+    return (
+        [{"datetime": epoch_to_iso_z(latest_ts), "carbonIntensity": latest_ci}],
+        latest.get("city"),
+        latest.get("cc"),
+    )
+
+
 class EmissionsProvider(ABC):
     provider_name: str
 
@@ -143,27 +211,13 @@ class SampledProvider(EmissionsProvider):
             intensity, city, resolved_cc = self.fetch_current(
                 latitude, longitude, country_code
             )
-            hour = self.sample_hour(now)
             sample = {
-                "ts": hour,
+                "ts": self.sample_hour(now),
                 "carbonIntensity": intensity,
                 "city": city or "",
                 "cc": (resolved_cc or country_code or "").upper(),
             }
-
-            # Upsert current hour sample.
-            replaced = False
-            for idx, item in enumerate(samples):
-                if int(item.get("ts") or 0) == hour:
-                    samples[idx] = sample
-                    replaced = True
-                    break
-            if not replaced:
-                samples.append(sample)
-
-            cutoff = hour - (self.retention_hours * 3600)
-            samples = [item for item in samples if int(item.get("ts") or 0) >= cutoff]
-            samples.sort(key=lambda x: int(x.get("ts") or 0))
+            samples = _upsert_sample(samples, sample, self.retention_hours)
             self._save_store(samples)
             self._defer(self.collect_interval_sec)
             return samples
@@ -179,45 +233,15 @@ class SampledProvider(EmissionsProvider):
         if not samples:
             raise ProviderError("%s store is empty" % self.provider_name)
 
-        by_hour = {}
-        city = None
-        resolved_cc = cc
-        for item in samples:
-            ts = int(item.get("ts") or 0)
-            if ts <= 0:
-                continue
-            by_hour[ts] = item
-
-        history = []
-        hour = floor_hour_epoch(start)
-        end_hour = floor_hour_epoch(end)
-        while hour <= end_hour:
-            sample = by_hour.get(hour)
-            if sample:
-                value = safe_float(sample.get("carbonIntensity"))
-                if value is not None:
-                    history.append(
-                        {"datetime": epoch_to_iso_z(hour), "carbonIntensity": value}
-                    )
-                    city = city or sample.get("city")
-                    resolved_cc = sample.get("cc") or resolved_cc
-            hour += 3600
-
+        history, city, resolved_cc = _window_history(samples, start, end)
         if not history:
-            # Fallback to latest known value if requested range has no samples yet.
-            latest = samples[-1]
-            latest_ts = int(latest.get("ts") or floor_hour_epoch(end))
-            latest_ci = safe_float(latest.get("carbonIntensity"))
-            if latest_ci is None:
+            fallback = _latest_history(samples, end)
+            if fallback is None:
                 raise ProviderError("%s history unavailable" % self.provider_name)
-            history = [
-                {"datetime": epoch_to_iso_z(latest_ts), "carbonIntensity": latest_ci}
-            ]
-            city = latest.get("city")
-            resolved_cc = latest.get("cc") or resolved_cc
+            history, city, resolved_cc = fallback
 
         return {
-            "city": city or resolved_cc or self.provider_name,
+            "city": city or resolved_cc or cc or self.provider_name,
             "history": history,
             "_provider": self.provider_name,
         }
