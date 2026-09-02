@@ -104,10 +104,6 @@ def send_json(conn, code, payload):
     _send_response(conn, code, "application/json", ujson.dumps(payload))
 
 
-def send_html(conn, code, body):
-    _send_response(conn, code, "text/html; charset=utf-8", body)
-
-
 def send_text(conn, code: int, body: str, content_type: str = "text/plain"):
     _send_response(conn, code, content_type, body)
 
@@ -172,6 +168,24 @@ def handle_http_request(conn, logger):
             pass
 
 
+# The API: path -> the handler whose return value is serialised as the body.
+JSON_ROUTES = {
+    "/em/window": handle_em_window,
+    "/em/window-overlay": handle_em_overlay,
+    "/status": handle_status,
+    "/system-info": lambda params: handle_system_info(params, wifi_ok),
+}
+
+# The pages served from flash: path -> (content type, the page). Built once at
+# import; the alternative is rebuilding a dict on every request, which is the
+# allocation this server spends its heap avoiding.
+PAGE_ROUTES = {
+    "/html": ("text/html; charset=utf-8", build_index_html),
+    "/html/": ("text/html", lambda: MINI_HTML),
+    "/html/graph": ("text/html", lambda: GRAPH_HTML),
+}
+
+
 def process_http_request(conn, method, path, params, if_none_match=""):
     if method != "GET":
         return send_json(conn, 405, {"error": "Only GET supported"})
@@ -184,20 +198,14 @@ def process_http_request(conn, method, path, params, if_none_match=""):
     ):
         return
 
-    if path == "/html":
-        return send_html(conn, 200, build_index_html())
-    if path == "/em/window":
-        return send_json(conn, 200, handle_em_window(params))
-    if path == "/em/window-overlay":
-        return send_json(conn, 200, handle_em_overlay(params))
-    if path == "/status":
-        return send_json(conn, 200, handle_status(params))
-    if path == "/system-info":
-        return send_json(conn, 200, handle_system_info(params, wifi_ok))
-    if path == "/html/":
-        return send_text(conn, 200, MINI_HTML, "text/html")
-    if path == "/html/graph":
-        return send_text(conn, 200, GRAPH_HTML, "text/html")
+    handler = JSON_ROUTES.get(path)
+    if handler:
+        return send_json(conn, 200, handler(params))
+
+    page = PAGE_ROUTES.get(path)
+    if page:
+        content_type, render = page
+        return send_text(conn, 200, render(), content_type)
 
     return send_json(conn, 404, {"error": "Not found", "path": path})
 
