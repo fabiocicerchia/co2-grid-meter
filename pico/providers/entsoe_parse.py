@@ -129,13 +129,13 @@ def _text(raw):
         return ""
 
 
-def iter_events(source):
-    """Yield ("open"|"close", tag) and ("text", tag, value) in document order.
+def _tags(cur):
+    """Yield (name, closing, self_closing) for every real tag, in order.
 
-    One pass. Unknown tags are skipped: the scan jumps from one interesting
-    `<` to the next rather than walking the characters between them.
+    Declarations, comments and doctypes are skipped, attributes and namespace
+    prefixes stripped. The cursor is left just past the `>` of each tag, which
+    is where a field's text begins — so `_field_value` can pick it up.
     """
-    cur = _Cursor(source)
     while True:
         lt = cur.find(b"<")
         if lt < 0:
@@ -157,7 +157,6 @@ def iter_events(source):
         if self_closing:
             raw = raw[:-1]
 
-        # Strip attributes and any namespace prefix.
         space = raw.find(b" ")
         if space >= 0:
             raw = raw[:space]
@@ -165,23 +164,106 @@ def iter_events(source):
         if colon >= 0:
             raw = raw[colon + 1 :]
 
-        if raw in _STRUCTURE:
-            if self_closing:
-                continue
-            yield ("close" if closing else "open", raw.decode())
+        yield raw, closing, self_closing
+
+
+def _field_value(cur):
+    """A field's text, which runs from the cursor to the next `<`.
+
+    An empty string also covers "the stream ended here": the caller loops, the
+    tag scan finds no further `<`, and the generator stops — which is what a
+    truncated document did before.
+    """
+    end = cur.find(b"<")
+    if end < 0:
+        return ""
+    value = _text(cur.slice(cur.pos, end))
+    cur.seek(end)
+    return value
+
+
+def iter_events(source):
+    """Yield ("open"|"close", tag) and ("text", tag, value) in document order.
+
+    One pass. Unknown tags are skipped: the scan jumps from one interesting
+    `<` to the next rather than walking the characters between them.
+    """
+    cur = _Cursor(source)
+    for name, closing, self_closing in _tags(cur):
+        if name in _STRUCTURE:
+            if not self_closing:
+                yield ("close" if closing else "open", name.decode())
             continue
 
-        if closing or raw not in _FIELDS:
+        if closing or name not in _FIELDS:
             continue
 
-        # A field: its text runs to the next "<".
-        end = cur.find(b"<")
-        if end < 0:
-            return
-        value = _text(cur.slice(cur.pos, end))
-        cur.seek(end)
+        value = _field_value(cur)
         if value:
-            yield ("text", raw.decode(), value)
+            yield ("text", name.decode(), value)
+
+
+class _SeriesBuilder:
+    """The four pieces of state an A75 scan carries between events.
+
+    Split out of `iter_series` so that function is the loop and this is the
+    state machine. They were one body with a branch per tag, which is where its
+    complexity came from — and the tag rules are what change when ENTSO-E's
+    schema does, while the loop is not.
+    """
+
+    def __init__(self):
+        self.series = None
+        self.period = None
+        self.position = None
+        self.quantity = None
+
+    def open(self, tag):
+        if tag == "TimeSeries":
+            self.series = {"psr": None, "periods": []}
+        elif tag == "Period" and self.series is not None:
+            self.period = {"start": None, "end": None, "resolution": None, "points": []}
+            self.series["periods"].append(self.period)
+        elif tag == "Point":
+            self.position = self.quantity = None
+
+    def close(self, tag):
+        """The finished TimeSeries when `tag` ends one, otherwise None."""
+        if tag == "Point" and self.period is not None:
+            if self.position is not None and self.quantity is not None:
+                self.period["points"].append((self.position, self.quantity))
+            self.position = self.quantity = None
+        elif tag == "Period":
+            self.period = None
+        elif tag == "TimeSeries":
+            done, self.series = self.series, None
+            return done
+        return None
+
+    def text(self, tag, value):
+        if tag == "psrType":
+            if self.series is not None:
+                self.series["psr"] = value
+        elif self.period is None:
+            return
+        elif tag == "resolution":
+            self.period["resolution"] = value
+        elif tag == "position":
+            self.position = _number(value, int)
+        elif tag == "quantity":
+            self.quantity = _number(value, float)
+        elif self.period.get(tag) is None:
+            # start and end, and only those: a Period carries one
+            # timeInterval, so the first one seen is the one that counts.
+            self.period[tag] = value
+
+
+def _number(value, cast):
+    """A point's position or quantity, or None when the document says nonsense."""
+    try:
+        return cast(value)
+    except ValueError:
+        return None
 
 
 def iter_series(source):
@@ -195,60 +277,21 @@ def iter_series(source):
     Yielded rather than collected so the caller can fold a series into its
     buckets and drop it. Holding all of them was the whole memory problem.
     """
-    current = None
-    period = None
-    position = None
-    quantity = None
-
+    builder = _SeriesBuilder()
     for event in iter_events(source):
-        kind = event[0]
-        if kind == "open":
-            tag = event[1]
-            if tag == "TimeSeries":
-                current = {"psr": None, "periods": []}
-            elif tag == "Period" and current is not None:
-                period = {"start": None, "end": None, "resolution": None, "points": []}
-                current["periods"].append(period)
-            elif tag == "Point":
-                position = quantity = None
-        elif kind == "close":
-            tag = event[1]
-            if tag == "Point" and period is not None:
-                if position is not None and quantity is not None:
-                    period["points"].append((position, quantity))
-                position = quantity = None
-            elif tag == "Period":
-                period = None
-            elif tag == "TimeSeries":
-                if current is not None:
-                    yield current
-                current = None
+        if event[0] == "open":
+            builder.open(event[1])
+        elif event[0] == "close":
+            done = builder.close(event[1])
+            if done is not None:
+                yield done
         else:
-            _, tag, value = event
-            if tag == "psrType" and current is not None:
-                current["psr"] = value
-            elif period is not None:
-                if tag == "start" and period["start"] is None:
-                    period["start"] = value
-                elif tag == "end" and period["end"] is None:
-                    period["end"] = value
-                elif tag == "resolution":
-                    period["resolution"] = value
-                elif tag == "position":
-                    try:
-                        position = int(value)
-                    except ValueError:
-                        position = None
-                elif tag == "quantity":
-                    try:
-                        quantity = float(value)
-                    except ValueError:
-                        quantity = None
+            builder.text(event[1], event[2])
 
     # A truncated document — the connection dropped mid-series — still yields
     # what was read, which is a partial curve rather than none at all.
-    if current is not None:
-        yield current
+    if builder.series is not None:
+        yield builder.series
 
 
 def parse_series(source):
