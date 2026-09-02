@@ -49,8 +49,26 @@ _geo_details = {}
 _last_provider_used = "unknown"
 
 
+def _geo_from_payload(payload):
+    """The four fields the grid lookup needs, or a ProviderError saying which
+    part of the payload was unusable. Pure: the cache and the retry cooldown
+    stay with the caller."""
+    if payload.get("success") is False:
+        raise ProviderError("IP geo lookup failed")
+
+    lat = safe_float(payload.get("latitude"))
+    lon = safe_float(payload.get("longitude"))
+    city = (payload.get("city") or payload.get("region") or "").strip()
+    cc = (payload.get("country_code") or "").strip().upper()
+
+    if lat is None or lon is None or not city or not cc:
+        raise ProviderError("IP geo incomplete payload")
+
+    return {"lat": lat, "lon": lon, "city": city, "cc": cc}
+
+
 def _auto_geo_defaults():
-    global _auto_geo_cache, _auto_geo_expires
+    global _auto_geo_cache, _auto_geo_expires, _geo_details
 
     if not CONFIG.geo.auto_from_public_ip:
         return None
@@ -61,23 +79,11 @@ def _auto_geo_defaults():
 
     try:
         payload = http_get_json(CONFIG.geo.ip_lookup_url, "IP geo")
-        if payload.get("success") is False:
-            raise ProviderError("IP geo lookup failed")
-
-        lat = safe_float(payload.get("latitude"))
-        lon = safe_float(payload.get("longitude"))
-        city = (payload.get("city") or payload.get("region") or "").strip()
-        cc = (payload.get("country_code") or "").strip().upper()
-
-        if lat is None or lon is None or not city or not cc:
-            raise ProviderError("IP geo incomplete payload")
-
-        _auto_geo_cache = {"lat": lat, "lon": lon, "city": city, "cc": cc}
+        _auto_geo_cache = _geo_from_payload(payload)
         _auto_geo_expires = now + int(CONFIG.geo.refresh_seconds)
         # Coarse on purpose: logs get pasted into issues, and a precise
         # coordinate is a home address. The exact figures stay in the cache
         # above, where the grid lookup needs them.
-        global _geo_details
         _geo_details = geo_summary(payload)
         log("Auto-geo resolved to %s" % format_location(_geo_details))
         if _geo_details.get("isp"):

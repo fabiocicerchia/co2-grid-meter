@@ -20,6 +20,23 @@ from requests.exceptions import RequestException
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
+# URL path -> the file under STATIC_DIR and the type it is served as.
+STATIC_ROUTES = {
+    "/": ("text/html", "index.html"),
+    "/static/style.css": ("text/css", "style.css"),
+    "/static/script.js": ("application/javascript", "script.js"),
+    "/html/graph": ("text/html", "graph.html"),
+    "/html/graph.html": ("text/html", "graph.html"),
+}
+
+# URL path -> the Pico path it proxies to, and the query parameters forwarded
+# with it. Anything not listed here is dropped rather than passed upstream.
+API_ROUTES = {
+    "/api/status": ("/status", ()),
+    "/api/em/window": ("/em/window", ("back_hours",)),
+    "/api/em/window-overlay": ("/em/window-overlay", ("back_hours", "forward_hours")),
+}
+
 
 def _read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8")
@@ -101,51 +118,34 @@ class PicoProxyHandler(BaseHTTPRequestHandler):
                 "Pico returned non-JSON response", str(error)
             )
 
+    def _respond_to(self, path: str, query: dict[str, list[str]]):
+        """(content_type, body, status) for one URL path.
+
+        Two tables rather than a chain of seven elifs: a static route differs
+        only in its file and type, and a proxied one only in the Pico path and
+        the parameters it forwards.
+        """
+        if path in STATIC_ROUTES:
+            content_type, filename = STATIC_ROUTES[path]
+            return content_type, _read_text(STATIC_DIR / filename), 200
+
+        route = API_ROUTES.get(path)
+        if route is None:
+            return "text/plain", "", 404
+
+        pico_path, forwarded = route
+        extra_params: dict[str, Any] = {
+            name: int(query[name][0]) for name in forwarded if name in query
+        }
+        body, status_code = self._pico_get_json(
+            query, pico_path, extra_params=extra_params
+        )
+        return "application/json", body, status_code
+
     def do_GET(self):
         url = urlparse(self.path)
         query = parse_qs(url.query)
-
-        content_type = "text/plain"
-        status_code = 404
-        body: Any = ""
-
-        if url.path == "/":
-            status_code = 200
-            content_type = "text/html"
-            body = _read_text(STATIC_DIR / "index.html")
-        elif url.path == "/static/style.css":
-            status_code = 200
-            content_type = "text/css"
-            body = _read_text(STATIC_DIR / "style.css")
-        elif url.path == "/static/script.js":
-            status_code = 200
-            content_type = "application/javascript"
-            body = _read_text(STATIC_DIR / "script.js")
-        elif url.path in ("/html/graph", "/html/graph.html"):
-            status_code = 200
-            content_type = "text/html"
-            body = _read_text(STATIC_DIR / "graph.html")
-        elif url.path == "/api/status":
-            content_type = "application/json"
-            body, status_code = self._pico_get_json(query, "/status")
-        elif url.path == "/api/em/window":
-            content_type = "application/json"
-            extra_params: dict[str, Any] = {}
-            if "back_hours" in query:
-                extra_params["back_hours"] = int(query["back_hours"][0])
-            body, status_code = self._pico_get_json(
-                query, "/em/window", extra_params=extra_params
-            )
-        elif url.path == "/api/em/window-overlay":
-            content_type = "application/json"
-            extra_params: dict[str, Any] = {}
-            if "back_hours" in query:
-                extra_params["back_hours"] = int(query["back_hours"][0])
-            if "forward_hours" in query:
-                extra_params["forward_hours"] = int(query["forward_hours"][0])
-            body, status_code = self._pico_get_json(
-                query, "/em/window-overlay", extra_params=extra_params
-            )
+        content_type, body, status_code = self._respond_to(url.path, query)
 
         self.protocol_version = "HTTP/1.1"
         self.send_response(status_code)
