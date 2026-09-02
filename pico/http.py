@@ -8,15 +8,14 @@ import staticfiles
 import ujson
 import uos
 from app import (
-    _display_tick,
     handle_em_overlay,
     handle_em_window,
     handle_status,
     handle_system_info,
-    render_placeholder_screen,
 )
 from display import get_epd
 from fw_network import wifi_connect, wifi_ok
+from fw_render import _display_tick, render_placeholder_screen
 from pages import GRAPH_HTML, MINI_HTML, build_index_html
 from timeutil import utc_offset_seconds
 from utils import _now_stamp, log
