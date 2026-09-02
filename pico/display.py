@@ -364,14 +364,15 @@ def _fb(epd):
 
 
 def draw_time(epd, x, y):
-    t = time.localtime()
-    s = "%02d:%02d" % (t[3], t[4])
+    # Not `t`: that name is the i18n lookup imported at the top of this module.
+    now_local = time.localtime()
+    clock_text = "%02d:%02d" % (now_local[3], now_local[4])
     fb = _fb(epd)
     # Native framebuf text is 8x8 per character; clear only the printed area.
-    text_w = len(s) * 8
+    text_w = len(clock_text) * 8
     text_h = 8
     fb.fill_rect(int(x), int(y), text_w, text_h, EINK_WHITE)
-    draw_text(fb, x, y, s)
+    draw_text(fb, x, y, clock_text)
 
 
 def draw_current_panel(epd, current_ci, verdict, next_line):

@@ -345,13 +345,13 @@ def _display_tick():
     try:
         status, window_data, overlay_data = build_status_bundle(params)
         render_screen(status, window_data, overlay_data)
-    except Exception as e:
+    except Exception as error:
         # Don't crash the server loop if provider/network is down
         try:
-            log("ERROR(_display_tick) %s" % e)
-            render_placeholder_screen("DATA ERROR", str(e))
-        except Exception as e:
-            log("ERROR(_display_tick 2) %s" % e)
+            log("ERROR(_display_tick) %s" % error)
+            render_placeholder_screen("DATA ERROR", str(error))
+        except Exception as render_error:
+            log("ERROR(_display_tick 2) %s" % render_error)
 
 
 def draw_top_bar(_epd):

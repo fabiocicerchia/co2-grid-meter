@@ -67,7 +67,7 @@ def parse_request(conn):
     # Only If-None-Match is kept: it is the one header this server acts on, and
     # holding a whole header dict per request costs heap the device needs for
     # the response.
-    inm = ""
+    if_none_match = ""
     while True:
         h = _readline(conn)
         if not h or h == b"\r\n":
@@ -78,10 +78,10 @@ def parse_request(conn):
         # and a header that is not valid UTF-8 is not one this server acts on.
         if h[:14].lower() == b"if-none-match:":
             try:
-                inm = h[14:].decode().strip()
+                if_none_match = h[14:].decode().strip()
             except Exception:
-                inm = ""
-    return method, path_qs, inm
+                if_none_match = ""
+    return method, path_qs, if_none_match
 
 
 def split_path_qs(path_qs):
@@ -210,7 +210,7 @@ def build_index_html():
 """
 
 
-def set_time(offset=None, delta=NTP_EPOCH_OFFSET_SEC, host="pool.ntp.org"):
+def set_time(offset=None, epoch_offset=NTP_EPOCH_OFFSET_SEC, host="pool.ntp.org"):
     """Set the RTC from NTP, in local wall-clock time.
 
     `offset` is seconds to add to UTC. Left as None it is derived from
@@ -221,30 +221,30 @@ def set_time(offset=None, delta=NTP_EPOCH_OFFSET_SEC, host="pool.ntp.org"):
     NTP_QUERY = bytearray(48)
     NTP_QUERY[0] = 0x1B
     addr = socket.getaddrinfo(host, 123)[0][-1]
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
-        s.settimeout(1)
-        s.sendto(NTP_QUERY, addr)
-        msg = s.recv(48)
+        sock.settimeout(1)
+        sock.sendto(NTP_QUERY, addr)
+        reply = sock.recv(48)
     finally:
-        s.close()
-    val = struct.unpack("!I", msg[40:44])[0]
-    t = val - delta
+        sock.close()
+    ntp_seconds = struct.unpack("!I", reply[40:44])[0]
+    unix_epoch = ntp_seconds - epoch_offset
     if offset is None:
         # Decided from the UTC instant, never from the already-shifted one:
         # applying the rule to local time is what makes the repeated hour
         # ambiguous.
         offset = utc_offset_seconds(
-            time.gmtime(t),
+            time.gmtime(unix_epoch),
             standard_hours=CONFIG.defaults.utc_offset_hours,
             observes_dst=CONFIG.defaults.observes_eu_dst,
         )
-    tm = time.gmtime(t + offset)
+    tm = time.gmtime(unix_epoch + offset)
     machine.RTC().datetime((tm[0], tm[1], tm[2], tm[6] + 1, tm[3], tm[4], tm[5], 0))
     log("Local time: %s (UTC%+d)" % (_now_stamp(), offset // 3600))
 
 
-def handle_http_request(conn, LOGGER):
+def handle_http_request(conn, logger):
     if conn is None:
         return
 
@@ -254,13 +254,13 @@ def handle_http_request(conn, LOGGER):
 
     method, path_qs, if_none_match = request
     path, params = split_path_qs(path_qs)
-    LOGGER.info("%s %s" % (method, path))
+    logger.info("%s %s" % (method, path))
 
     try:
         process_http_request(conn, method, path, params, if_none_match)
     except Exception as error:
         crash_path = write_crashdump(error, context="http")
-        LOGGER.exception("ERROR %s %s" % (error, crash_path))
+        logger.exception("ERROR %s %s" % (error, crash_path))
         append_log_line("ERROR %s" % crash_path)
         send_json(conn, 500, {"error": "Internal error", "details": str(error)})
     finally:
@@ -371,14 +371,14 @@ def ensure_connected(ip):
     return new_ip
 
 
-def get_connection(LOGGER):
+def get_connection(logger):
     if _server_socket is None:
         return None
     try:
         conn, _ = _server_socket.accept()
         return conn
     except OSError as error:
-        LOGGER.exception("OSError %s" % error)
+        logger.exception("OSError %s" % error)
         return None
 
 
@@ -407,7 +407,7 @@ def open_socket(ip):
     log("Pico running: http://%s:%d" % (ip, CONFIG.server.port))
 
 
-def serve_forever(ip, LOGGER):
+def serve_forever(ip, logger):
     global _epd
 
     open_socket(ip)
@@ -419,8 +419,8 @@ def serve_forever(ip, LOGGER):
             ip = ensure_connected(ip)
             _display_tick()
 
-            conn = get_connection(LOGGER)
-            handle_http_request(conn, LOGGER)
+            conn = get_connection(logger)
+            handle_http_request(conn, logger)
         except Exception as error:
             log("serve_forever loop error: %s" % error)
             close_server_socket()
