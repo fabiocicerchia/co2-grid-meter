@@ -54,12 +54,8 @@ def day_starts(start_epoch, end_epoch):
     side of midnight, and asking for one document too few loses an hour of the
     timeline rather than failing loudly.
     """
-    days = []
-    day = start_epoch - (start_epoch % DAY_SEC)
-    while day <= end_epoch:
-        days.append(day)
-        day += DAY_SEC
-    return days
+    first = start_epoch - (start_epoch % DAY_SEC)
+    return list(range(first, end_epoch + 1, DAY_SEC))
 
 
 def day_values(document, figures=FIGURES):
