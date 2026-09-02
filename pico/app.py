@@ -203,32 +203,35 @@ _fresh_data = False
 TIMELINE_POINTS = 60
 
 
-def get_window(lat, lon, city, cc, start_epoch, end_epoch):
+def _fetch_window(lat, lon, city, cc, start_epoch, end_epoch):
+    """The cache miss path for `get_window`. Only called through it."""
     global _fresh_data, _last_provider_used
+    _fresh_data = True
+    log("Fetching data...")
+    if CONFIG.providers.force_dummy:
+        data, provider_used = dummy_fetch_window_any(
+            lat, lon, city, cc, start_epoch, end_epoch
+        )
+    else:
+        data, provider_used = fetch_window_any(
+            lat, lon, city, cc, start_epoch, end_epoch
+        )
+    log("Provider used: %s" % provider_used)
+    data["_provider"] = provider_used
+    _last_provider_used = provider_used
+    data["lat"] = lat
+    data["lon"] = lon
+    data["_resolved"] = {"city": city, "cc": cc}
+    return data
+
+
+def get_window(lat, lon, city, cc, start_epoch, end_epoch):
+    global _fresh_data
     key = ("window", round(lat, 4), round(lon, 4), city, cc, start_epoch, end_epoch)
     _fresh_data = False
-
-    def fetch():
-        global _fresh_data
-        _fresh_data = True
-        log("Fetching data...")
-        if CONFIG.providers.force_dummy:
-            data, provider_used = dummy_fetch_window_any(
-                lat, lon, city, cc, start_epoch, end_epoch
-            )
-        else:
-            data, provider_used = fetch_window_any(
-                lat, lon, city, cc, start_epoch, end_epoch
-            )
-        log("Provider used: %s" % provider_used)
-        data["_provider"] = provider_used
-        _last_provider_used = provider_used
-        data["lat"] = lat
-        data["lon"] = lon
-        data["_resolved"] = {"city": city, "cc": cc}
-        return data
-
-    return _cache.get_or_set(key, fetch)
+    return _cache.get_or_set(
+        key, lambda: _fetch_window(lat, lon, city, cc, start_epoch, end_epoch)
+    )
 
 
 def handle_em_window(params):
@@ -317,12 +320,7 @@ def handle_status(params):
     # Keep a stable key so /status serves cached payload immediately when present.
     # Freshness is managed by TtlCache(CONFIG.cache_refresh_seconds).
     key = ("status", round(lat, 4), round(lon, 4), city, cc)
-
-    def build():
-        status, _, _ = build_status_bundle(params)
-        return status
-
-    return _cache.get_or_set(key, build)
+    return _cache.get_or_set(key, lambda: build_status_bundle(params)[0])
 
 
 # ---- Periodic e-ink refresh (decoupled from HTTP polling) ----
