@@ -17,6 +17,7 @@ from display import (
     panel_dimensions,
 )
 from export import summary_from_window, window_csv
+from fetcher import BackgroundFetcher
 from fw_network import wifi_ok, wifi_signal_bars
 from fw_providers import fetch_window_any
 from i18n import t
@@ -42,6 +43,10 @@ from config import CONFIG
 _epd = None
 _last_render = 0
 _cache = TtlCache(CONFIG.cache_refresh_seconds)
+# Provider I/O only. Everything else — status composition, geo lookups — stays
+# on TtlCache: it is cheap and local, and a second thread for it would cost a
+# stack for no stall removed.
+_fetcher = BackgroundFetcher(CONFIG.cache_refresh_seconds)
 _auto_geo_cache = None
 _auto_geo_expires = 0
 # Coarse geolocation for the logs and /status. Never holds coordinates.
@@ -194,16 +199,19 @@ def dummy_fetch_window_any(lat, lon, city, country_code, start_epoch, end_epoch)
 
 
 _fresh_data = False
+# The publish time of the reading the screen was last drawn from. A change in
+# it means a new reading arrived, which is when a full e-ink clear is worth its
+# flicker — "did this call do the fetching" stopped being the same question
+# once fetching moved off the request path.
+_last_window_stamp = 0
 
 
 def get_window(lat, lon, city, cc, start_epoch, end_epoch):
-    global _fresh_data, _last_provider_used
+    global _fresh_data, _last_window_stamp
     key = ("window", round(lat, 4), round(lon, 4), city, cc, start_epoch, end_epoch)
-    _fresh_data = False
 
     def fetch():
-        global _fresh_data
-        _fresh_data = True
+        global _last_provider_used
         log("Fetching data...")
         if CONFIG.providers.force_dummy:
             data, provider_used = dummy_fetch_window_any(
@@ -221,7 +229,21 @@ def get_window(lat, lon, city, cc, start_epoch, end_epoch):
         data["_resolved"] = {"city": city, "cc": cc}
         return data
 
-    return _cache.get_or_set(key, fetch)
+    # Starting here rather than in main(): app.py is imported lazily, start()
+    # is idempotent, and a device whose thread cannot start still serves — the
+    # fetcher falls back to fetching inline.
+    _fetcher.start()
+    data = _fetcher.get_or_set(key, fetch)
+    if data is None:
+        # Nothing has ever been fetched for this window and the first attempt
+        # did not finish in time. Raised, not returned empty: every caller
+        # already handles a provider failure, and "warming up" is one.
+        raise ProviderError("No reading yet — the first fetch is still running")
+
+    published_at, _ = _fetcher.published(key)
+    _fresh_data = published_at != _last_window_stamp
+    _last_window_stamp = published_at
+    return data
 
 
 def handle_em_window(params):
@@ -345,6 +367,17 @@ def handle_status(params):
 _last_display_tick = 0
 
 
+def _ota_status():
+    # Imported here, not at module scope: a device flashed before OTA existed
+    # has no ota.py, and /status must still answer.
+    try:
+        import ota
+
+        return ota.status()
+    except Exception:  # noqa: BLE001 - diagnostics never break the endpoint
+        return {"stage": "unavailable"}
+
+
 def _display_tick():
     """Refresh the e-ink every CONFIG.display.render_min_interval_sec even if /status is never called."""
     global _last_display_tick
@@ -421,6 +454,14 @@ def handle_system_info(params, wifi_connected_callback):
         "lat": lat,
         "lon": lon,
         "provider_last_used": _last_provider_used,
+        # What the background fetcher is doing: whether the worker is up, how
+        # many fetches it has run and the last error it swallowed. Without this
+        # a stuck provider is invisible — the page keeps serving the last good
+        # reading, which is the point, and also how you fail to notice.
+        "fetcher": _fetcher.stats(),
+        # An update that rolled itself back silently is the one you discover
+        # weeks later, wondering why a fix never took.
+        "ota": _ota_status(),
     }
 
 
