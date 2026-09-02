@@ -412,6 +412,40 @@ def handle_system_info(params, wifi_connected_callback):
     }
 
 
+def aligned_lines(window_json, overlay_json, now_epoch):
+    """The two series the graph draws, sampled onto one 60-hour timeline.
+
+    Both are placed on the same [-48h, +12h] grid so the week-shifted overlay
+    sits under the current curve hour for hour; an hour neither provider
+    covered is None, which the plot skips. Returns
+    (current_line, week_line, overlay_values).
+    """
+    current_map = dict(series_points(window_json))
+    overlay_points = series_points(overlay_json)
+    week_map = {ts + WEEK_SECONDS: v for ts, v in overlay_points}
+
+    timeline = [
+        now_epoch - (CONFIG.timeline.back_hours_default * 3600) + i * 3600
+        for i in range(TIMELINE_POINTS)
+    ]
+    return (
+        [current_map.get(ts) for ts in timeline],
+        [week_map.get(ts) for ts in timeline],
+        [value for _, value in overlay_points],
+    )
+
+
+def week_percentile(current_intensity, overlay_values):
+    """Where the current reading sits in the previous week's spread.
+
+    None when half a day of overlay is missing: a percentile over four points
+    is noise, and the LED bar and the zone both read better as "unknown".
+    """
+    if len(overlay_values) < 12:
+        return None
+    return percentile(sorted(overlay_values), current_intensity)
+
+
 def render_screen(status_json, window_json, overlay_json):
     global _epd, _last_render
     now = int(time.time())
@@ -422,37 +456,25 @@ def render_screen(status_json, window_json, overlay_json):
 
     current_intensity = safe_float(status_json.get("carbonIntensity")) or 0.0
     recommendation = status_json.get("recommendation") or {}
-    verdict = recommendation.get("verdict") or "—"
-    next_line = make_next_line(recommendation)
-
-    now_epoch = floor_hour_epoch(int(time.time()))
-    current_points = series_points(window_json)
-    overlay_points = series_points(overlay_json)
-
-    # Build aligned 60-hour timeline: [-48h, +12h]
-    timeline = [
-        now_epoch - (CONFIG.timeline.back_hours_default * 3600) + i * 3600
-        for i in range(TIMELINE_POINTS)
-    ]
-    current_map = {ts: v for ts, v in current_points}
-    week_map = {ts + WEEK_SECONDS: v for ts, v in overlay_points}
-    current_line = [current_map.get(ts) for ts in timeline]
-    week_line = [week_map.get(ts) for ts in timeline]
-
-    overlay_values = [v for _, v in overlay_points]
-    percentile_value = (
-        percentile(sorted(overlay_values), current_intensity)
-        if len(overlay_values) >= 12
-        else None
+    current_line, week_line, overlay_values = aligned_lines(
+        window_json, overlay_json, floor_hour_epoch(now)
     )
-    zone = intensity_zone_from_percentile(percentile_value)
-    level = led_level_from_percentile(percentile_value)
+    percentile_value = week_percentile(current_intensity, overlay_values)
 
     if _fresh_data:
         epd_clear_screen(_epd)
 
-    draw_leds(_epd, zone, level)
-    draw_current_panel(_epd, current_intensity, verdict, next_line)
+    draw_leds(
+        _epd,
+        intensity_zone_from_percentile(percentile_value),
+        led_level_from_percentile(percentile_value),
+    )
+    draw_current_panel(
+        _epd,
+        current_intensity,
+        recommendation.get("verdict") or "—",
+        make_next_line(recommendation),
+    )
     draw_graph(_epd, current_line, week_line)
     draw_top_bar(_epd)
 

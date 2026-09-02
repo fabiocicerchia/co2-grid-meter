@@ -324,6 +324,52 @@ def value_at_percentile(sorted_values, percentile_value):
     return sorted_values[lo] + (sorted_values[hi] - sorted_values[lo]) * frac
 
 
+def draw_threshold_bands(epd, axes):
+    """The red dashed lines at the percentile cutoffs, across the plot."""
+    sorted_scale = sorted(axes.values)
+    x0 = axes.base_x + 1
+    x1 = axes.base_x + axes.width - 2
+    for percentile_value in (
+        CONFIG.thresholds.green_percentile_max,
+        CONFIG.thresholds.yellow_percentile_max,
+    ):
+        value = value_at_percentile(sorted_scale, percentile_value)
+        if value is None:
+            continue
+        draw_dashed_hline(epd, x0, x1, axes.y_from_norm(axes.norm(value)))
+
+
+def draw_day_ticks(epd, axes):
+    """The vertical at "now", then the -2d / -1d / now marks and their labels."""
+    now_idx = CONFIG.timeline.back_hours_default
+    if 0 <= now_idx < axes.npts:
+        draw_vline(
+            epd.black_frame,
+            axes.x_at(now_idx),
+            axes.base_y + 1,
+            max(1, axes.plot_h - 1),
+            color=EINK_BLACK,
+        )
+
+    tick_y0 = axes.base_y + axes.plot_h
+    tick_y1 = axes.base_y + axes.height - 2
+    for hour_offset, label in GRAPH_DAY_TICKS:
+        idx = hour_offset + CONFIG.timeline.back_hours_default
+        if idx < 0 or idx >= axes.npts:
+            continue
+        x = axes.x_at(idx)
+        draw_vline(
+            epd.black_frame, x, tick_y0, max(1, tick_y1 - tick_y0 + 1), color=EINK_BLACK
+        )
+        draw_text(
+            epd.black_frame,
+            max(axes.base_x + 1, x - 8),
+            axes.base_y + axes.height - 8,
+            label,
+            color=EINK_BLACK,
+        )
+
+
 def draw_graph(epd, current_line, week_line):
     if not current_line and not week_line:
         draw_rect(epd.black_frame, 5, 55, 112, 80, color=0, fill=False)
@@ -346,46 +392,5 @@ def draw_graph(epd, current_line, week_line):
     # Current timeline: solid black. Previous-week timeline: dotted black.
     draw_series(epd.black_frame, axes, [axes.norm(v) for v in current_line])
     draw_series(epd.black_frame, axes, [axes.norm(v) for v in week_line], dotted=True)
-
-    # Red dashed threshold bands (percentile cutoffs) across the graph.
-    sorted_scale = sorted(axes.values)
-    x0 = axes.base_x + 1
-    x1 = axes.base_x + axes.width - 2
-    for percentile_value in (
-        CONFIG.thresholds.green_percentile_max,
-        CONFIG.thresholds.yellow_percentile_max,
-    ):
-        value = value_at_percentile(sorted_scale, percentile_value)
-        if value is None:
-            continue
-        draw_dashed_hline(epd, x0, x1, axes.y_from_norm(axes.norm(value)))
-
-    # "now" marker line
-    now_idx = CONFIG.timeline.back_hours_default
-    if 0 <= now_idx < axes.npts:
-        draw_vline(
-            epd.black_frame,
-            axes.x_at(now_idx),
-            axes.base_y + 1,
-            max(1, axes.plot_h - 1),
-            color=EINK_BLACK,
-        )
-
-    # Day ticks and labels (-48h, -24h, now)
-    tick_y0 = axes.base_y + axes.plot_h
-    tick_y1 = axes.base_y + axes.height - 2
-    for hour_offset, label in GRAPH_DAY_TICKS:
-        idx = hour_offset + CONFIG.timeline.back_hours_default
-        if idx < 0 or idx >= axes.npts:
-            continue
-        x = axes.x_at(idx)
-        draw_vline(
-            epd.black_frame, x, tick_y0, max(1, tick_y1 - tick_y0 + 1), color=EINK_BLACK
-        )
-        draw_text(
-            epd.black_frame,
-            max(axes.base_x + 1, x - 8),
-            axes.base_y + axes.height - 8,
-            label,
-            color=EINK_BLACK,
-        )
+    draw_threshold_bands(epd, axes)
+    draw_day_ticks(epd, axes)
