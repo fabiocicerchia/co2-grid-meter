@@ -24,6 +24,9 @@ from config import CONFIG, append_log_line, write_crashdump
 
 _server_socket = None
 
+# Seconds between the NTP epoch (1900-01-01) and the Unix epoch.
+NTP_EPOCH_OFFSET_SEC = 2208988800
+
 _MINI_HTML = """<!doctype html><html><head><meta charset='utf-8'><title>CO₂ Pico</title></head>
 <body><h3>Pico local pages</h3><ul><li><a href='/html/graph'>Graph</a></li><li><a href='/system-info'>System info JSON</a></li></ul></body></html>"""
 
@@ -207,7 +210,7 @@ def build_index_html():
 """
 
 
-def set_time(offset=None, delta=2208988800, host="pool.ntp.org"):
+def set_time(offset=None, delta=NTP_EPOCH_OFFSET_SEC, host="pool.ntp.org"):
     """Set the RTC from NTP, in local wall-clock time.
 
     `offset` is seconds to add to UTC. Left as None it is derived from

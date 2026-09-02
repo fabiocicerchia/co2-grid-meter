@@ -19,6 +19,9 @@ DC_PIN = 8
 CS_PIN = 9
 BUSY_PIN = 13
 
+# The LED bar drawn top-left, and the number of levels a percentile maps onto.
+LED_COUNT = 8
+
 
 class EPD_2in13_B_V4_Base:
     def __init__(self):
@@ -283,13 +286,10 @@ def intensity_zone_from_percentile(percentile_value):
     return "high"
 
 
-_number_leds = 8
-
-
 def led_level_from_percentile(percentile_value):
     if percentile_value is None:
         return 0
-    return int(clamp(int(round(percentile_value * _number_leds)), 0, _number_leds))
+    return int(clamp(int(round(percentile_value * LED_COUNT)), 0, LED_COUNT))
 
 
 def draw_text(frame, x, y, text, color=0):
@@ -321,7 +321,7 @@ def draw_leds(epd, zone, level):
     start_x = 6
     start_y = 10
     fb.fill_rect(start_x, start_y, 56, 12, EINK_WHITE)
-    for i in range(_number_leds):
+    for i in range(LED_COUNT):
         # filled black if ON, outline if OFF
         x = start_x + i * 7
         if i < int(level):

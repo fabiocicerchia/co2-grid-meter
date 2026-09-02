@@ -1,6 +1,7 @@
 import time
 
 from i18n import t
+from timeutil import WEEK_SECONDS
 from utils import floor_hour_epoch, fmt_hhmm_local, iso_z_to_epoch, percentile
 
 from config import CONFIG
@@ -57,7 +58,7 @@ def _compute_next_best(overlay_history, now_epoch):
         point_epoch = iso_z_to_epoch(ts)
         if point_epoch is None:
             continue
-        shifted_epoch = point_epoch + (7 * 24 * 3600)
+        shifted_epoch = point_epoch + WEEK_SECONDS
         if not (now_epoch < shifted_epoch <= horizon_epoch):
             continue
         if best is None or ci < best[1]:

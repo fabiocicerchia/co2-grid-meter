@@ -20,6 +20,7 @@ from fw_network import wifi_ok, wifi_signal_bars
 from fw_providers import fetch_window_any
 from i18n import t
 from recommendation import recommend_from_week
+from timeutil import WEEK_SECONDS
 from ttl_cache import TtlCache
 from uptime import UPTIME
 from utils import (
@@ -162,6 +163,10 @@ def series_points(series_json):
 # TODO: add a variable to force switch the provide and the city
 _dummy_rng_state = int(time.time()) & 0x7FFFFFFF
 
+# A plausible day of intensities; the dummy provider draws uniformly between
+# this seed's own minimum and maximum.
+DUMMY_SERIES_SEED = [430, 410, 395, 380, 360, 345, 330, 320, 315, 325, 340, 365]
+
 
 def _rand01():
     global _dummy_rng_state
@@ -172,7 +177,6 @@ def _rand01():
 
 def dummy_fetch_window_any(lat, lon, city, country_code, start_epoch, end_epoch):
     del lat, lon, city, country_code
-    DUMMY_SERIES_SEED = [430, 410, 395, 380, 360, 345, 330, 320, 315, 325, 340, 365]
     min_ci = min(DUMMY_SERIES_SEED)
     max_ci = max(DUMMY_SERIES_SEED)
 
@@ -193,6 +197,10 @@ def dummy_fetch_window_any(lat, lon, city, country_code, start_epoch, end_epoch)
 
 
 _fresh_data = False
+
+# One point per hour of the drawn timeline: 48 back plus 12 forward, matching
+# the span draw_graph derives from CONFIG.timeline. Both have to move together.
+TIMELINE_POINTS = 60
 
 
 def get_window(lat, lon, city, cc, start_epoch, end_epoch):
@@ -234,8 +242,8 @@ def handle_em_overlay(params):
     now = floor_hour_epoch(int(time.time()))
     lat, lon, city, cc = resolve_geo(params)
     # Previous-week window matching [-48h, +12h] of the current timeline.
-    start = now - (7 * 24 * 3600) - (CONFIG.timeline.back_hours_default * 3600)
-    end = now - (7 * 24 * 3600) + (CONFIG.timeline.future_hours * 3600)
+    start = now - WEEK_SECONDS - (CONFIG.timeline.back_hours_default * 3600)
+    end = now - WEEK_SECONDS + (CONFIG.timeline.future_hours * 3600)
     return get_window(lat, lon, city, cc, start, end)
 
 
@@ -420,10 +428,10 @@ def render_screen(status_json, window_json, overlay_json):
     # Build aligned 60-hour timeline: [-48h, +12h]
     timeline = [
         now_epoch - (CONFIG.timeline.back_hours_default * 3600) + i * 3600
-        for i in range(60)
+        for i in range(TIMELINE_POINTS)
     ]
     current_map = {ts: v for ts, v in current_points}
-    week_map = {ts + (7 * 24 * 3600): v for ts, v in overlay_points}
+    week_map = {ts + WEEK_SECONDS: v for ts, v in overlay_points}
     current_line = [current_map.get(ts) for ts in timeline]
     week_line = [week_map.get(ts) for ts in timeline]
 

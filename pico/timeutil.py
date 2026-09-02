@@ -14,6 +14,12 @@ filesystem the firmware is flashed onto — see CLAUDE.md.
 # whose local/UTC interpretation differs between MicroPython and CPython — and
 # this code has to give the same answer on the Pico and in the test suite.
 
+# The overlay is the same window one week earlier, and the shift is applied in
+# three places: building the overlay request, mapping its points back onto the
+# current timeline, and ranking the coming hours. They have to be the same
+# number, so it is one number.
+WEEK_SECONDS = 7 * 24 * 3600
+
 
 def _day_of_week(year, month, day):
     """Sakamoto's algorithm. 0 = Sunday .. 6 = Saturday."""
