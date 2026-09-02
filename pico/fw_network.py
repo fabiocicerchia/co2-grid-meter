@@ -8,6 +8,9 @@ from config import CONFIG
 
 _wlan = None
 
+# Typical RSSI (dBm) thresholds for 4 bars, strongest first.
+RSSI_BARS = ((-55, 4), (-67, 3), (-75, 2), (-85, 1))
+
 
 def wifi_connect(timeout_ms=15000):
     global _wlan
@@ -74,14 +77,8 @@ def wifi_signal_bars():
     if rssi is None:
         return 0
 
-    # Typical RSSI (dBm) thresholds for 4 bars.
-    if rssi >= -55:
-        return 4
-    if rssi >= -67:
-        return 3
-    if rssi >= -75:
-        return 2
-    if rssi >= -85:
-        return 1
+    for threshold, bars in RSSI_BARS:
+        if rssi >= threshold:
+            return bars
 
     return 0
