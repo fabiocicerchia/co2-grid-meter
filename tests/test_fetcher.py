@@ -86,7 +86,7 @@ def test_a_slow_provider_does_not_stall_the_request_path():
         elapsed = time.monotonic() - started
 
         assert value["carbonIntensity"] == 1, "served the last good reading"
-        assert elapsed < 0.5, "the request waited for the provider (%.2fs)" % elapsed
+        assert elapsed < 0.5, f"the request waited for the provider ({elapsed:.2f}s)"
     finally:
         release.set()
         f.stop()

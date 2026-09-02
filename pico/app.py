@@ -374,7 +374,8 @@ def _ota_status():
         import ota
 
         return ota.status()
-    except Exception:  # noqa: BLE001 - diagnostics never break the endpoint
+    # Broad on purpose: diagnostics never break the endpoint.
+    except Exception:
         return {"stage": "unavailable"}
 
 

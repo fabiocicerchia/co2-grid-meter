@@ -487,5 +487,6 @@ fix never took.
 **Not exercised on hardware.** The rollback path is covered by fifteen tests
 against a real filesystem, including a deliberately broken image, an update that
 adds a file, a truncated state file and a power loss simulated mid-`activate()`.
-None of that is the same as pulling the USB cable out of a Pico halfway through,
-which is the check this needs before you trust it with a device you cannot reach.
+None of that is the same as pulling the USB cable out of a Pico halfway
+through, which is the check this needs before you trust it with a device you
+cannot reach.

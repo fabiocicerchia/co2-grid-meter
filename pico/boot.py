@@ -20,7 +20,8 @@ try:
         print(
             "OTA: booting new firmware, attempt %s" % ota.read_state().get("attempts")
         )
-except Exception as error:  # noqa: BLE001 - boot must continue whatever happens
+# Broad on purpose: boot must continue whatever happens.
+except Exception as error:
     # No ota.py, an unreadable state file, a filesystem that will not stat:
     # none of them are a reason to refuse to boot the firmware that is there.
     print("OTA: boot check skipped (%s)" % error)
