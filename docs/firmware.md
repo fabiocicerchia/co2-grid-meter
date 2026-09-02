@@ -267,3 +267,125 @@ is meant to report, so elapsed time is accumulated from `ticks_diff` deltas
 rather than subtracted from a boot value. Anything that samples it more often
 than the wrap period keeps it accurate; `/status` and the display tick both do,
 by a wide margin.
+
+## Pull endpoints for home automation
+
+`/em/window` and `/status` are shaped for the dashboard, which knows the payload
+it wants. Two more exist for anything that polls the device on a schedule:
+
+| Endpoint          | Type               | For                                          |
+| ----------------- | ------------------ | -------------------------------------------- |
+| `/em/window.csv`  | `text/csv`         | the rolling window, one row per hour          |
+| `/em/summary`     | `application/json` | one flat object — current reading and verdict |
+
+Both accept the same `lat`/`lon`/`city`/`cc` parameters as the rest, and
+`/em/window.csv` also takes `back_hours`.
+
+### `/em/window.csv`
+
+```console
+$ curl -s 'http://pico.local/em/window.csv?back_hours=6'
+datetime,epoch,carbon_intensity
+2026-09-01T07:00:00Z,1788246000,430
+2026-09-01T08:00:00Z,1788249600,412.5
+2026-09-01T09:00:00Z,1788253200,380
+```
+
+Whole numbers are written without a trailing `.0`. Points with no timestamp or
+no reading are **dropped rather than emitted half-blank** — a row with an empty
+column plots as a zero, which reads as the grid going briefly carbon-free.
+
+The response is bounded at `EXPORT_MAX_ROWS` (336 rows, two weeks of hourly
+data, under 10 KB) regardless of the `back_hours` asked for. A Pico serves this
+from tens of KB of heap over one socket; the cap belongs on the device, not in
+the caller's good manners. Truncation keeps the **newest** rows.
+
+### `/em/summary`
+
+```console
+$ curl -s http://pico.local/em/summary
+{
+  "datetime": "2026-09-01T12:00:00Z",
+  "city": "Lisbon", "cc": "PT",
+  "carbon_intensity": 380, "unit": "gCO2eq/kWh",
+  "verdict": "GOOD", "reason": "below the weekly median", "wait_hours": null,
+  "window_points": 48, "window_min": 315, "window_max": 468,
+  "provider": "electricity_maps", "uptime_seconds": 84213
+}
+```
+
+Deliberately no `history`. A client polling every few minutes should not pay to
+transfer and parse points it will never plot; `window_min`/`window_max` are what
+a rule branches on, and the full series is one request away at `/em/window`.
+
+### Worked example: Home Assistant
+
+`/em/summary` is a single `rest` sensor with attributes, which is the shape Home
+Assistant templates read most cheaply:
+
+```yaml
+# configuration.yaml
+rest:
+  - resource: http://pico.local/em/summary
+    scan_interval: 300          # the device refreshes hourly; polling faster
+                                # only costs the Pico's radio
+    sensor:
+      - name: Grid carbon intensity
+        value_template: "{{ value_json.carbon_intensity }}"
+        unit_of_measurement: gCO2eq/kWh
+        state_class: measurement
+        json_attributes:
+          - verdict
+          - reason
+          - wait_hours
+          - window_min
+          - window_max
+          - provider
+
+template:
+  - binary_sensor:
+      - name: Good time to run the dishwasher
+        state: >
+          {{ state_attr('sensor.grid_carbon_intensity', 'verdict') == 'GOOD' }}
+```
+
+Then run the load when the grid is clean:
+
+```yaml
+automation:
+  - alias: Dishwasher on clean power
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.good_time_to_run_the_dishwasher
+        to: "on"
+    condition:
+      - condition: time
+        after: "09:00:00"
+        before: "22:00:00"
+    action:
+      - action: switch.turn_on
+        target: { entity_id: switch.dishwasher }
+```
+
+For history — a statistics card, or an import into something else — point a
+`command_line` sensor or a plain `curl` at the CSV:
+
+```sh
+curl -s 'http://pico.local/em/window.csv?back_hours=168' > week.csv
+```
+
+### Through the dashboard instead of the device
+
+The desktop dashboard proxies both, so a Home Assistant instance that cannot
+reach the Pico directly can go via it: `/api/em/summary` and
+`/api/em/window.csv`. The CSV is relayed byte for byte, so a sensor pointed at
+either agrees. A failed upstream fetch comes back as the usual JSON error
+payload rather than an empty CSV — answering with a valid-looking empty file
+would teach the consumer that the grid went quiet.
+
+### Authentication
+
+There is none, on these or on any other endpoint. The device is intended for a
+trusted LAN and everything it serves is public grid data plus its own uptime.
+Do not expose it to the internet; if you must, put it behind something that does
+authenticate.

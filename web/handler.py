@@ -85,6 +85,29 @@ def create_handler(
         except ValueError as error:
             return _return_error_payload("Pico returned non-JSON response", str(error))
 
+    def _pico_get_text(
+        query: dict[str, list[str]], path: str, extra_params: dict | None = None
+    ):
+        """Like _pico_get_json, but relays the body untouched.
+
+        An error still comes back as the JSON error payload — a dashboard that
+        answered a failed CSV fetch with a valid-looking empty CSV would teach
+        the consumer that the grid went quiet.
+        """
+        base_url = _pico_base_url(query)
+        try:
+            response = _request_with_retry(
+                f"{base_url}{path}", {**(extra_params or {})}
+            )
+            if not response.ok:
+                return _return_error_payload(
+                    f"Pico returned HTTP {response.status_code}",
+                    response.text[:800] if response.text else "",
+                )
+            return response.text, 200
+        except RequestException as error:
+            return _return_error_payload("Failed to reach Pico", str(error))
+
     def _read_text(path: Path) -> str:
         return path.read_text(encoding="utf-8")
 
@@ -126,6 +149,20 @@ def create_handler(
                 body, status_code = _pico_get_json(
                     query, "/em/window", extra_params=extra_params
                 )
+            elif url.path == "/api/em/window.csv":
+                # Proxied verbatim: the point of the CSV is that it is the same
+                # bytes the device serves, so a Home Assistant sensor pointed at
+                # the dashboard and one pointed at the Pico agree.
+                content_type = "text/csv"
+                extra_params: dict[str, Any] = {}
+                if "back_hours" in query:
+                    extra_params["back_hours"] = int(query["back_hours"][0])
+                body, status_code = _pico_get_text(
+                    query, "/em/window.csv", extra_params=extra_params
+                )
+            elif url.path == "/api/em/summary":
+                content_type = "application/json"
+                body, status_code = _pico_get_json(query, "/em/summary")
             elif url.path == "/api/em/window-overlay":
                 content_type = "application/json"
                 extra_params: dict[str, Any] = {}

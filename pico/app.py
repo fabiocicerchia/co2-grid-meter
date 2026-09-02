@@ -16,6 +16,7 @@ from display import (
     led_level_from_percentile,
     panel_dimensions,
 )
+from export import summary_from_window, window_csv
 from fw_network import wifi_ok, wifi_signal_bars
 from fw_providers import fetch_window_any
 from i18n import t
@@ -237,6 +238,29 @@ def handle_em_overlay(params):
     start = now - (7 * 24 * 3600) - (CONFIG.timeline.back_hours_default * 3600)
     end = now - (7 * 24 * 3600) + (CONFIG.timeline.future_hours * 3600)
     return get_window(lat, lon, city, cc, start, end)
+
+
+# ---- Export endpoints (for home automation, not the dashboard) ----
+# The shaping lives in pico/export.py so it can be tested under CPython; these
+# two are the wiring that gives it the data.
+
+
+def handle_em_window_csv(params):
+    return window_csv(handle_em_window(params))
+
+
+def handle_em_summary(params):
+    status, window_data, _ = build_status_bundle(params)
+    return summary_from_window(
+        window_data,
+        status.get("carbonIntensity"),
+        status.get("recommendation"),
+        status.get("datetime"),
+        city=status.get("city"),
+        cc=status.get("cc"),
+        provider=status.get("_provider"),
+        uptime_seconds=status.get("uptime_seconds"),
+    )
 
 
 def make_next_line(recommendation):

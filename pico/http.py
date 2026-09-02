@@ -10,7 +10,9 @@ import uos
 from app import (
     _display_tick,
     handle_em_overlay,
+    handle_em_summary,
     handle_em_window,
+    handle_em_window_csv,
     handle_status,
     handle_system_info,
     render_placeholder_screen,
@@ -285,6 +287,10 @@ def process_http_request(conn, method, path, params, if_none_match=""):
         return send_json(conn, 200, handle_em_window(params))
     if path == "/em/window-overlay":
         return send_json(conn, 200, handle_em_overlay(params))
+    if path == "/em/window.csv":
+        return send_text(conn, 200, handle_em_window_csv(params), "text/csv")
+    if path == "/em/summary":
+        return send_json(conn, 200, handle_em_summary(params))
     if path == "/status":
         return send_json(conn, 200, handle_status(params))
     if path == "/system-info":
