@@ -47,77 +47,90 @@ def resolve_from_ip():
         return None
 
 
+class MockPicoHandler(BaseHTTPRequestHandler):
+    """The firmware's endpoint shapes, backed by the simulated provider.
+
+    The provider is a class attribute rather than an `__init__` argument:
+    `HTTPServer` constructs a handler per request and controls that signature,
+    so `create_handler` binds one onto a subclass instead.
+    """
+
+    config = None
+    logger = None
+    provider = None
+
+    def _window_response(self, location, start_time, end_time):
+        window_payload = self.provider.fetch_history(
+            location.latitude,
+            location.longitude,
+            location.country,
+            start_time,
+            end_time,
+        )
+        return {
+            "city": location.city,
+            "country": location.country,
+            "lat": location.latitude,
+            "lon": location.longitude,
+            "history": window_payload["history"],
+            "_provider": window_payload["provider"],
+            "_geo_source": location.source,
+        }
+
+    def do_GET(self):
+        url = urlparse(self.path)
+        query = parse_qs(url.query)
+        location = resolve_from_ip()
+
+        status_code = 404
+        payload = {}
+
+        try:
+            if url.path == "/status":
+                now_utc = floor_hour(datetime.now(timezone.utc))
+                start_time = now_utc - timedelta(hours=36) - timedelta(days=7)
+                end_time = now_utc + timedelta(hours=12) - timedelta(days=7)
+                payload = self._window_response(location, start_time, end_time)
+                current_carbon_intensity = float(
+                    payload["history"][-1]["carbonIntensity"]
+                )
+                payload["datetime"] = iso_utc(now_utc)
+                payload["carbonIntensity"] = current_carbon_intensity
+                payload["recommendation"] = compute_recommendation(
+                    current_carbon_intensity,
+                    payload["history"],
+                    int(now_utc.timestamp()),
+                )
+                status_code = 200
+            elif url.path == "/em/window":
+                back_hours = int(query.get("back_hours", [48])[0])
+                end_time = floor_hour(datetime.now(timezone.utc))
+                start_time = end_time - timedelta(hours=back_hours)
+                payload = self._window_response(location, start_time, end_time)
+                status_code = 200
+            elif url.path == "/em/window-overlay":
+                now_time = floor_hour(datetime.now(timezone.utc))
+                start_time = now_time - timedelta(hours=48, days=7)
+                end_time = now_time + timedelta(hours=12) - timedelta(days=7)
+                payload = self._window_response(location, start_time, end_time)
+                status_code = 200
+        except Exception as error:
+            status_code = 502
+            payload = {"error": str(error)}
+            self.logger.exception("Failed %s", url.path)
+
+        body = json.dumps(payload)
+        self.protocol_version = "HTTP/1.1"
+        self.send_response(status_code)
+        self.send_header("Content-Type", "application/json")
+        self.end_headers()
+        self.wfile.write(body.encode("utf8"))
+
+
 def create_handler(*, config, logger) -> type[BaseHTTPRequestHandler]:
     """Create a request handler class bound to the given dependencies."""
-
-    provider = SimulatedProvider()
-
-    class Handler(BaseHTTPRequestHandler):
-        def _window_response(self, location, start_time, end_time):
-            window_payload = provider.fetch_history(
-                location.latitude,
-                location.longitude,
-                location.country,
-                start_time,
-                end_time,
-            )
-            return {
-                "city": location.city,
-                "country": location.country,
-                "lat": location.latitude,
-                "lon": location.longitude,
-                "history": window_payload["history"],
-                "_provider": window_payload["provider"],
-                "_geo_source": location.source,
-            }
-
-        def do_GET(self):
-            url = urlparse(self.path)
-            query = parse_qs(url.query)
-            location = resolve_from_ip()
-
-            status_code = 404
-            payload = {}
-
-            try:
-                if url.path == "/status":
-                    now_utc = floor_hour(datetime.now(timezone.utc))
-                    start_time = now_utc - timedelta(hours=36) - timedelta(days=7)
-                    end_time = now_utc + timedelta(hours=12) - timedelta(days=7)
-                    payload = self._window_response(location, start_time, end_time)
-                    current_carbon_intensity = float(
-                        payload["history"][-1]["carbonIntensity"]
-                    )
-                    payload["datetime"] = iso_utc(now_utc)
-                    payload["carbonIntensity"] = current_carbon_intensity
-                    payload["recommendation"] = compute_recommendation(
-                        current_carbon_intensity,
-                        payload["history"],
-                        int(now_utc.timestamp()),
-                    )
-                    status_code = 200
-                elif url.path == "/em/window":
-                    back_hours = int(query.get("back_hours", [48])[0])
-                    end_time = floor_hour(datetime.now(timezone.utc))
-                    start_time = end_time - timedelta(hours=back_hours)
-                    payload = self._window_response(location, start_time, end_time)
-                    status_code = 200
-                elif url.path == "/em/window-overlay":
-                    now_time = floor_hour(datetime.now(timezone.utc))
-                    start_time = now_time - timedelta(hours=48, days=7)
-                    end_time = now_time + timedelta(hours=12) - timedelta(days=7)
-                    payload = self._window_response(location, start_time, end_time)
-                    status_code = 200
-            except Exception as error:
-                status_code = 502
-                payload = {"error": str(error)}
-                logger.exception("Failed %s", url.path)
-
-            body = json.dumps(payload)
-            self.protocol_version = "HTTP/1.1"
-            self.send_response(status_code)
-            self.send_header("Content-Type", "application/json")
-            self.end_headers()
-            self.wfile.write(body.encode("utf8"))
-
-    return Handler
+    return type(
+        "Handler",
+        (MockPicoHandler,),
+        {"config": config, "logger": logger, "provider": SimulatedProvider()},
+    )

@@ -13,6 +13,7 @@ COPY web/ web/
 
 RUN adduser --disabled-password --uid 10001 app
 USER app
+# hardener: run this image with `docker run --read-only` for a read-only rootfs
 
 EXPOSE 5000
 

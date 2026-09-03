@@ -18,7 +18,11 @@ The project has three deployable pieces that share the same config schema
 
 - `pico/http.py` — request routing and the socket server loop.
 - `pico/app.py` — endpoint handlers, geo resolution, status/window/overlay
-  assembly, e-ink render scheduling.
+  assembly and the provider cache.
+- `pico/fw_render.py` — what the e-ink shows and when: the periodic refresh,
+  the placeholder screen, and the 60-hour timeline the two series are sampled
+  onto. Apart from `app.py` because it turns app's answers into a picture
+  rather than producing them.
 - `pico/providers/*` — one module per data source (UK Carbon Intensity,
   Carbon Intensity API, WattTime, ENTSO-E, Electricity Maps, CO2Signal,
   simulated fallback), tried in that order via `pico/fw_providers.py`.
@@ -33,7 +37,10 @@ The project has three deployable pieces that share the same config schema
 - `pico/ttl_cache.py` — TTL cache in front of provider calls, shared by
   firmware and mock, to avoid hammering upstream APIs on a Pico's limited
   RAM/bandwidth.
-- `pico/display.py` — e-ink drawing primitives (panels, graph, LEDs, icons).
+- `pico/display.py` — e-ink drawing primitives (panels, LEDs, icons, text).
+- `pico/fw_graph.py` — the intensity plot: axes, series, percentile bands and
+  day ticks. Apart from `display.py` because the primitives change when the
+  panel does and this changes when the timeline does.
 - `web/handler.py` — static asset serving + `/api/*` → Pico proxy with retry.
 - `mock/handler.py` — same endpoint shapes as the firmware, backed by
   `pico/providers/simulated_provider.py` instead of real APIs.
@@ -41,7 +48,8 @@ The project has three deployable pieces that share the same config schema
 ## Data flow
 
 ```
-[provider APIs] -> pico/providers -> pico/app.py (cache, recommend) -> pico/http.py -> device / browser
+[provider APIs] -> pico/providers -> pico/app.py (cache, recommend) -> pico/http.py -> browser
+                                                  \-> pico/fw_render.py -> pico/display.py -> e-ink
                                                                               ^
                                                           web/handler.py proxies /api/* here
 ```

@@ -79,18 +79,26 @@ def geo_summary(payload):
     }
 
 
+def _unique(values):
+    """The non-empty values, first occurrence only.
+
+    A region repeated as the city ("Berlin, Berlin") reads like a bug, so the
+    duplicate is dropped rather than printed twice.
+    """
+    seen, ordered = set(), []
+    for value in values:
+        if value and value not in seen:
+            seen.add(value)
+            ordered.append(value)
+    return ordered
+
+
 def format_location(geo):
     """`Berlin, Berlin, Germany (DE)` — as much as is known, nothing invented."""
     geo = geo or {}
-    parts = [geo.get(k) or "" for k in ("city", "region", "country")]
-    # Region repeated as the city ("Berlin, Berlin") reads like a bug, so a
-    # duplicate is dropped rather than printed twice.
-    seen, ordered = set(), []
-    for part in parts:
-        if part and part not in seen:
-            seen.add(part)
-            ordered.append(part)
-    text = ", ".join(ordered)
+    text = ", ".join(
+        _unique(geo.get(key) or "" for key in ("city", "region", "country"))
+    )
     cc = geo.get("country_code") or ""
     if cc and cc not in text:
         text = ("%s (%s)" % (text, cc)) if text else cc
