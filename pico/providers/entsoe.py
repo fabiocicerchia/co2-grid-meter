@@ -119,6 +119,92 @@ def _fill_range(
             bucket["weighted"] += mw * emission
 
 
+def _fold_period(buckets, period, emission):
+    """Add one Period's step curve into the hourly buckets.
+
+    A03 step curve: each point's value holds until the next one, and the last
+    holds to the end of the period — which is why the fill runs between
+    consecutive positions rather than at them. A period whose start will not
+    parse is dropped; the rest of the document still draws.
+    """
+    period_start_epoch = iso_z_to_epoch(period["start"])
+    if period_start_epoch is None:
+        return
+
+    interval_sec = _resolution_to_seconds(period["resolution"]) or 3600
+    period_end_epoch = iso_z_to_epoch(period["end"])
+    total_positions = None
+    if period_end_epoch is not None:
+        total_positions = int((period_end_epoch - period_start_epoch) / interval_sec)
+
+    last_position = None
+    last_quantity = None
+    for position, quantity in period["points"]:
+        if last_position is not None and last_quantity is not None:
+            _fill_range(
+                buckets,
+                period_start_epoch,
+                interval_sec,
+                last_position,
+                position,
+                last_quantity,
+                emission,
+            )
+        last_position = position
+        last_quantity = quantity
+
+    if (
+        last_position is not None
+        and last_quantity is not None
+        and total_positions is not None
+    ):
+        _fill_range(
+            buckets,
+            period_start_epoch,
+            interval_sec,
+            last_position,
+            total_positions + 1,
+            last_quantity,
+            emission,
+        )
+
+
+def _history_from_buckets(buckets):
+    """Hourly carbon intensity from the folded fuel mix.
+
+    An hour whose fuels could not be mapped carries no weight, and is dropped
+    rather than reported as a misleading zero.
+    """
+    history = []
+    for hour_epoch in sorted(buckets.keys()):
+        total_mw = buckets[hour_epoch]["mw"]
+        weighted = buckets[hour_epoch]["weighted"]
+        if total_mw <= 0 or weighted <= 0:
+            continue
+        history.append(
+            {
+                "datetime": epoch_to_iso_z(hour_epoch),
+                "carbonIntensity": int(round(weighted / total_mw)),
+            }
+        )
+    return history
+
+
+def _document_stream(response):
+    """The response as something `iter_series` can read incrementally.
+
+    Streamed off the socket where the client exposes one: a 60-hour window over
+    a PT15M zone is a 180-250 KB response and the board has 264 KB of SRAM in
+    total. Each series is folded into the hourly buckets and dropped, so the
+    peak is one read window plus one series rather than the document plus a
+    tree of it. The whole body is the fallback, for a client without `raw`.
+    """
+    source = getattr(response, "raw", None)
+    if source and hasattr(source, "read"):
+        return source
+    return getattr(response, "content", b"") or getattr(response, "text", "")
+
+
 class EntsoeProvider(EmissionsProvider):
     provider_name = "entsoe"
 
@@ -129,14 +215,7 @@ class EntsoeProvider(EmissionsProvider):
         year, month, day, hour, minute, *_ = time.gmtime(epoch_value)
         return "%04d%02d%02d%02d%02d" % (year, month, day, hour, minute)
 
-    def fetch_history(self, latitude, longitude, country_code, start, end):
-        if not CONFIG.providers.entsoe.token:
-            raise ProviderError("ENTSO-E missing token")
-
-        mapped_country = (CONFIG.providers.entsoe.area_override or country_code).upper()
-        if mapped_country not in ENTSOE_DOMAIN:
-            raise ProviderError("ENTSO-E country not mapped: %s" % mapped_country)
-
+    def _history_url(self, mapped_country, start, end):
         params = {
             "securityToken": CONFIG.providers.entsoe.token,
             "documentType": "A75",
@@ -145,13 +224,23 @@ class EntsoeProvider(EmissionsProvider):
             "periodStart": self.period_timestamp(start),
             "periodEnd": self.period_timestamp(end),
         }
-        url = _to_str(CONFIG.providers.entsoe.base_url) + "?" + urlencode_simple(params)
+        return (
+            _to_str(CONFIG.providers.entsoe.base_url) + "?" + urlencode_simple(params)
+        )
+
+    def fetch_history(self, latitude, longitude, country_code, start, end):
+        if not CONFIG.providers.entsoe.token:
+            raise ProviderError("ENTSO-E missing token")
+
+        mapped_country = (CONFIG.providers.entsoe.area_override or country_code).upper()
+        if mapped_country not in ENTSOE_DOMAIN:
+            raise ProviderError("ENTSO-E country not mapped: %s" % mapped_country)
 
         buckets = {}
         response = None
         try:
             log("Making request")
-            response = urequests.get(url)
+            response = urequests.get(self._history_url(mapped_country, start, end))
             log("Provider request made")
 
             if response.status_code != 200:
@@ -160,85 +249,18 @@ class EntsoeProvider(EmissionsProvider):
             # One pass over the six fields this actually reads, rather than
             # tokenising every tag in a document that is 95% <Point>. See
             # pico/providers/entsoe_parse.py for what that gives up.
-            #
-            # Streamed off the socket, not read into a string first: a 60-hour
-            # window over a PT15M zone is a 180-250 KB response and the board
-            # has 264 KB of SRAM in total. Each series is folded into the
-            # hourly buckets below and dropped, so the peak is one read window
-            # plus one series rather than the document plus a tree of it.
             log("Processing data")
-            source = getattr(response, "raw", None)
-            if not (source and hasattr(source, "read")):
-                source = getattr(response, "content", b"") or getattr(
-                    response, "text", ""
-                )
-            for series in iter_series(source):
+            for series in iter_series(_document_stream(response)):
                 emission = PSR_EMISSION_FACTOR.get(series["psr"])
                 for period in series["periods"]:
-                    period_start_epoch = iso_z_to_epoch(period["start"])
-                    period_end_epoch = iso_z_to_epoch(period["end"])
-                    if period_start_epoch is None:
-                        continue
-                    interval_sec = _resolution_to_seconds(period["resolution"]) or 3600
-                    total_positions = None
-                    if period_end_epoch is not None and interval_sec:
-                        total_positions = int(
-                            (period_end_epoch - period_start_epoch) / interval_sec
-                        )
-
-                    # A03 step curve: each point holds until the next one, and
-                    # the last holds to the end of the period.
-                    last_position = None
-                    last_quantity = None
-                    for position, quantity in period["points"]:
-                        if last_position is not None and last_quantity is not None:
-                            _fill_range(
-                                buckets,
-                                period_start_epoch,
-                                interval_sec,
-                                last_position,
-                                position,
-                                last_quantity,
-                                emission,
-                            )
-                        last_position = position
-                        last_quantity = quantity
-
-                    if (
-                        last_position is not None
-                        and last_quantity is not None
-                        and total_positions is not None
-                    ):
-                        _fill_range(
-                            buckets,
-                            period_start_epoch,
-                            interval_sec,
-                            last_position,
-                            total_positions + 1,
-                            last_quantity,
-                            emission,
-                        )
-
+                    _fold_period(buckets, period, emission)
         finally:
             close_response(response)
 
-        history = []
-        for hour_epoch in sorted(buckets.keys()):
-            total_mw = buckets[hour_epoch]["mw"]
-            if total_mw <= 0:
-                continue
-            weighted = buckets[hour_epoch]["weighted"]
-            # If we couldn't map any fuels (weighted==0), skip rather than return misleading zeros.
-            if weighted <= 0:
-                continue
-            intensity = weighted / total_mw
-            history.append(
-                {
-                    "datetime": epoch_to_iso_z(hour_epoch),
-                    "carbonIntensity": int(round(intensity)),
-                }
-            )
-
         log("Processing data done")
 
-        return {"city": mapped_country, "history": history, "_provider": "entsoe"}
+        return {
+            "city": mapped_country,
+            "history": _history_from_buckets(buckets),
+            "_provider": "entsoe",
+        }

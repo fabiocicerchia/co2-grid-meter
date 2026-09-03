@@ -41,6 +41,55 @@ def _to_str(x):
     return str(x)
 
 
+def _split_zone(stamp):
+    """(timestamp without its zone suffix, seconds to add to reach UTC).
+
+    Handles a trailing `Z` and `+HH:MM` / `-HH:MM`. A suffix that is present
+    but malformed is still removed and contributes nothing — which is what the
+    caller did with it before, and is safer than reading half of it.
+    """
+    if stamp.endswith("Z"):
+        return stamp[:-1], 0
+
+    t_pos = stamp.find("T")
+    if t_pos == -1:
+        return stamp, 0
+    tail = stamp[t_pos + 1 :]
+    idx = max(tail.rfind("+"), tail.rfind("-"))
+    if idx == -1:
+        return stamp, 0
+
+    zone = tail[idx:]
+    without_zone = stamp[: t_pos + 1 + idx]
+    digits = zone[1:]
+    if len(digits) < 5 or digits[2] != ":":
+        return without_zone, 0
+
+    offset = int(digits[0:2]) * 3600 + int(digits[3:5]) * 60
+    # Local time = UTC + offset for '+', so UTC = local - offset.
+    return without_zone, -offset if zone[0] == "+" else offset
+
+
+def _civil_fields(stamp):
+    """(year, month, day, hour, minute, second) from a zone-stripped stamp.
+
+    Minutes and seconds are optional, and fractional seconds
+    ("11:00:00.000Z", from Electricity Maps) are truncated rather than
+    rejected. Anything else raises, which the caller reads as "no timestamp".
+    """
+    date_part, time_part = stamp.split("T")
+    year, month, day = [int(chunk) for chunk in date_part.split("-")]
+
+    fields = time_part.split(":")
+    hour = int(fields[0])
+    minute = int(fields[1]) if len(fields) > 1 else 0
+    second_text = fields[2] if len(fields) > 2 else "0"
+    dot = second_text.find(".")
+    if dot != -1:
+        second_text = second_text[:dot]
+    return year, month, day, hour, minute, int(second_text or "0")
+
+
 def iso_z_to_epoch(iso_timestamp):
     """Convert an ISO-8601 timestamp to epoch seconds.
 
@@ -60,45 +109,8 @@ def iso_z_to_epoch(iso_timestamp):
         if not iso_timestamp:
             return None
 
-        s = iso_timestamp.strip()
-
-        # Handle trailing 'Z'
-        tz_sign = None
-        tz_h = 0
-        tz_m = 0
-
-        if s.endswith("Z"):
-            s = s[:-1]
-        else:
-            # Handle timezone offsets like +01:00 or -05:30
-            # Find last '+' or '-' after the 'T'
-            t_pos = s.find("T")
-            if t_pos != -1:
-                tail = s[t_pos + 1 :]
-                plus = tail.rfind("+")
-                minus = tail.rfind("-")
-                idx = max(minus, plus)
-                if idx != -1:
-                    tz_part = tail[idx:]
-                    s = s[: t_pos + 1 + idx]
-                    tz_sign = tz_part[0]
-                    tz_part = tz_part[1:]
-                    if len(tz_part) >= 5 and tz_part[2] == ":":
-                        tz_h = int(tz_part[0:2])
-                        tz_m = int(tz_part[3:5])
-
-        date_part, time_part = s.split("T")
-        year, month, day = [int(chunk) for chunk in date_part.split("-")]
-
-        fields = time_part.split(":")
-        hour = int(fields[0])
-        minute = int(fields[1]) if len(fields) > 1 else 0
-        second_text = fields[2] if len(fields) > 2 else "0"
-        # Support fractional seconds (e.g. "11:00:00.000Z") from EM payloads.
-        dot = second_text.find(".")
-        if dot != -1:
-            second_text = second_text[:dot]
-        second = int(second_text or "0")
+        stamp, zone_offset = _split_zone(iso_timestamp.strip())
+        year, month, day, hour, minute, second = _civil_fields(stamp)
 
         # Range-checked because the arithmetic below happily accepts month 13.
         # mktime used to reject those; a provider sending a malformed stamp
@@ -108,19 +120,13 @@ def iso_z_to_epoch(iso_timestamp):
         if not (0 <= hour <= 23 and 0 <= minute <= 59 and 0 <= second <= 60):
             return None
 
-        epoch = (
+        return (
             _days_from_civil(year, month, day) * 86400
             + hour * 3600
             + minute * 60
             + second
+            + zone_offset
         )
-
-        if tz_sign:
-            offset = tz_h * 3600 + tz_m * 60
-            # Local time = UTC + offset for '+', so UTC = local - offset
-            epoch = epoch - offset if tz_sign == "+" else epoch + offset
-
-        return epoch
     except Exception:
         return None
 

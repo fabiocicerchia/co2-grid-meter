@@ -130,10 +130,10 @@ def _now_stamp():
 
 
 # TODO: _log_rotate(max_files=3)
-def log(parts):
+def log(message):
     global LOGGER
     LOGGER = build_firmware_logger()
-    LOGGER.info(parts)
+    LOGGER.info(message)
 
 
 def percentile(sorted_values, target):

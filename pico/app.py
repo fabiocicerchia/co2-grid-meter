@@ -1,47 +1,30 @@
 import time
 
 from diagnostics import boot_lines, format_location, geo_summary
-from display import (
-    EINK_BLACK,
-    draw_current_panel,
-    draw_graph,
-    draw_leds,
-    draw_rect,
-    draw_text,
-    draw_time,
-    draw_wifi_icon,
-    epd_clear_screen,
-    get_epd,
-    intensity_zone_from_percentile,
-    led_level_from_percentile,
-    panel_dimensions,
-)
 from export import summary_from_window, window_csv
 from fetcher import BackgroundFetcher
-from fw_network import wifi_ok, wifi_signal_bars
 from fw_providers import fetch_window_any
-from i18n import t
 from recommendation import recommend_from_week
+from timeutil import WEEK_SECONDS
 from ttl_cache import TtlCache
 from uptime import UPTIME
 from utils import (
     ProviderError,
     epoch_to_iso_z,
     floor_hour_epoch,
-    fmt_hhmm_local,
-    free_mem,
     http_get_json,
     iso_z_to_epoch,
     log,
-    percentile,
     safe_float,
     url_decode,
 )
 
 from config import CONFIG
 
-_epd = None
-_last_render = 0
+# Read by fw_render: a window that came from a provider rather than the cache
+# means the panel is redrawn from white instead of over the last frame.
+_fresh_data = False
+
 _cache = TtlCache(CONFIG.cache_refresh_seconds)
 # Provider I/O only. Everything else — status composition, geo lookups — stays
 # on TtlCache: it is cheap and local, and a second thread for it would cost a
@@ -54,8 +37,26 @@ _geo_details = {}
 _last_provider_used = "unknown"
 
 
+def _geo_from_payload(payload):
+    """The four fields the grid lookup needs, or a ProviderError saying which
+    part of the payload was unusable. Pure: the cache and the retry cooldown
+    stay with the caller."""
+    if payload.get("success") is False:
+        raise ProviderError("IP geo lookup failed")
+
+    lat = safe_float(payload.get("latitude"))
+    lon = safe_float(payload.get("longitude"))
+    city = (payload.get("city") or payload.get("region") or "").strip()
+    cc = (payload.get("country_code") or "").strip().upper()
+
+    if lat is None or lon is None or not city or not cc:
+        raise ProviderError("IP geo incomplete payload")
+
+    return {"lat": lat, "lon": lon, "city": city, "cc": cc}
+
+
 def _auto_geo_defaults():
-    global _auto_geo_cache, _auto_geo_expires
+    global _auto_geo_cache, _auto_geo_expires, _geo_details
 
     if not CONFIG.geo.auto_from_public_ip:
         return None
@@ -66,23 +67,11 @@ def _auto_geo_defaults():
 
     try:
         payload = http_get_json(CONFIG.geo.ip_lookup_url, "IP geo")
-        if payload.get("success") is False:
-            raise ProviderError("IP geo lookup failed")
-
-        lat = safe_float(payload.get("latitude"))
-        lon = safe_float(payload.get("longitude"))
-        city = (payload.get("city") or payload.get("region") or "").strip()
-        cc = (payload.get("country_code") or "").strip().upper()
-
-        if lat is None or lon is None or not city or not cc:
-            raise ProviderError("IP geo incomplete payload")
-
-        _auto_geo_cache = {"lat": lat, "lon": lon, "city": city, "cc": cc}
+        _auto_geo_cache = _geo_from_payload(payload)
         _auto_geo_expires = now + int(CONFIG.geo.refresh_seconds)
         # Coarse on purpose: logs get pasted into issues, and a precise
         # coordinate is a home address. The exact figures stay in the cache
         # above, where the grid lookup needs them.
-        global _geo_details
         _geo_details = geo_summary(payload)
         log("Auto-geo resolved to %s" % format_location(_geo_details))
         if _geo_details.get("isp"):
@@ -168,6 +157,10 @@ def series_points(series_json):
 # TODO: add a variable to force switch the provide and the city
 _dummy_rng_state = int(time.time()) & 0x7FFFFFFF
 
+# A plausible day of intensities; the dummy provider draws uniformly between
+# this seed's own minimum and maximum.
+DUMMY_SERIES_SEED = [430, 410, 395, 380, 360, 345, 330, 320, 315, 325, 340, 365]
+
 
 def _rand01():
     global _dummy_rng_state
@@ -178,7 +171,6 @@ def _rand01():
 
 def dummy_fetch_window_any(lat, lon, city, country_code, start_epoch, end_epoch):
     del lat, lon, city, country_code
-    DUMMY_SERIES_SEED = [430, 410, 395, 380, 360, 345, 330, 320, 315, 325, 340, 365]
     min_ci = min(DUMMY_SERIES_SEED)
     max_ci = max(DUMMY_SERIES_SEED)
 
@@ -206,34 +198,42 @@ _fresh_data = False
 _last_window_stamp = 0
 
 
+def _fetch_window(lat, lon, city, cc, start_epoch, end_epoch):
+    """The cache miss path for `get_window`. Only called through it.
+
+    Runs on the fetcher's thread, not the request's, so nothing here may
+    assume it is on the core serving HTTP.
+    """
+    global _last_provider_used
+    log("Fetching data...")
+    if CONFIG.providers.force_dummy:
+        data, provider_used = dummy_fetch_window_any(
+            lat, lon, city, cc, start_epoch, end_epoch
+        )
+    else:
+        data, provider_used = fetch_window_any(
+            lat, lon, city, cc, start_epoch, end_epoch
+        )
+    log("Provider used: %s" % provider_used)
+    data["_provider"] = provider_used
+    _last_provider_used = provider_used
+    data["lat"] = lat
+    data["lon"] = lon
+    data["_resolved"] = {"city": city, "cc": cc}
+    return data
+
+
 def get_window(lat, lon, city, cc, start_epoch, end_epoch):
     global _fresh_data, _last_window_stamp
     key = ("window", round(lat, 4), round(lon, 4), city, cc, start_epoch, end_epoch)
-
-    def fetch():
-        global _last_provider_used
-        log("Fetching data...")
-        if CONFIG.providers.force_dummy:
-            data, provider_used = dummy_fetch_window_any(
-                lat, lon, city, cc, start_epoch, end_epoch
-            )
-        else:
-            data, provider_used = fetch_window_any(
-                lat, lon, city, cc, start_epoch, end_epoch
-            )
-        log("Provider used: %s" % provider_used)
-        data["_provider"] = provider_used
-        _last_provider_used = provider_used
-        data["lat"] = lat
-        data["lon"] = lon
-        data["_resolved"] = {"city": city, "cc": cc}
-        return data
 
     # Starting here rather than in main(): app.py is imported lazily, start()
     # is idempotent, and a device whose thread cannot start still serves — the
     # fetcher falls back to fetching inline.
     _fetcher.start()
-    data = _fetcher.get_or_set(key, fetch)
+    data = _fetcher.get_or_set(
+        key, lambda: _fetch_window(lat, lon, city, cc, start_epoch, end_epoch)
+    )
     if data is None:
         # Nothing has ever been fetched for this window and the first attempt
         # did not finish in time. Raised, not returned empty: every caller
@@ -257,8 +257,8 @@ def handle_em_overlay(params):
     now = floor_hour_epoch(int(time.time()))
     lat, lon, city, cc = resolve_geo(params)
     # Previous-week window matching [-48h, +12h] of the current timeline.
-    start = now - (7 * 24 * 3600) - (CONFIG.timeline.back_hours_default * 3600)
-    end = now - (7 * 24 * 3600) + (CONFIG.timeline.future_hours * 3600)
+    start = now - WEEK_SECONDS - (CONFIG.timeline.back_hours_default * 3600)
+    end = now - WEEK_SECONDS + (CONFIG.timeline.future_hours * 3600)
     return get_window(lat, lon, city, cc, start, end)
 
 
@@ -283,19 +283,6 @@ def handle_em_summary(params):
         provider=status.get("_provider"),
         uptime_seconds=status.get("uptime_seconds"),
     )
-
-
-def make_next_line(recommendation):
-    wait_hours = recommendation.get("wait_hours")
-    if isinstance(wait_hours, int) and wait_hours > 0:
-        return t(
-            "label.wait_hours",
-            wait_hours,
-            fmt_hhmm_local(int(time.time()) + wait_hours * 3600),
-        )
-    return (recommendation.get("reason") or "").strip()[
-        :22
-    ]  # TODO: THIS LINE IS NOT REALLY NEEDED
 
 
 def build_status_bundle(params):
@@ -355,16 +342,7 @@ def handle_status(params):
     # Keep a stable key so /status serves cached payload immediately when present.
     # Freshness is managed by TtlCache(CONFIG.cache_refresh_seconds).
     key = ("status", round(lat, 4), round(lon, 4), city, cc)
-
-    def build():
-        status, _, _ = build_status_bundle(params)
-        return status
-
-    return _cache.get_or_set(key, build)
-
-
-# ---- Periodic e-ink refresh (decoupled from HTTP polling) ----
-_last_display_tick = 0
+    return _cache.get_or_set(key, lambda: build_status_bundle(params)[0])
 
 
 def _ota_status():
@@ -377,60 +355,6 @@ def _ota_status():
     # Broad on purpose: diagnostics never break the endpoint.
     except Exception:
         return {"stage": "unavailable"}
-
-
-def _display_tick():
-    """Refresh the e-ink every CONFIG.display.render_min_interval_sec even if /status is never called."""
-    global _last_display_tick
-    now = int(time.time())
-    if now - _last_display_tick < CONFIG.display.render_min_interval_sec:
-        log("Wait...")
-        return
-    _last_display_tick = now
-
-    # Choose default params for your device (same as you use when calling /status)
-    # If you already have a default location mechanism, use that.
-    params = {}  # or {"city": "..."} etc, whatever resolve_geo() supports
-
-    try:
-        status, window_data, overlay_data = build_status_bundle(params)
-        render_screen(status, window_data, overlay_data)
-    except Exception as e:
-        # Don't crash the server loop if provider/network is down
-        try:
-            log("ERROR(_display_tick) %s" % e)
-            render_placeholder_screen("DATA ERROR", str(e))
-        except Exception as e:
-            log("ERROR(_display_tick 2) %s" % e)
-
-
-def draw_top_bar(_epd):
-    draw_wifi_icon(_epd, 180, 5, wifi_ok(), wifi_signal_bars())
-    draw_time(_epd, 205, 8)
-
-
-def render_placeholder_screen(title, detail):
-    global _epd, _has_rendered_data
-    _epd = get_epd()
-
-    epd_clear_screen(_epd)
-    screen_w, _ = panel_dimensions(_epd)
-    panel_w = max(40, screen_w - 10)
-    draw_rect(_epd.black_frame, 5, 20, panel_w, 25, color=EINK_BLACK, fill=False)
-
-    title = title or "Status"
-    draw_text(_epd.black_frame, 10, 28, title, color=EINK_BLACK)
-
-    if detail:
-        detail_text = str(detail)
-        if title == "DATA ERROR":
-            # Show the error across two lines for readability on failure screen.
-            draw_text(_epd.red_frame, 5, 50, detail_text[:50], color=EINK_BLACK)
-            draw_text(_epd.red_frame, 5, 57, detail_text[51:10], color=EINK_BLACK)
-        else:
-            draw_text(_epd.black_frame, 5, 50, str(detail), color=EINK_BLACK)
-    draw_top_bar(_epd)
-    _epd.display()
 
 
 def _current_ip(wifi_connected_callback):
@@ -464,53 +388,3 @@ def handle_system_info(params, wifi_connected_callback):
         # weeks later, wondering why a fix never took.
         "ota": _ota_status(),
     }
-
-
-def render_screen(status_json, window_json, overlay_json):
-    global _epd, _last_render
-    now = int(time.time())
-    if now - _last_render < CONFIG.display.render_min_interval_sec:
-        log("Wait...")
-        return
-    _epd = get_epd()
-
-    current_intensity = safe_float(status_json.get("carbonIntensity")) or 0.0
-    recommendation = status_json.get("recommendation") or {}
-    verdict = recommendation.get("verdict") or "—"
-    next_line = make_next_line(recommendation)
-
-    now_epoch = floor_hour_epoch(int(time.time()))
-    current_points = series_points(window_json)
-    overlay_points = series_points(overlay_json)
-
-    # Build aligned 60-hour timeline: [-48h, +12h]
-    timeline = [
-        now_epoch - (CONFIG.timeline.back_hours_default * 3600) + i * 3600
-        for i in range(60)
-    ]
-    current_map = {ts: v for ts, v in current_points}
-    week_map = {ts + (7 * 24 * 3600): v for ts, v in overlay_points}
-    current_line = [current_map.get(ts) for ts in timeline]
-    week_line = [week_map.get(ts) for ts in timeline]
-
-    overlay_values = [v for _, v in overlay_points]
-    percentile_value = (
-        percentile(sorted(overlay_values), current_intensity)
-        if len(overlay_values) >= 12
-        else None
-    )
-    zone = intensity_zone_from_percentile(percentile_value)
-    level = led_level_from_percentile(percentile_value)
-
-    if _fresh_data:
-        epd_clear_screen(_epd)
-
-    draw_leds(_epd, zone, level)
-    draw_current_panel(_epd, current_intensity, verdict, next_line)
-    draw_graph(_epd, current_line, week_line)
-    draw_top_bar(_epd)
-
-    _epd.display()
-    _last_render = now
-
-    free_mem()

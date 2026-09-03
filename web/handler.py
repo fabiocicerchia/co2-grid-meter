@@ -18,39 +18,76 @@ from urllib.parse import parse_qs, urlparse
 from requests import Session
 from requests.exceptions import RequestException
 
+STATIC_DIR = Path(__file__).resolve().parent / "static"
 
-def create_handler(
-    *, config: Any, logger: Any, http_session: Session
-) -> type[BaseHTTPRequestHandler]:
-    """Create a request handler class bound to the given dependencies."""
+# URL path -> the file under STATIC_DIR and the type it is served as.
+STATIC_ROUTES = {
+    "/": ("text/html", "index.html"),
+    "/static/style.css": ("text/css", "style.css"),
+    "/static/script.js": ("application/javascript", "script.js"),
+    "/html/graph": ("text/html", "graph.html"),
+    "/html/graph.html": ("text/html", "graph.html"),
+}
 
-    base_dir = Path(__file__).resolve().parent
-    static_dir = base_dir / "static"
+# URL path -> the Pico path it proxies to, and the query parameters forwarded
+# with it. Anything not listed here is dropped rather than passed upstream.
+API_ROUTES = {
+    "/api/status": ("/status", ()),
+    "/api/em/window": ("/em/window", ("back_hours",)),
+    "/api/em/window-overlay": ("/em/window-overlay", ("back_hours", "forward_hours")),
+    "/api/em/summary": ("/em/summary", ()),
+}
 
-    def _pico_base_url(query: dict[str, list[str]]) -> str:
+# The one route relayed as text rather than JSON. Same shape as API_ROUTES; kept
+# apart because the point of the CSV is that these are the device's own bytes —
+# a Home Assistant sensor pointed at the dashboard and one pointed at the Pico
+# have to agree, and re-serialising through JSON would break that.
+TEXT_ROUTES = {
+    "/api/em/window.csv": ("/em/window.csv", ("back_hours",), "text/csv"),
+}
+
+
+def _read_text(path: Path) -> str:
+    return path.read_text(encoding="utf-8")
+
+
+class PicoProxyHandler(BaseHTTPRequestHandler):
+    """Serves static dashboard assets and proxies API calls to Pico.
+
+    The dependencies are class attributes rather than `__init__` arguments:
+    `HTTPServer` constructs a handler per request and controls that signature,
+    so `create_handler` binds them onto a subclass instead.
+    """
+
+    config: Any = None
+    logger: Any = None
+    http_session: Session | None = None
+
+    def _pico_base_url(self, query: dict[str, list[str]]) -> str:
         if "pico" in query:
             return query["pico"][0]
-        return config.upstream.pico_base_url
+        return self.config.upstream.pico_base_url
 
+    @staticmethod
     def _return_error_payload(error: str, details: str):
         payload = {"error": error, "details": details}
         return json.dumps(payload), 502
 
-    def _request_with_retry(url: str, params: dict):
+    def _request_with_retry(self, url: str, params: dict):
         last_error: Exception | None = None
-        for attempt in range(config.upstream.max_retries):
+        for attempt in range(self.config.upstream.max_retries):
             try:
-                return http_session.get(
+                return self.http_session.get(
                     url,
                     params=params,
-                    timeout=config.upstream.request_timeout_seconds,
+                    timeout=self.config.upstream.request_timeout_seconds,
                 )
             except RequestException as error:
                 last_error = error
-                if attempt == config.upstream.max_retries - 1:
+                if attempt == self.config.upstream.max_retries - 1:
                     break
                 backoff_seconds = 0.5 * (2**attempt)
-                logger.warning(
+                self.logger.warning(
                     "Pico request failed, retrying",
                     extra={
                         "url": url,
@@ -64,29 +101,34 @@ def create_handler(
         raise last_error
 
     def _pico_get_json(
-        query: dict[str, list[str]], path: str, extra_params: dict | None = None
+        self,
+        query: dict[str, list[str]],
+        path: str,
+        extra_params: dict | None = None,
     ):
-        base_url = _pico_base_url(query)
+        base_url = self._pico_base_url(query)
         target_url = f"{base_url}{path}"
         query_params = {**(extra_params or {})}
 
         try:
-            response = _request_with_retry(target_url, query_params)
+            response = self._request_with_retry(target_url, query_params)
             if not response.ok:
-                return _return_error_payload(
+                return self._return_error_payload(
                     f"Pico returned HTTP {response.status_code}",
                     response.text[:800] if response.text else "",
                 )
             return response.json(), 200
 
         except RequestException as error:
-            return _return_error_payload("Failed to reach Pico", str(error))
+            return self._return_error_payload("Failed to reach Pico", str(error))
 
         except ValueError as error:
-            return _return_error_payload("Pico returned non-JSON response", str(error))
+            return self._return_error_payload(
+                "Pico returned non-JSON response", str(error)
+            )
 
     def _pico_get_text(
-        query: dict[str, list[str]], path: str, extra_params: dict | None = None
+        self, query: dict[str, list[str]], path: str, extra_params: dict | None = None
     ):
         """Like _pico_get_json, but relays the body untouched.
 
@@ -94,96 +136,79 @@ def create_handler(
         answered a failed CSV fetch with a valid-looking empty CSV would teach
         the consumer that the grid went quiet.
         """
-        base_url = _pico_base_url(query)
+        base_url = self._pico_base_url(query)
         try:
-            response = _request_with_retry(
+            response = self._request_with_retry(
                 f"{base_url}{path}", {**(extra_params or {})}
             )
             if not response.ok:
-                return _return_error_payload(
+                return self._return_error_payload(
                     f"Pico returned HTTP {response.status_code}",
                     response.text[:800] if response.text else "",
                 )
             return response.text, 200
         except RequestException as error:
-            return _return_error_payload("Failed to reach Pico", str(error))
+            return self._return_error_payload("Failed to reach Pico", str(error))
 
-    def _read_text(path: Path) -> str:
-        return path.read_text(encoding="utf-8")
+    def _respond_to(self, path: str, query: dict[str, list[str]]):
+        """(content_type, body, status) for one URL path.
 
-    class Handler(BaseHTTPRequestHandler):
-        """Serves static dashboard assets and proxies API calls to Pico."""
+        Two tables rather than a chain of seven elifs: a static route differs
+        only in its file and type, and a proxied one only in the Pico path and
+        the parameters it forwards.
+        """
+        if path in STATIC_ROUTES:
+            content_type, filename = STATIC_ROUTES[path]
+            return content_type, _read_text(STATIC_DIR / filename), 200
 
-        def do_GET(self):
-            url = urlparse(self.path)
-            query = parse_qs(url.query)
-
-            content_type = "text/plain"
-            status_code = 404
-            body: Any = ""
-
-            if url.path == "/":
-                status_code = 200
-                content_type = "text/html"
-                body = _read_text(static_dir / "index.html")
-            elif url.path == "/static/style.css":
-                status_code = 200
-                content_type = "text/css"
-                body = _read_text(static_dir / "style.css")
-            elif url.path == "/static/script.js":
-                status_code = 200
-                content_type = "application/javascript"
-                body = _read_text(static_dir / "script.js")
-            elif url.path in ("/html/graph", "/html/graph.html"):
-                status_code = 200
-                content_type = "text/html"
-                body = _read_text(static_dir / "graph.html")
-            elif url.path == "/api/status":
-                content_type = "application/json"
-                body, status_code = _pico_get_json(query, "/status")
-            elif url.path == "/api/em/window":
-                content_type = "application/json"
-                extra_params: dict[str, Any] = {}
-                if "back_hours" in query:
-                    extra_params["back_hours"] = int(query["back_hours"][0])
-                body, status_code = _pico_get_json(
-                    query, "/em/window", extra_params=extra_params
-                )
-            elif url.path == "/api/em/window.csv":
-                # Proxied verbatim: the point of the CSV is that it is the same
-                # bytes the device serves, so a Home Assistant sensor pointed at
-                # the dashboard and one pointed at the Pico agree.
-                content_type = "text/csv"
-                extra_params: dict[str, Any] = {}
-                if "back_hours" in query:
-                    extra_params["back_hours"] = int(query["back_hours"][0])
-                body, status_code = _pico_get_text(
-                    query, "/em/window.csv", extra_params=extra_params
-                )
-            elif url.path == "/api/em/summary":
-                content_type = "application/json"
-                body, status_code = _pico_get_json(query, "/em/summary")
-            elif url.path == "/api/em/window-overlay":
-                content_type = "application/json"
-                extra_params: dict[str, Any] = {}
-                if "back_hours" in query:
-                    extra_params["back_hours"] = int(query["back_hours"][0])
-                if "forward_hours" in query:
-                    extra_params["forward_hours"] = int(query["forward_hours"][0])
-                body, status_code = _pico_get_json(
-                    query, "/em/window-overlay", extra_params=extra_params
-                )
-
-            self.protocol_version = "HTTP/1.1"
-            self.send_response(status_code)
-            self.send_header("Content-Type", content_type)
-            self.end_headers()
-
-            body_bytes = (
-                json.dumps(body).encode("utf-8")
-                if isinstance(body, (dict, list))
-                else str(body).encode("utf-8")
+        export = TEXT_ROUTES.get(path)
+        if export is not None:
+            pico_path, forwarded, content_type = export
+            extra_params: dict[str, Any] = {
+                name: int(query[name][0]) for name in forwarded if name in query
+            }
+            body, status_code = self._pico_get_text(
+                query, pico_path, extra_params=extra_params
             )
-            self.wfile.write(body_bytes)
+            return content_type, body, status_code
 
-    return Handler
+        route = API_ROUTES.get(path)
+        if route is None:
+            return "text/plain", "", 404
+
+        pico_path, forwarded = route
+        extra_params = {
+            name: int(query[name][0]) for name in forwarded if name in query
+        }
+        body, status_code = self._pico_get_json(
+            query, pico_path, extra_params=extra_params
+        )
+        return "application/json", body, status_code
+
+    def do_GET(self):
+        url = urlparse(self.path)
+        query = parse_qs(url.query)
+        content_type, body, status_code = self._respond_to(url.path, query)
+
+        self.protocol_version = "HTTP/1.1"
+        self.send_response(status_code)
+        self.send_header("Content-Type", content_type)
+        self.end_headers()
+
+        body_bytes = (
+            json.dumps(body).encode("utf-8")
+            if isinstance(body, (dict, list))
+            else str(body).encode("utf-8")
+        )
+        self.wfile.write(body_bytes)
+
+
+def create_handler(
+    *, config: Any, logger: Any, http_session: Session
+) -> type[BaseHTTPRequestHandler]:
+    """Create a request handler class bound to the given dependencies."""
+    return type(
+        "Handler",
+        (PicoProxyHandler,),
+        {"config": config, "logger": logger, "http_session": http_session},
+    )
