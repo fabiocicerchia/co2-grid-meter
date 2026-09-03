@@ -267,3 +267,226 @@ is meant to report, so elapsed time is accumulated from `ticks_diff` deltas
 rather than subtracted from a boot value. Anything that samples it more often
 than the wrap period keeps it accurate; `/status` and the display tick both do,
 by a wide margin.
+
+## Pull endpoints for home automation
+
+`/em/window` and `/status` are shaped for the dashboard, which knows the payload
+it wants. Two more exist for anything that polls the device on a schedule:
+
+| Endpoint          | Type               | For                                          |
+| ----------------- | ------------------ | -------------------------------------------- |
+| `/em/window.csv`  | `text/csv`         | the rolling window, one row per hour          |
+| `/em/summary`     | `application/json` | one flat object — current reading and verdict |
+
+Both accept the same `lat`/`lon`/`city`/`cc` parameters as the rest, and
+`/em/window.csv` also takes `back_hours`.
+
+### `/em/window.csv`
+
+```console
+$ curl -s 'http://pico.local/em/window.csv?back_hours=6'
+datetime,epoch,carbon_intensity
+2026-09-01T07:00:00Z,1788246000,430
+2026-09-01T08:00:00Z,1788249600,412.5
+2026-09-01T09:00:00Z,1788253200,380
+```
+
+Whole numbers are written without a trailing `.0`. Points with no timestamp or
+no reading are **dropped rather than emitted half-blank** — a row with an empty
+column plots as a zero, which reads as the grid going briefly carbon-free.
+
+The response is bounded at `EXPORT_MAX_ROWS` (336 rows, two weeks of hourly
+data, under 10 KB) regardless of the `back_hours` asked for. A Pico serves this
+from tens of KB of heap over one socket; the cap belongs on the device, not in
+the caller's good manners. Truncation keeps the **newest** rows.
+
+### `/em/summary`
+
+```console
+$ curl -s http://pico.local/em/summary
+{
+  "datetime": "2026-09-01T12:00:00Z",
+  "city": "Lisbon", "cc": "PT",
+  "carbon_intensity": 380, "unit": "gCO2eq/kWh",
+  "verdict": "GOOD", "reason": "below the weekly median", "wait_hours": null,
+  "window_points": 48, "window_min": 315, "window_max": 468,
+  "provider": "electricity_maps", "uptime_seconds": 84213
+}
+```
+
+Deliberately no `history`. A client polling every few minutes should not pay to
+transfer and parse points it will never plot; `window_min`/`window_max` are what
+a rule branches on, and the full series is one request away at `/em/window`.
+
+### Worked example: Home Assistant
+
+`/em/summary` is a single `rest` sensor with attributes, which is the shape Home
+Assistant templates read most cheaply:
+
+```yaml
+# configuration.yaml
+rest:
+  - resource: http://pico.local/em/summary
+    scan_interval: 300          # the device refreshes hourly; polling faster
+                                # only costs the Pico's radio
+    sensor:
+      - name: Grid carbon intensity
+        value_template: "{{ value_json.carbon_intensity }}"
+        unit_of_measurement: gCO2eq/kWh
+        state_class: measurement
+        json_attributes:
+          - verdict
+          - reason
+          - wait_hours
+          - window_min
+          - window_max
+          - provider
+
+template:
+  - binary_sensor:
+      - name: Good time to run the dishwasher
+        state: >
+          {{ state_attr('sensor.grid_carbon_intensity', 'verdict') == 'GOOD' }}
+```
+
+Then run the load when the grid is clean:
+
+```yaml
+automation:
+  - alias: Dishwasher on clean power
+    trigger:
+      - platform: state
+        entity_id: binary_sensor.good_time_to_run_the_dishwasher
+        to: "on"
+    condition:
+      - condition: time
+        after: "09:00:00"
+        before: "22:00:00"
+    action:
+      - action: switch.turn_on
+        target: { entity_id: switch.dishwasher }
+```
+
+For history — a statistics card, or an import into something else — point a
+`command_line` sensor or a plain `curl` at the CSV:
+
+```sh
+curl -s 'http://pico.local/em/window.csv?back_hours=168' > week.csv
+```
+
+### Through the dashboard instead of the device
+
+The desktop dashboard proxies both, so a Home Assistant instance that cannot
+reach the Pico directly can go via it: `/api/em/summary` and
+`/api/em/window.csv`. The CSV is relayed byte for byte, so a sensor pointed at
+either agrees. A failed upstream fetch comes back as the usual JSON error
+payload rather than an empty CSV — answering with a valid-looking empty file
+would teach the consumer that the grid went quiet.
+
+### Authentication
+
+There is none, on these or on any other endpoint. The device is intended for a
+trusted LAN and everything it serves is public grid data plus its own uptime.
+Do not expose it to the internet; if you must, put it behind something that does
+authenticate.
+
+## Fetching happens on the second core
+
+Provider fetches, the e-ink render and the HTTP server used to share one loop.
+A provider that took twenty seconds to answer took the display and `/` with it:
+the device looked hung, and the one number it exists to show was the thing that
+had stopped updating.
+
+`pico/fetcher.py` moves provider I/O onto MicroPython's `_thread`, on the
+RP2040's second core. The shape is **stale-while-revalidate**, not a thread
+pool:
+
+```
+GET /em/window ─► published value? ─ yes, fresh ─► return it
+                        │
+                        ├─ yes, stale ──────────► return it, ask for a refresh
+                        │
+                        └─ no (cold boot) ──────► ask, wait up to 20s, else 503
+```
+
+The request path performs no I/O at all. The worker is the only code that
+touches the network, and it publishes a reading with a single rebind under a
+lock — so a fetch that fails leaves the previous reading exactly as it was,
+rather than half-writing over it.
+
+Three consequences worth knowing:
+
+- **A stuck provider no longer stalls anything.** `/` and the e-ink refresh keep
+  serving the last good reading. `/status` grows a `fetcher` block —
+  `{running, busy, published, fetches, failures, last_error}` — because a device
+  that keeps serving a stale number is exactly the one where you fail to notice
+  the provider has been down for a day.
+- **The first request after a cold boot still waits**, for up to 20 seconds. A
+  device that answers "no data" for the whole of its first fetch reads as
+  broken; one that pauses once and is instant afterwards reads as starting up.
+- **A device that cannot start the second thread still works.** `start()`
+  returning false falls back to fetching inline — the old behaviour, kept as the
+  fallback rather than as the design.
+
+Only eight published readings are kept. The window key carries a time range, so
+a new one appears every hour and nothing ever asks for the old one again; the
+same unbounded-growth trap `TtlCache` had to grow a sweep for.
+
+**Not measured on hardware.** The issue asks for the memory footprint before and
+after, and a second stack is not free on a Pico. That number has to come from a
+device — `gc.mem_free()` either side of `_fetcher.start()` is the measurement.
+
+## Updating over the air
+
+Reflashing by hand means a bad write bricks the device until somebody can reach
+it. `pico/ota.py` is the smallest thing that makes an update survivable on
+hardware you cannot walk to.
+
+Single slot, not A/B: the flash budget does not stretch to two copies of the
+firmware, so the safety comes from ordering.
+
+```
+begin(manifest) ─► stage(name, chunks) ─► verify() ─► activate() ─► reboot
+                     │ sha256 per file      │ all or       │ backup, then
+                     │ before it counts     │ nothing      │ replace, marker armed
+                     ▼                      ▼              ▼
+                  .part discarded        refuses        boot.py counts attempts
+                                                        3 without health → rollback
+```
+
+| step | what protects you |
+| --- | --- |
+| `begin` | clears staging, so a `.part` from an interrupted download is never mistaken for a complete file |
+| `stage` | writes to `<name>.part` and renames only once the sha256 and size match the manifest |
+| `verify` | every file present and correct, or nothing activates — three files of five would leave a device running two firmwares |
+| `activate` | writes the boot marker **first**, then backs up each live file before replacing it |
+| `boot.py` | counts the attempt before the new firmware gets control, so a crash-on-import cannot loop forever |
+| `mark_healthy` | called once the firmware reaches its serving loop; disarms the marker and frees the backup |
+
+**`boot.py` and `ota.py` are never updated over the air.** `begin()` refuses a
+manifest naming either. Whatever runs the rollback has to be older than the
+update it is undoing — if the recovery code were the thing that got
+half-written, a failed update would take the only mechanism that could undo it.
+
+**"Healthy" means the firmware reached its serving loop** — settings read,
+network up, diagnostics run. Deliberately *not* "fetched a reading": tying
+rollback to a provider being reachable would roll back perfectly good firmware
+during somebody else's outage.
+
+**Power loss.** Writes go to `<name>.new` and are renamed over the target, so an
+interrupted copy leaves a stray `.new` and an untouched live file. The state
+file is written the same way; a truncated one reads as "no update in flight",
+which is the safe answer. `os.rename` replaces on littlefs (the Pico's default);
+on FAT it does not, and the fallback removes first — that window is precisely
+what the boot marker and the backup exist for.
+
+`/status` carries an `ota` block (`stage`, `attempts`, `files`). An update that
+rolled itself back silently is the one you discover weeks later, wondering why a
+fix never took.
+
+**Not exercised on hardware.** The rollback path is covered by fifteen tests
+against a real filesystem, including a deliberately broken image, an update that
+adds a file, a truncated state file and a power loss simulated mid-`activate()`.
+None of that is the same as pulling the USB cable out of a Pico halfway
+through, which is the check this needs before you trust it with a device you
+cannot reach.

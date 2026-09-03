@@ -1,6 +1,8 @@
 import time
 
 from diagnostics import boot_lines, format_location, geo_summary
+from export import summary_from_window, window_csv
+from fetcher import BackgroundFetcher
 from fw_providers import fetch_window_any
 from recommendation import recommend_from_week
 from timeutil import WEEK_SECONDS
@@ -24,6 +26,10 @@ from config import CONFIG
 _fresh_data = False
 
 _cache = TtlCache(CONFIG.cache_refresh_seconds)
+# Provider I/O only. Everything else — status composition, geo lookups — stays
+# on TtlCache: it is cheap and local, and a second thread for it would cost a
+# stack for no stall removed.
+_fetcher = BackgroundFetcher(CONFIG.cache_refresh_seconds)
 _auto_geo_cache = None
 _auto_geo_expires = 0
 # Coarse geolocation for the logs and /status. Never holds coordinates.
@@ -184,10 +190,21 @@ def dummy_fetch_window_any(lat, lon, city, country_code, start_epoch, end_epoch)
     return {"city": "Dummy", "history": history, "_provider": "dummy"}, "dummy"
 
 
+_fresh_data = False
+# The publish time of the reading the screen was last drawn from. A change in
+# it means a new reading arrived, which is when a full e-ink clear is worth its
+# flicker — "did this call do the fetching" stopped being the same question
+# once fetching moved off the request path.
+_last_window_stamp = 0
+
+
 def _fetch_window(lat, lon, city, cc, start_epoch, end_epoch):
-    """The cache miss path for `get_window`. Only called through it."""
-    global _fresh_data, _last_provider_used
-    _fresh_data = True
+    """The cache miss path for `get_window`. Only called through it.
+
+    Runs on the fetcher's thread, not the request's, so nothing here may
+    assume it is on the core serving HTTP.
+    """
+    global _last_provider_used
     log("Fetching data...")
     if CONFIG.providers.force_dummy:
         data, provider_used = dummy_fetch_window_any(
@@ -207,12 +224,26 @@ def _fetch_window(lat, lon, city, cc, start_epoch, end_epoch):
 
 
 def get_window(lat, lon, city, cc, start_epoch, end_epoch):
-    global _fresh_data
+    global _fresh_data, _last_window_stamp
     key = ("window", round(lat, 4), round(lon, 4), city, cc, start_epoch, end_epoch)
-    _fresh_data = False
-    return _cache.get_or_set(
+
+    # Starting here rather than in main(): app.py is imported lazily, start()
+    # is idempotent, and a device whose thread cannot start still serves — the
+    # fetcher falls back to fetching inline.
+    _fetcher.start()
+    data = _fetcher.get_or_set(
         key, lambda: _fetch_window(lat, lon, city, cc, start_epoch, end_epoch)
     )
+    if data is None:
+        # Nothing has ever been fetched for this window and the first attempt
+        # did not finish in time. Raised, not returned empty: every caller
+        # already handles a provider failure, and "warming up" is one.
+        raise ProviderError("No reading yet — the first fetch is still running")
+
+    published_at, _ = _fetcher.published(key)
+    _fresh_data = published_at != _last_window_stamp
+    _last_window_stamp = published_at
+    return data
 
 
 def handle_em_window(params):
@@ -229,6 +260,29 @@ def handle_em_overlay(params):
     start = now - WEEK_SECONDS - (CONFIG.timeline.back_hours_default * 3600)
     end = now - WEEK_SECONDS + (CONFIG.timeline.future_hours * 3600)
     return get_window(lat, lon, city, cc, start, end)
+
+
+# ---- Export endpoints (for home automation, not the dashboard) ----
+# The shaping lives in pico/export.py so it can be tested under CPython; these
+# two are the wiring that gives it the data.
+
+
+def handle_em_window_csv(params):
+    return window_csv(handle_em_window(params))
+
+
+def handle_em_summary(params):
+    status, window_data, _ = build_status_bundle(params)
+    return summary_from_window(
+        window_data,
+        status.get("carbonIntensity"),
+        status.get("recommendation"),
+        status.get("datetime"),
+        city=status.get("city"),
+        cc=status.get("cc"),
+        provider=status.get("_provider"),
+        uptime_seconds=status.get("uptime_seconds"),
+    )
 
 
 def build_status_bundle(params):
@@ -291,6 +345,18 @@ def handle_status(params):
     return _cache.get_or_set(key, lambda: build_status_bundle(params)[0])
 
 
+def _ota_status():
+    # Imported here, not at module scope: a device flashed before OTA existed
+    # has no ota.py, and /status must still answer.
+    try:
+        import ota
+
+        return ota.status()
+    # Broad on purpose: diagnostics never break the endpoint.
+    except Exception:
+        return {"stage": "unavailable"}
+
+
 def _current_ip(wifi_connected_callback):
     if not wifi_connected_callback():
         return None
@@ -313,4 +379,12 @@ def handle_system_info(params, wifi_connected_callback):
         "lat": lat,
         "lon": lon,
         "provider_last_used": _last_provider_used,
+        # What the background fetcher is doing: whether the worker is up, how
+        # many fetches it has run and the last error it swallowed. Without this
+        # a stuck provider is invisible — the page keeps serving the last good
+        # reading, which is the point, and also how you fail to notice.
+        "fetcher": _fetcher.stats(),
+        # An update that rolled itself back silently is the one you discover
+        # weeks later, wondering why a fix never took.
+        "ota": _ota_status(),
     }

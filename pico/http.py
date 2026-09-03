@@ -9,7 +9,9 @@ import ujson
 import uos
 from app import (
     handle_em_overlay,
+    handle_em_summary,
     handle_em_window,
+    handle_em_window_csv,
     handle_status,
     handle_system_info,
 )
@@ -171,8 +173,16 @@ def handle_http_request(conn, logger):
 JSON_ROUTES = {
     "/em/window": handle_em_window,
     "/em/window-overlay": handle_em_overlay,
+    "/em/summary": handle_em_summary,
     "/status": handle_status,
     "/system-info": lambda params: handle_system_info(params, wifi_ok),
+}
+
+# Exports: path -> (content type, handler). Separate from PAGE_ROUTES because
+# these are computed per request from the query string, not static pages built
+# once at import — /em/window.csv answers for whatever window was asked for.
+TEXT_ROUTES = {
+    "/em/window.csv": ("text/csv", handle_em_window_csv),
 }
 
 # The pages served from flash: path -> (content type, the page). Built once at
@@ -200,6 +210,11 @@ def process_http_request(conn, method, path, params, if_none_match=""):
     handler = JSON_ROUTES.get(path)
     if handler:
         return send_json(conn, 200, handler(params))
+
+    export = TEXT_ROUTES.get(path)
+    if export:
+        content_type, render = export
+        return send_text(conn, 200, render(params), content_type)
 
     page = PAGE_ROUTES.get(path)
     if page:

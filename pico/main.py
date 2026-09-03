@@ -7,6 +7,8 @@ same HTTP API:
 - GET /status
 - GET /em/window
 - GET /em/window-overlay
+
+boot.py runs before this and handles the OTA boot marker; see pico/ota.py.
 """
 
 # =========================
@@ -73,6 +75,18 @@ def main():
     # actually writing to. Reads 0s on a fresh boot, which is the point: it is
     # how you tell a reboot loop from a device that has been up for days.
     LOGGER.info("Uptime at start of serving: %s" % UPTIME.human())
+
+    # Reaching here is the definition of a healthy boot: settings read, network
+    # up, diagnostics run. Deliberately not "fetched a reading" — tying
+    # rollback to a provider being reachable would roll back good firmware
+    # during somebody else's outage. boot.py has already counted this attempt.
+    try:
+        import ota
+
+        if ota.mark_healthy():
+            LOGGER.info("OTA: new firmware reached the serving loop — update kept")
+    except Exception as error:  # never let the update machinery stop the device
+        LOGGER.info("OTA: could not clear the boot marker: %s" % error)
 
     serve_forever(ip, LOGGER)
 

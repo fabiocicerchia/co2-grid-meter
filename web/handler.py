@@ -35,6 +35,15 @@ API_ROUTES = {
     "/api/status": ("/status", ()),
     "/api/em/window": ("/em/window", ("back_hours",)),
     "/api/em/window-overlay": ("/em/window-overlay", ("back_hours", "forward_hours")),
+    "/api/em/summary": ("/em/summary", ()),
+}
+
+# The one route relayed as text rather than JSON. Same shape as API_ROUTES; kept
+# apart because the point of the CSV is that these are the device's own bytes —
+# a Home Assistant sensor pointed at the dashboard and one pointed at the Pico
+# have to agree, and re-serialising through JSON would break that.
+TEXT_ROUTES = {
+    "/api/em/window.csv": ("/em/window.csv", ("back_hours",), "text/csv"),
 }
 
 
@@ -118,6 +127,29 @@ class PicoProxyHandler(BaseHTTPRequestHandler):
                 "Pico returned non-JSON response", str(error)
             )
 
+    def _pico_get_text(
+        self, query: dict[str, list[str]], path: str, extra_params: dict | None = None
+    ):
+        """Like _pico_get_json, but relays the body untouched.
+
+        An error still comes back as the JSON error payload — a dashboard that
+        answered a failed CSV fetch with a valid-looking empty CSV would teach
+        the consumer that the grid went quiet.
+        """
+        base_url = self._pico_base_url(query)
+        try:
+            response = self._request_with_retry(
+                f"{base_url}{path}", {**(extra_params or {})}
+            )
+            if not response.ok:
+                return self._return_error_payload(
+                    f"Pico returned HTTP {response.status_code}",
+                    response.text[:800] if response.text else "",
+                )
+            return response.text, 200
+        except RequestException as error:
+            return self._return_error_payload("Failed to reach Pico", str(error))
+
     def _respond_to(self, path: str, query: dict[str, list[str]]):
         """(content_type, body, status) for one URL path.
 
@@ -129,12 +161,23 @@ class PicoProxyHandler(BaseHTTPRequestHandler):
             content_type, filename = STATIC_ROUTES[path]
             return content_type, _read_text(STATIC_DIR / filename), 200
 
+        export = TEXT_ROUTES.get(path)
+        if export is not None:
+            pico_path, forwarded, content_type = export
+            extra_params: dict[str, Any] = {
+                name: int(query[name][0]) for name in forwarded if name in query
+            }
+            body, status_code = self._pico_get_text(
+                query, pico_path, extra_params=extra_params
+            )
+            return content_type, body, status_code
+
         route = API_ROUTES.get(path)
         if route is None:
             return "text/plain", "", 404
 
         pico_path, forwarded = route
-        extra_params: dict[str, Any] = {
+        extra_params = {
             name: int(query[name][0]) for name in forwarded if name in query
         }
         body, status_code = self._pico_get_json(
