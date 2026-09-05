@@ -4,10 +4,10 @@
 
 If you are new to Pico/MicroPython setup, these guides are useful:
 
-- Thonny IDE: https://thonny.org/
-- Raspberry Pi Pico getting started (step 3): https://projects.raspberrypi.org/en/projects/getting-started-with-the-pico/3
-- Waveshare Pico ePaper Python guide: https://www.waveshare.com/wiki/Pico-ePaper-7.5#Python
-- Video guide: https://www.youtube.com/watch?v=9YvWT8bNllU
+- Thonny IDE: <https://thonny.org/>
+- Raspberry Pi Pico getting started (step 3): <https://projects.raspberrypi.org/en/projects/getting-started-with-the-pico/3>
+- Waveshare Pico ePaper Python guide: <https://www.waveshare.com/wiki/Pico-ePaper-7.5#Python>
+- Video guide: <https://www.youtube.com/watch?v=9YvWT8bNllU>
 
 Firmware display driver behavior is aligned with Waveshare's Pico demo command sequence for the 2.13" B V4/WS-19588 panel to reduce compatibility issues with vendor examples.
 
@@ -92,11 +92,11 @@ Measured on CPython 3.13, mean of five runs, against the window `app.py`
 actually requests (48h back + 12h forward) for a zone publishing twelve
 production types at 15-minute resolution — a 184 KB document, 2880 points:
 
-| | parse time | peak heap |
-|---|---:|---:|
-| `xmltok` tokenize | 101.5 ms | 2.4 KB |
-| field scan, whole body in a string | **17.9 ms** | 510.2 KB |
-| field scan, streamed | **29.0 ms** | **19.5 KB** |
+|                                    | parse time  | peak heap   |
+| ---------------------------------- | ----------: | ----------: |
+| `xmltok` tokenize                  | 101.5 ms    | 2.4 KB      |
+| field scan, whole body in a string | **17.9 ms** | 510.2 KB    |
+| field scan, streamed               | **29.0 ms** | **19.5 KB** |
 
 `xmltok` was slow but frugal — it streamed. Reading the body into a string to
 scan it is the fastest of the three and does not fit on the board by a factor
@@ -229,7 +229,7 @@ is far more often a wrong geolocation than a wrong provider.
 
 The boot log now carries the whole interface and the resolved location:
 
-```
+```text
 WiFi: connected 192.168.1.50 netmask 255.255.255.0 gateway 192.168.1.1 dns 1.1.1.1
 Network: ip 192.168.1.50 netmask 255.255.255.0 gateway 192.168.1.1 dns 1.1.1.1
 Location: Berlin, Germany (DE)
@@ -273,10 +273,10 @@ by a wide margin.
 `/em/window` and `/status` are shaped for the dashboard, which knows the payload
 it wants. Two more exist for anything that polls the device on a schedule:
 
-| Endpoint          | Type               | For                                          |
-| ----------------- | ------------------ | -------------------------------------------- |
-| `/em/window.csv`  | `text/csv`         | the rolling window, one row per hour          |
-| `/em/summary`     | `application/json` | one flat object — current reading and verdict |
+| Endpoint         | Type               | For                                           |
+| ---------------- | ------------------ | --------------------------------------------- |
+| `/em/window.csv` | `text/csv`         | the rolling window, one row per hour          |
+| `/em/summary`    | `application/json` | one flat object — current reading and verdict |
 
 Both accept the same `lat`/`lon`/`city`/`cc` parameters as the rest, and
 `/em/window.csv` also takes `back_hours`.
@@ -401,7 +401,7 @@ had stopped updating.
 RP2040's second core. The shape is **stale-while-revalidate**, not a thread
 pool:
 
-```
+```text
 GET /em/window ─► published value? ─ yes, fresh ─► return it
                         │
                         ├─ yes, stale ──────────► return it, ask for a refresh
@@ -445,7 +445,7 @@ hardware you cannot walk to.
 Single slot, not A/B: the flash budget does not stretch to two copies of the
 firmware, so the safety comes from ordering.
 
-```
+```text
 begin(manifest) ─► stage(name, chunks) ─► verify() ─► activate() ─► reboot
                      │ sha256 per file      │ all or       │ backup, then
                      │ before it counts     │ nothing      │ replace, marker armed
@@ -454,14 +454,14 @@ begin(manifest) ─► stage(name, chunks) ─► verify() ─► activate() ─
                                                         3 without health → rollback
 ```
 
-| step | what protects you |
-| --- | --- |
-| `begin` | clears staging, so a `.part` from an interrupted download is never mistaken for a complete file |
-| `stage` | writes to `<name>.part` and renames only once the sha256 and size match the manifest |
-| `verify` | every file present and correct, or nothing activates — three files of five would leave a device running two firmwares |
-| `activate` | writes the boot marker **first**, then backs up each live file before replacing it |
-| `boot.py` | counts the attempt before the new firmware gets control, so a crash-on-import cannot loop forever |
-| `mark_healthy` | called once the firmware reaches its serving loop; disarms the marker and frees the backup |
+| step           | what protects you                                                                                                     |
+| -------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `begin`        | clears staging, so a `.part` from an interrupted download is never mistaken for a complete file                       |
+| `stage`        | writes to `<name>.part` and renames only once the sha256 and size match the manifest                                  |
+| `verify`       | every file present and correct, or nothing activates — three files of five would leave a device running two firmwares |
+| `activate`     | writes the boot marker **first**, then backs up each live file before replacing it                                    |
+| `boot.py`      | counts the attempt before the new firmware gets control, so a crash-on-import cannot loop forever                     |
+| `mark_healthy` | called once the firmware reaches its serving loop; disarms the marker and frees the backup                            |
 
 **`boot.py` and `ota.py` are never updated over the air.** `begin()` refuses a
 manifest naming either. Whatever runs the rollback has to be older than the

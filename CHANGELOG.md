@@ -10,83 +10,80 @@ from Conventional Commit messages — don't edit by hand, see [CONTRIBUTING.md](
 
 ## [1.2.1](https://github.com/fabiocicerchia/co2-grid-meter/compare/v1.2.0...v1.2.1) (2026-09-04)
 
-
 ### Bug Fixes
 
-* **ci:** pin the editorconfig-checker binary version ([#80](https://github.com/fabiocicerchia/co2-grid-meter/issues/80)) ([89c0b3d](https://github.com/fabiocicerchia/co2-grid-meter/commit/89c0b3d4ebdb5022f6fd66c5ad72ec112c71ae07))
+- **ci:** pin the editorconfig-checker binary version ([#80](https://github.com/fabiocicerchia/co2-grid-meter/issues/80)) ([89c0b3d](https://github.com/fabiocicerchia/co2-grid-meter/commit/89c0b3d4ebdb5022f6fd66c5ad72ec112c71ae07))
 
 ## [1.2.0](https://github.com/fabiocicerchia/co2-grid-meter/compare/v1.1.0...v1.2.0) (2026-09-03)
 
-
 ### Features
 
-* **pico:** export endpoints, fetching on the second core, and OTA updates ([#68](https://github.com/fabiocicerchia/co2-grid-meter/issues/68)) ([6ec6e5f](https://github.com/fabiocicerchia/co2-grid-meter/commit/6ec6e5fd0f98bc8eaa8e1e1a6a7fcea320a472bc))
+- **pico:** export endpoints, fetching on the second core, and OTA updates ([#68](https://github.com/fabiocicerchia/co2-grid-meter/issues/68)) ([6ec6e5f](https://github.com/fabiocicerchia/co2-grid-meter/commit/6ec6e5fd0f98bc8eaa8e1e1a6a7fcea320a472bc))
 
 ## [1.1.0](https://github.com/fabiocicerchia/co2-grid-meter/compare/v1.0.2...v1.1.0) (2026-08-29)
 
-
 ### Features
 
-* **ci_api:** read hourly history from the Carbon Intensity API v2 ([#66](https://github.com/fabiocicerchia/co2-grid-meter/issues/66)) ([e5f1cd5](https://github.com/fabiocicerchia/co2-grid-meter/commit/e5f1cd57d321447b768763d3576fdf19e5d2b938))
-* **docs:** build the docs site in Actions and drop Read the Docs ([#62](https://github.com/fabiocicerchia/co2-grid-meter/issues/62)) ([0fa0593](https://github.com/fabiocicerchia/co2-grid-meter/commit/0fa059331b93b64ed061d88be72bdd5547595acd))
-* **pico:** log the interface, coarse location and ISP at boot ([#51](https://github.com/fabiocicerchia/co2-grid-meter/issues/51)) ([e56988d](https://github.com/fabiocicerchia/co2-grid-meter/commit/e56988d5da1a70417eac80168ddfcd27a976a904))
-* **pico:** optionally serve the dashboard from the device ([#53](https://github.com/fabiocicerchia/co2-grid-meter/issues/53)) ([4aced36](https://github.com/fabiocicerchia/co2-grid-meter/commit/4aced369677a7ca2ba4767c760f2963bc6bdbc22))
-* **pico:** read device settings from a file, not from source literals ([#52](https://github.com/fabiocicerchia/co2-grid-meter/issues/52)) ([8856d9b](https://github.com/fabiocicerchia/co2-grid-meter/commit/8856d9b89a889a446b66a67e868f4f707d4a3fa1))
-* **pico:** report uptime in the status output and boot log ([#50](https://github.com/fabiocicerchia/co2-grid-meter/issues/50)) ([d23cf23](https://github.com/fabiocicerchia/co2-grid-meter/commit/d23cf23e6b9abc03105bd789604d724711e5d3a3))
-* **pico:** translate the strings the device itself shows ([#54](https://github.com/fabiocicerchia/co2-grid-meter/issues/54)) ([9946113](https://github.com/fabiocicerchia/co2-grid-meter/commit/994611331c0aabba2733dffba335a6755e344020))
-* **providers:** add the Carbon Intensity API as a provider ([#46](https://github.com/fabiocicerchia/co2-grid-meter/issues/46)) ([d3183ab](https://github.com/fabiocicerchia/co2-grid-meter/commit/d3183abe549bdb6e3c094fac8cb1093b51a223a0))
-
+- **ci_api:** read hourly history from the Carbon Intensity API v2 ([#66](https://github.com/fabiocicerchia/co2-grid-meter/issues/66)) ([e5f1cd5](https://github.com/fabiocicerchia/co2-grid-meter/commit/e5f1cd57d321447b768763d3576fdf19e5d2b938))
+- **docs:** build the docs site in Actions and drop Read the Docs ([#62](https://github.com/fabiocicerchia/co2-grid-meter/issues/62)) ([0fa0593](https://github.com/fabiocicerchia/co2-grid-meter/commit/0fa059331b93b64ed061d88be72bdd5547595acd))
+- **pico:** log the interface, coarse location and ISP at boot ([#51](https://github.com/fabiocicerchia/co2-grid-meter/issues/51)) ([e56988d](https://github.com/fabiocicerchia/co2-grid-meter/commit/e56988d5da1a70417eac80168ddfcd27a976a904))
+- **pico:** optionally serve the dashboard from the device ([#53](https://github.com/fabiocicerchia/co2-grid-meter/issues/53)) ([4aced36](https://github.com/fabiocicerchia/co2-grid-meter/commit/4aced369677a7ca2ba4767c760f2963bc6bdbc22))
+- **pico:** read device settings from a file, not from source literals ([#52](https://github.com/fabiocicerchia/co2-grid-meter/issues/52)) ([8856d9b](https://github.com/fabiocicerchia/co2-grid-meter/commit/8856d9b89a889a446b66a67e868f4f707d4a3fa1))
+- **pico:** report uptime in the status output and boot log ([#50](https://github.com/fabiocicerchia/co2-grid-meter/issues/50)) ([d23cf23](https://github.com/fabiocicerchia/co2-grid-meter/commit/d23cf23e6b9abc03105bd789604d724711e5d3a3))
+- **pico:** translate the strings the device itself shows ([#54](https://github.com/fabiocicerchia/co2-grid-meter/issues/54)) ([9946113](https://github.com/fabiocicerchia/co2-grid-meter/commit/994611331c0aabba2733dffba335a6755e344020))
+- **providers:** add the Carbon Intensity API as a provider ([#46](https://github.com/fabiocicerchia/co2-grid-meter/issues/46)) ([d3183ab](https://github.com/fabiocicerchia/co2-grid-meter/commit/d3183abe549bdb6e3c094fac8cb1093b51a223a0))
 
 ### Bug Fixes
 
-* **docs:** hash-pin the docs toolchain and require hashes on install ([#67](https://github.com/fabiocicerchia/co2-grid-meter/issues/67)) ([cae8ed5](https://github.com/fabiocicerchia/co2-grid-meter/commit/cae8ed56fd622e80605b6f7b53bd2b255b01fdbd))
-* **pico:** import CONFIG in main.py, it is used and was not imported ([a56b20b](https://github.com/fabiocicerchia/co2-grid-meter/commit/a56b20b7c42d5611b4e2da9e429dc6f2e02d5caa))
-
+- **docs:** hash-pin the docs toolchain and require hashes on install ([#67](https://github.com/fabiocicerchia/co2-grid-meter/issues/67)) ([cae8ed5](https://github.com/fabiocicerchia/co2-grid-meter/commit/cae8ed56fd622e80605b6f7b53bd2b255b01fdbd))
+- **pico:** import CONFIG in main.py, it is used and was not imported ([a56b20b](https://github.com/fabiocicerchia/co2-grid-meter/commit/a56b20b7c42d5611b4e2da9e429dc6f2e02d5caa))
 
 ### Performance Improvements
 
-* **entsoe:** read the six fields directly instead of tokenising the document ([#55](https://github.com/fabiocicerchia/co2-grid-meter/issues/55)) ([fd02369](https://github.com/fabiocicerchia/co2-grid-meter/commit/fd02369b6b07b5321f3a1bb8c8e381934dce7794))
+- **entsoe:** read the six fields directly instead of tokenising the document ([#55](https://github.com/fabiocicerchia/co2-grid-meter/issues/55)) ([fd02369](https://github.com/fabiocicerchia/co2-grid-meter/commit/fd02369b6b07b5321f3a1bb8c8e381934dce7794))
 
 ## [1.0.2](https://github.com/fabiocicerchia/co2-grid-meter/compare/v1.0.1...v1.0.2) (2026-08-13)
 
-
 ### Bug Fixes
 
-* security and code-quality findings ([#39](https://github.com/fabiocicerchia/co2-grid-meter/issues/39)) ([019e11a](https://github.com/fabiocicerchia/co2-grid-meter/commit/019e11a9806696ad8066efb86690ed5a51f22bdb))
+- security and code-quality findings ([#39](https://github.com/fabiocicerchia/co2-grid-meter/issues/39)) ([019e11a](https://github.com/fabiocicerchia/co2-grid-meter/commit/019e11a9806696ad8066efb86690ed5a51f22bdb))
 
 ## [1.0.1](https://github.com/fabiocicerchia/co2-grid-meter/compare/v1.0.0...v1.0.1) (2026-08-06)
 
-
 ### Bug Fixes
 
-* **ci:** install pytest even when the package has no [dev] extra ([69d4182](https://github.com/fabiocicerchia/co2-grid-meter/commit/69d41825286b28310f1b658364631c45e6cf27e0))
-* **pre-commit:** stop check-yaml failing on Helm templates and multi-doc manifests ([294ee33](https://github.com/fabiocicerchia/co2-grid-meter/commit/294ee334ef696e319fa4362c6e0f10591d75ffb7))
-* **security:** skip the SARIF upload on private repos ([bbdfaa7](https://github.com/fabiocicerchia/co2-grid-meter/commit/bbdfaa721915badda44ce23ea593f6d45c50d8c6))
-* **time:** set the RTC to local time, EU summer time included ([8a5ce5f](https://github.com/fabiocicerchia/co2-grid-meter/commit/8a5ce5f18a9951afa7ad1ca9f3f62d01c9fad01f))
-* **watttime:** resolve the grid region from location again ([457b972](https://github.com/fabiocicerchia/co2-grid-meter/commit/457b97277808c8112056b0389a3dc165aaf18cb8))
-* **watttime:** resolve the grid region from location again ([56af619](https://github.com/fabiocicerchia/co2-grid-meter/commit/56af6199f43186a8eb7f8c1b9f077ea2583628ff))
+- **ci:** install pytest even when the package has no [dev] extra ([69d4182](https://github.com/fabiocicerchia/co2-grid-meter/commit/69d41825286b28310f1b658364631c45e6cf27e0))
+- **pre-commit:** stop check-yaml failing on Helm templates and multi-doc manifests ([294ee33](https://github.com/fabiocicerchia/co2-grid-meter/commit/294ee334ef696e319fa4362c6e0f10591d75ffb7))
+- **security:** skip the SARIF upload on private repos ([bbdfaa7](https://github.com/fabiocicerchia/co2-grid-meter/commit/bbdfaa721915badda44ce23ea593f6d45c50d8c6))
+- **time:** set the RTC to local time, EU summer time included ([8a5ce5f](https://github.com/fabiocicerchia/co2-grid-meter/commit/8a5ce5f18a9951afa7ad1ca9f3f62d01c9fad01f))
+- **watttime:** resolve the grid region from location again ([457b972](https://github.com/fabiocicerchia/co2-grid-meter/commit/457b97277808c8112056b0389a3dc165aaf18cb8))
+- **watttime:** resolve the grid region from location again ([56af619](https://github.com/fabiocicerchia/co2-grid-meter/commit/56af6199f43186a8eb7f8c1b9f077ea2583628ff))
 
 ## 1.0.0 (2026-08-01)
 
-
 ### Bug Fixes
 
-* CO2Signal provider missing self and dead duplicate fetch_history ([c899c05](https://github.com/fabiocicerchia/co2-grid-meter/commit/c899c05ffc450654f6a535ccb53a337789e58da0))
-* mock server can't start due to stale provider import path ([9bf9a07](https://github.com/fabiocicerchia/co2-grid-meter/commit/9bf9a074f8932bcec31189a687114f64fec30534))
-* repair broken /system-info route and double-response bug ([e24b9d1](https://github.com/fabiocicerchia/co2-grid-meter/commit/e24b9d12b7ac709d107c5edc2953238d64ae6b5a))
-* SimServerSettings.port default should be int, not str ([c74e66f](https://github.com/fabiocicerchia/co2-grid-meter/commit/c74e66f2d6abf84353aaffbc001d259926672611))
-* sweep expired TtlCache entries on write to stop unbounded growth ([450c53b](https://github.com/fabiocicerchia/co2-grid-meter/commit/450c53b80d486c2e601c831f773a86e9e650c96b))
-* typo in buffer_black attribute lookup ([362349c](https://github.com/fabiocicerchia/co2-grid-meter/commit/362349cdc87a7634473bd5ddcfed4444a3594274))
-* undefined LOGGER and tuple typo in mock handler ([e61e65b](https://github.com/fabiocicerchia/co2-grid-meter/commit/e61e65b2247a8cabee714f71fc8c2decdf987c4a))
-* WattTime 403 cooldown never persisted across calls ([94d0f3f](https://github.com/fabiocicerchia/co2-grid-meter/commit/94d0f3f9d1764156dd584103f58218e5c7949e11))
+- CO2Signal provider missing self and dead duplicate fetch_history ([c899c05](https://github.com/fabiocicerchia/co2-grid-meter/commit/c899c05ffc450654f6a535ccb53a337789e58da0))
+- mock server can't start due to stale provider import path ([9bf9a07](https://github.com/fabiocicerchia/co2-grid-meter/commit/9bf9a074f8932bcec31189a687114f64fec30534))
+- repair broken /system-info route and double-response bug ([e24b9d1](https://github.com/fabiocicerchia/co2-grid-meter/commit/e24b9d12b7ac709d107c5edc2953238d64ae6b5a))
+- SimServerSettings.port default should be int, not str ([c74e66f](https://github.com/fabiocicerchia/co2-grid-meter/commit/c74e66f2d6abf84353aaffbc001d259926672611))
+- sweep expired TtlCache entries on write to stop unbounded growth ([450c53b](https://github.com/fabiocicerchia/co2-grid-meter/commit/450c53b80d486c2e601c831f773a86e9e650c96b))
+- typo in buffer_black attribute lookup ([362349c](https://github.com/fabiocicerchia/co2-grid-meter/commit/362349cdc87a7634473bd5ddcfed4444a3594274))
+- undefined LOGGER and tuple typo in mock handler ([e61e65b](https://github.com/fabiocicerchia/co2-grid-meter/commit/e61e65b2247a8cabee714f71fc8c2decdf987c4a))
+- WattTime 403 cooldown never persisted across calls ([94d0f3f](https://github.com/fabiocicerchia/co2-grid-meter/commit/94d0f3f9d1764156dd584103f58218e5c7949e11))
 
 ## [Unreleased]
 
 ### Added
+
 ### Changed
+
 ### Deprecated
+
 ### Removed
+
 ### Fixed
+
 ### Security
 
 [Unreleased]: https://github.com/fabiocicerchia/co2-grid-meter/compare/main...HEAD
