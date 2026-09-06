@@ -76,7 +76,9 @@ repos:
   # Biome rather than eslint: one binary, no plugin matrix, no new entry in
   # package.json. Run through npx as a local hook — the biomejs/pre-commit
   # environment installs the wrapper without its platform binary and dies.
-  # Rules live in biome.json; the formatter is off, this is a linter only.
+  # Rules live in biome.json, and the formatter is on: `biome ci` checks the
+  # formatting as well as the rules, which is what holds the 120-column limit
+  # in place (FC-GEN-045).
   - repo: local
     hooks:
       - id: biome
