@@ -54,17 +54,37 @@ Open:
 ```sh
 git clone https://github.com/fabiocicerchia/co2-grid-meter.git
 cd co2-grid-meter
-python3 -m venv .venv && . .venv/bin/activate
-pip install -r requirements.txt
+make setup          # .venv, runtime and dev dependencies, pre-commit hook
 ```
 
 ## Usage
 
 ```sh
-./start.sh          # serves the dashboard and the grid poller
+make run            # serves the dashboard and the grid poller
 ```
 
 Flashing the Pico W is covered in [`docs/firmware.md`](docs/firmware.md).
+
+### Make targets
+
+`make help` lists them. Every repository in this estate exposes the same eight
+verbs, so you do not have to read a Makefile to find out how to build or run it
+(FC-GEN-057).
+
+| Verb      | What it does here                                            |
+| --------- | ------------------------------------------------------------ |
+| `setup`   | `.venv` + runtime and dev dependencies + the pre-commit hook |
+| `install` | Runtime dependencies into whatever interpreter is active     |
+| `build`   | `docker build` — the dashboard image                         |
+| `run`     | `./start.sh` — mock Pico and dashboard together              |
+| `test`    | `pytest`                                                     |
+| `lint`    | `pre-commit run --all-files` — the whole gate                |
+| `format`  | `ruff format .`                                              |
+| `analyze` | `trivy fs` — vulnerabilities, misconfig, secrets             |
+
+All eight are wired here, so there is nothing under "Not applicable".
+The image packages the dashboard only: the mock Pico is a development aid and
+the firmware runs on-device under MicroPython.
 
 ## Documentation
 
