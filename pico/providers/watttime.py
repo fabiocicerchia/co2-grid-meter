@@ -20,6 +20,12 @@ from providers.base import EmissionsProvider
 # The two keys a /v3/historical point is found by. Scanned for directly rather
 # than parsed: response.json() builds a large nested object, and on a Pico that
 # allocation is the one that fails.
+# WattTime answers 403 when the token has expired, which is a re-login rather
+# than a failure.
+_HTTP_OK = 200
+_HTTP_FORBIDDEN = 403
+
+
 POINT_TIME_KEY = b'"point_time":"'
 POINT_VALUE_KEY = b'"value":'
 
@@ -81,9 +87,7 @@ class WattTimeProvider(EmissionsProvider):
         # fetch_window_any() instantiates a fresh WattTimeProvider() per call,
         # so an instance attribute here would be discarded immediately. Write
         # the class attribute so the cooldown actually persists across calls.
-        WattTimeProvider._disabled_until = (
-            time.time() + CONFIG.providers.watttime_cooldown_sec
-        )
+        WattTimeProvider._disabled_until = time.time() + CONFIG.providers.watttime_cooldown_sec
 
     def _basic_auth_header(self, user, password):
         auth_raw = ("%s:%s" % (user, password)).encode()
@@ -104,14 +108,10 @@ class WattTimeProvider(EmissionsProvider):
             )
         except Exception:
             # MicroPython fallback: explicit Authorization header.
-            auth = self._basic_auth_header(
-                CONFIG.providers.watttime.username, CONFIG.providers.watttime.password
-            )
+            auth = self._basic_auth_header(CONFIG.providers.watttime.username, CONFIG.providers.watttime.password)
             if not auth:
-                raise ProviderError("Missing ubinascii for Basic auth")
-            payload = http_get_json(
-                login_url, "WattTime login", headers={"Authorization": auth}
-            )
+                raise ProviderError("Missing ubinascii for Basic auth") from None
+            payload = http_get_json(login_url, "WattTime login", headers={"Authorization": auth})
 
         token = payload.get("token")
         if not token:
@@ -130,9 +130,7 @@ class WattTimeProvider(EmissionsProvider):
     # config.py; recorded here so nobody hardcodes a region again to work
     # around it.
     def _grid_region(self, lat, lon, token):
-        query = urlencode_simple(
-            {"latitude": str(lat), "longitude": str(lon), "signal_type": "co2_moer"}
-        )
+        query = urlencode_simple({"latitude": str(lat), "longitude": str(lon), "signal_type": "co2_moer"})
         url = CONFIG.providers.watttime.base_url + "/v3/region-from-loc?" + query
         payload = http_get_json(
             url,
@@ -172,9 +170,7 @@ class WattTimeProvider(EmissionsProvider):
         history = []
         for hour in sorted(buckets.keys()):
             total, count = buckets[hour]
-            history.append(
-                {"datetime": epoch_to_iso_z(hour), "carbonIntensity": total / count}
-            )
+            history.append({"datetime": epoch_to_iso_z(hour), "carbonIntensity": total / count})
         return history
 
     def fetch_history(self, latitude, longitude, country_code, start, end):
@@ -192,9 +188,7 @@ class WattTimeProvider(EmissionsProvider):
         # A configured region wins (free accounts are granted exactly one);
         # otherwise resolve it from where the device actually is. Serving one
         # region's grid intensity to every user is worse than failing.
-        region = getattr(CONFIG.providers.watttime, "region", "") or self._grid_region(
-            latitude, longitude, token
-        )
+        region = getattr(CONFIG.providers.watttime, "region", "") or self._grid_region(latitude, longitude, token)
 
         response = None
         try:
@@ -211,13 +205,11 @@ class WattTimeProvider(EmissionsProvider):
                 url,
                 headers={"Authorization": "Bearer " + token},
             )
-            if response.status_code == 403:
+            if response.status_code == _HTTP_FORBIDDEN:
                 self._disable_for_a_day()
                 raise ProviderError("WattTime historical forbidden, cooling down")
-            if response.status_code != 200:
-                raise ProviderError(
-                    "WattTime historical HTTP %d" % response.status_code
-                )
+            if response.status_code != _HTTP_OK:
+                raise ProviderError("WattTime historical HTTP %d" % response.status_code)
             raw = response.content
             history = self.parse_historical_compact(raw, start, end)
             del raw

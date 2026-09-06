@@ -5,7 +5,17 @@ is the record of what shipped.
 
 - [ ] Replace placeholder runtime config values in `firmware.py` (`ssid`, provider toggles/tokens, fallback switches) with environment-based or persisted settings.
 - [ ] Improve/replace the slow XML-based ENTSO-E path in `firmware.py`.
-- [ ] Add/complete tests for currently flagged firmware behavior (including `# TODO: TEST IT`).
+- [ ] Add/complete tests for currently flagged firmware behavior, starting with
+      `EPD_2in13_B_V4_Portrait`, which has never run against hardware.
+- [ ] Apply the DST rule on the WiFi reconnect path in `pico/http.py`: it sets a
+      fixed +1 (Italy's winter offset) where the boot path computes the shift.
+- [ ] Rotate the firmware log (`_log_rotate(max_files=3)` in `pico/utils.py`).
+- [ ] `fw_providers._select` picks the provider by name; it should ask each one
+      `is_enabled` instead.
+- [ ] Move `providers.ukci_enabled` under a `ukci` block, like every other
+      provider.
+- [ ] A setting to force a provider and a city, for testing a grid you are not in.
+- [ ] Decide whether the 22-character truncation in `fw_render` is needed at all.
 - [ ] Refactor duplicated firmware logic into shared libraries (`# TODO: Use library` occurrences).
 - [ ] Improve recommendation-string formatting path marked as potentially unnecessary.
 - [ ] Multithread

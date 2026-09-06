@@ -175,19 +175,15 @@ class EPD_2in13_B_V4_Base:
         self.TurnOnDisplay()
 
 
-# TODO: TEST IT
+# Untested against hardware — see TODO.md.
 class EPD_2in13_B_V4_Portrait(EPD_2in13_B_V4_Base):
     def __init__(self):
         super().__init__()
 
         self.command_code = 0x03
 
-        self.imageblack = framebuf.FrameBuffer(
-            self.buffer_black, self.width, self.height, framebuf.MONO_HLSB
-        )
-        self.imagered = framebuf.FrameBuffer(
-            self.buffer_red, self.width, self.height, framebuf.MONO_HLSB
-        )
+        self.imageblack = framebuf.FrameBuffer(self.buffer_black, self.width, self.height, framebuf.MONO_HLSB)
+        self.imagered = framebuf.FrameBuffer(self.buffer_red, self.width, self.height, framebuf.MONO_HLSB)
         self.init()
 
 
@@ -197,10 +193,6 @@ class EPD_2in13_B_V4_Landscape(EPD_2in13_B_V4_Base):
 
         self.command_code = 0x07
 
-        self.imageblack = framebuf.FrameBuffer(
-            self.buffer_black, self.height, self.width, framebuf.MONO_VLSB
-        )
-        self.imagered = framebuf.FrameBuffer(
-            self.buffer_red, self.height, self.width, framebuf.MONO_VLSB
-        )
+        self.imageblack = framebuf.FrameBuffer(self.buffer_black, self.height, self.width, framebuf.MONO_VLSB)
+        self.imagered = framebuf.FrameBuffer(self.buffer_red, self.height, self.width, framebuf.MONO_VLSB)
         self.init()

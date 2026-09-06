@@ -52,7 +52,7 @@ def load(path=DEFAULT_PATH, opener=open):
     try:
         data = json.loads(text)
     except ValueError as err:
-        raise SettingsError("%s is not valid JSON: %s" % (path, err))
+        raise SettingsError("%s is not valid JSON: %s" % (path, err)) from err
     if not isinstance(data, dict):
         raise SettingsError("%s must contain a JSON object" % path)
     return data
@@ -97,9 +97,7 @@ def apply(root, data, path=DEFAULT_PATH):
         setattr(owner, attr, value)
         applied.append(dotted)
     if unknown:
-        raise SettingsError(
-            "%s sets unknown option(s): %s" % (path, ", ".join(unknown))
-        )
+        raise SettingsError("%s sets unknown option(s): %s" % (path, ", ".join(unknown)))
     return applied
 
 

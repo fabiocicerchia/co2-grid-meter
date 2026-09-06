@@ -20,10 +20,7 @@ class ElectricityMapsProvider(EmissionsProvider):
         )
 
     def fetch_history(self, latitude, longitude, country_code, start, end):
-        if not (
-            CONFIG.providers.electricity_maps.enabled
-            and CONFIG.providers.electricity_maps.token
-        ):
+        if not (CONFIG.providers.electricity_maps.enabled and CONFIG.providers.electricity_maps.token):
             raise ProviderError("Electricity Maps disabled/missing token")
 
         query = "lat=%s&lon=%s&start=%s&end=%s&temporalGranularity=hourly" % (
@@ -32,11 +29,7 @@ class ElectricityMapsProvider(EmissionsProvider):
             epoch_to_iso_z(start),
             epoch_to_iso_z(end),
         )
-        api_url = (
-            CONFIG.providers.electricity_maps.base_url
-            + "/v3/carbon-intensity/past-range?"
-            + query
-        )
+        api_url = CONFIG.providers.electricity_maps.base_url + "/v3/carbon-intensity/past-range?" + query
 
         payload = http_get_json(
             api_url,

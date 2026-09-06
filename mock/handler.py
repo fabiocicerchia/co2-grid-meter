@@ -2,9 +2,9 @@
 import json
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from http.server import BaseHTTPRequestHandler
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import ParseResult, parse_qs, urlparse
 
 import requests
 
@@ -25,14 +25,12 @@ class GeoLocation:
     source: str
 
 
-def resolve_from_ip():
+def resolve_from_ip() -> GeoLocation | None:
     try:
         # ip-api.com's free tier 403s on https:// (HTTPS is a paid-plan feature) —
         # plain http is deliberate here, not an oversight. Low-sensitivity lookup
         # (approximate geo-IP for display defaults), no credentials involved.
-        response = requests.get(
-            "http://ip-api.com/json/", timeout=4
-        )  # nosemgrep: request-with-http
+        response = requests.get("http://ip-api.com/json/", timeout=4)  # nosemgrep: request-with-http
         payload = response.json()
         if payload.get("status") != "success":
             return None
@@ -43,7 +41,7 @@ def resolve_from_ip():
             city=payload.get("city") or "—",
             source="ip",
         )
-    except Exception as error:  # noqa: BLE001
+    except Exception as error:
         LOGGER.warning("Unable to resolve geo from IP: %s", error)
         return None
 
@@ -60,7 +58,7 @@ class MockPicoHandler(BaseHTTPRequestHandler):
     logger = None
     provider = None
 
-    def _window_response(self, location, start_time, end_time):
+    def _window_response(self, location: GeoLocation, start_time: datetime, end_time: datetime) -> tuple[str, int]:
         window_payload = self.provider.fetch_history(
             location.latitude,
             location.longitude,
@@ -78,71 +76,75 @@ class MockPicoHandler(BaseHTTPRequestHandler):
             "_geo_source": location.source,
         }
 
-    def do_GET(self):
+    def _route(
+        self, url: ParseResult, query: dict[str, list[str]], location: GeoLocation
+    ) -> tuple[dict, str | None, str, int]:
+        """(payload, text_body, content_type, status) for one path.
+
+        `text_body` is the CSV export's escape hatch: everything else answers
+        with JSON, and a CSV serialised as JSON would be a string, not a file.
+        """
+        payload: dict = {}
+        text_body = None
+        content_type = "application/json"
+        status_code = 404
+        if url.path == "/status":
+            now_utc = floor_hour(datetime.now(UTC))
+            start_time = now_utc - timedelta(hours=36) - timedelta(days=7)
+            end_time = now_utc + timedelta(hours=12) - timedelta(days=7)
+            payload = self._window_response(location, start_time, end_time)
+            current_carbon_intensity = float(payload["history"][-1]["carbonIntensity"])
+            payload["datetime"] = iso_utc(now_utc)
+            payload["carbonIntensity"] = current_carbon_intensity
+            payload["recommendation"] = compute_recommendation(
+                current_carbon_intensity,
+                payload["history"],
+                int(now_utc.timestamp()),
+            )
+            status_code = 200
+        elif url.path == "/em/window":
+            back_hours = int(query.get("back_hours", [48])[0])
+            end_time = floor_hour(datetime.now(UTC))
+            start_time = end_time - timedelta(hours=back_hours)
+            payload = self._window_response(location, start_time, end_time)
+            status_code = 200
+        elif url.path == "/em/window-overlay":
+            now_time = floor_hour(datetime.now(UTC))
+            start_time = now_time - timedelta(hours=48, days=7)
+            end_time = now_time + timedelta(hours=12) - timedelta(days=7)
+            payload = self._window_response(location, start_time, end_time)
+            status_code = 200
+        elif url.path == "/em/window.csv":
+            back_hours = int(query.get("back_hours", [48])[0])
+            end_time = floor_hour(datetime.now(UTC))
+            start_time = end_time - timedelta(hours=back_hours)
+            window = self._window_response(location, start_time, end_time)
+            text_body = window_csv(window)
+            content_type = "text/csv"
+            status_code = 200
+        elif url.path == "/em/summary":
+            now_utc = floor_hour(datetime.now(UTC))
+            window = self._window_response(location, now_utc - timedelta(hours=48), now_utc)
+            current = float(window["history"][-1]["carbonIntensity"])
+            payload = summary_from_window(
+                window,
+                current,
+                compute_recommendation(current, window["history"], int(now_utc.timestamp())),
+                iso_utc(now_utc),
+                city=location.city,
+                cc=location.country,
+                provider="simulated",
+            )
+            status_code = 200
+        return payload, text_body, content_type, status_code
+
+    def do_GET(self) -> None:
         url = urlparse(self.path)
         query = parse_qs(url.query)
         location = resolve_from_ip()
 
-        status_code = 404
-        payload = {}
-        text_body = None
-        content_type = "application/json"
-
         try:
-            if url.path == "/status":
-                now_utc = floor_hour(datetime.now(timezone.utc))
-                start_time = now_utc - timedelta(hours=36) - timedelta(days=7)
-                end_time = now_utc + timedelta(hours=12) - timedelta(days=7)
-                payload = self._window_response(location, start_time, end_time)
-                current_carbon_intensity = float(
-                    payload["history"][-1]["carbonIntensity"]
-                )
-                payload["datetime"] = iso_utc(now_utc)
-                payload["carbonIntensity"] = current_carbon_intensity
-                payload["recommendation"] = compute_recommendation(
-                    current_carbon_intensity,
-                    payload["history"],
-                    int(now_utc.timestamp()),
-                )
-                status_code = 200
-            elif url.path == "/em/window":
-                back_hours = int(query.get("back_hours", [48])[0])
-                end_time = floor_hour(datetime.now(timezone.utc))
-                start_time = end_time - timedelta(hours=back_hours)
-                payload = self._window_response(location, start_time, end_time)
-                status_code = 200
-            elif url.path == "/em/window-overlay":
-                now_time = floor_hour(datetime.now(timezone.utc))
-                start_time = now_time - timedelta(hours=48, days=7)
-                end_time = now_time + timedelta(hours=12) - timedelta(days=7)
-                payload = self._window_response(location, start_time, end_time)
-                status_code = 200
-            elif url.path == "/em/window.csv":
-                back_hours = int(query.get("back_hours", [48])[0])
-                end_time = floor_hour(datetime.now(timezone.utc))
-                start_time = end_time - timedelta(hours=back_hours)
-                window = self._window_response(location, start_time, end_time)
-                text_body = window_csv(window)
-                content_type = "text/csv"
-                status_code = 200
-            elif url.path == "/em/summary":
-                now_utc = floor_hour(datetime.now(timezone.utc))
-                window = self._window_response(
-                    location, now_utc - timedelta(hours=48), now_utc
-                )
-                current = float(window["history"][-1]["carbonIntensity"])
-                payload = summary_from_window(
-                    window,
-                    current,
-                    compute_recommendation(
-                        current, window["history"], int(now_utc.timestamp())
-                    ),
-                    iso_utc(now_utc),
-                    city=location.city,
-                    cc=location.country,
-                    provider="simulated",
-                )
-                status_code = 200
+            payload, text_body, content_type, status_code = self._route(url, query, location)
         except Exception as error:
             status_code = 502
             payload = {"error": str(error)}
@@ -160,7 +162,7 @@ class MockPicoHandler(BaseHTTPRequestHandler):
         self.wfile.write(body.encode("utf8"))
 
 
-def create_handler(*, config, logger) -> type[BaseHTTPRequestHandler]:
+def create_handler(*, config: object, logger: logging.Logger) -> type[BaseHTTPRequestHandler]:
     """Create a request handler class bound to the given dependencies."""
     return type(
         "Handler",

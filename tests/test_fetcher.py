@@ -18,9 +18,7 @@ PICO = pathlib.Path(__file__).resolve().parents[1] / "pico"
 def _load():
     sys.path.insert(0, str(PICO))
     try:
-        spec = importlib.util.spec_from_file_location(
-            "pico_fetcher", PICO / "fetcher.py"
-        )
+        spec = importlib.util.spec_from_file_location("pico_fetcher", PICO / "fetcher.py")
         module = importlib.util.module_from_spec(spec)
         sys.modules["pico_fetcher"] = module
         spec.loader.exec_module(module)

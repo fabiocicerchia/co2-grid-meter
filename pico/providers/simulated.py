@@ -24,11 +24,9 @@ class SimulatedProvider(EmissionsProvider):
         while cursor <= end:
             day_seconds = 24 * 3600
             phase = (cursor.timestamp() % day_seconds) / day_seconds
-            simulated_value = (
-                260
-                + 90 * math.sin(2 * math.pi * (phase - 0.2))
-                + 12 * (random.random() - 0.5)
-            )
+            # Jitter on a sine wave, so the dev dashboard does not look
+            # suspiciously smooth. Not a key, not a token.
+            simulated_value = 260 + 90 * math.sin(2 * math.pi * (phase - 0.2)) + 12 * (random.random() - 0.5)  # noqa: S311
             history.append(
                 {
                     "datetime": iso_utc(cursor),

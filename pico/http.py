@@ -1,3 +1,4 @@
+import contextlib
 import socket
 import struct
 import time
@@ -27,6 +28,13 @@ from config import CONFIG, append_log_line, write_crashdump
 _server_socket = None
 
 # Seconds between the NTP epoch (1900-01-01) and the Unix epoch.
+# A request line longer than this is not one we are going to answer, and a
+# device with 264 KB should stop reading rather than find out.
+_MAX_REQUEST_LINE_BYTES = 2048
+# "Name: value" — a header without a colon is not a header.
+_HEADER_PARTS = 2
+
+
 NTP_EPOCH_OFFSET_SEC = 2208988800
 
 
@@ -39,7 +47,7 @@ def _readline(conn):
         if not ch:
             break
         chars.append(ch)
-        if (chars[-2:] == [b"\r", b"\n"]) or len(chars) > 2048:
+        if (chars[-2:] == [b"\r", b"\n"]) or len(chars) > _MAX_REQUEST_LINE_BYTES:
             break
     return b"".join(chars)
 
@@ -49,7 +57,7 @@ def parse_request(conn):
     if not first:
         return None
     parts = first.split()
-    if len(parts) < 2:
+    if len(parts) < _HEADER_PARTS:
         return None
     method, path_qs = parts[0], parts[1]
     # Only If-None-Match is kept: it is the one header this server acts on, and
@@ -117,13 +125,13 @@ def set_time(offset=None, epoch_offset=NTP_EPOCH_OFFSET_SEC, host="pool.ntp.org"
     right on both sides of the March and October changes instead of running an
     hour out for seven months of the year.
     """
-    NTP_QUERY = bytearray(48)
-    NTP_QUERY[0] = 0x1B
+    ntp_query = bytearray(48)
+    ntp_query[0] = 0x1B
     addr = socket.getaddrinfo(host, 123)[0][-1]
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
         sock.settimeout(1)
-        sock.sendto(NTP_QUERY, addr)
+        sock.sendto(ntp_query, addr)
         reply = sock.recv(48)
     finally:
         sock.close()
@@ -163,10 +171,8 @@ def handle_http_request(conn, logger):
         append_log_line("ERROR %s" % crash_path)
         send_json(conn, 500, {"error": "Internal error", "details": str(error)})
     finally:
-        try:
+        with contextlib.suppress(Exception):
             conn.close()
-        except Exception:
-            pass
 
 
 # The API: path -> the handler whose return value is serialised as the body.
@@ -202,10 +208,8 @@ def process_http_request(conn, method, path, params, if_none_match=""):
     # Static files first: with serving enabled the dashboard's own paths must
     # not be shadowed by the JSON routes below, and with it disabled this costs
     # one attribute read.
-    if getattr(CONFIG.web, "serve_static", False) and serve_static_file(
-        conn, path, if_none_match
-    ):
-        return
+    if getattr(CONFIG.web, "serve_static", False) and serve_static_file(conn, path, if_none_match):
+        return None
 
     handler = JSON_ROUTES.get(path)
     if handler:
@@ -244,12 +248,7 @@ def serve_static_file(conn, path, if_none_match=""):
     if staticfiles.not_modified(if_none_match, tag):
         # A reload of an unchanged asset is a header exchange, not a transfer:
         # the radio is the most expensive thing on the board.
-        conn.send(
-            (
-                "HTTP/1.1 304 Not Modified\r\nETag: %s\r\nConnection: close\r\n\r\n"
-                % tag
-            ).encode()
-        )
+        conn.send(("HTTP/1.1 304 Not Modified\r\nETag: %s\r\nConnection: close\r\n\r\n" % tag).encode())
         return True
 
     headers = (
@@ -287,7 +286,9 @@ def ensure_connected(ip):
         raise OSError("WiFi reconnect failed")
 
     try:
-        set_time(2)  # ITALY GMT+1 # TODO: FIX DAYLIGHT
+        # Fixed +1: Italy's winter offset. See TODO.md — the reconnect path
+        # does not yet apply the DST rule the boot path does.
+        set_time(2)
     except Exception as error:
         log("set_time after reconnect failed: %s" % error)
 
@@ -300,20 +301,18 @@ def get_connection(logger):
         return None
     try:
         conn, _ = _server_socket.accept()
-        return conn
     except OSError as error:
         logger.exception("OSError %s" % error)
         return None
+    return conn
 
 
 def close_server_socket():
     global _server_socket
     if _server_socket is None:
         return
-    try:
+    with contextlib.suppress(Exception):
         _server_socket.close()
-    except Exception:
-        pass
     _server_socket = None
 
 

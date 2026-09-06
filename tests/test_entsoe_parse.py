@@ -12,10 +12,7 @@ import tracemalloc
 
 _spec = importlib.util.spec_from_file_location(
     "pico_entsoe_parse",
-    pathlib.Path(__file__).resolve().parents[1]
-    / "pico"
-    / "providers"
-    / "entsoe_parse.py",
+    pathlib.Path(__file__).resolve().parents[1] / "pico" / "providers" / "entsoe_parse.py",
 )
 _parse = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_parse)
@@ -72,9 +69,7 @@ class TestParsing:
         assert all(s["psr"] is not None for s in parse_series(DOC))
 
     def test_namespaced_tags(self):
-        doc = DOC.replace("<TimeSeries>", "<ns:TimeSeries>").replace(
-            "</TimeSeries>", "</ns:TimeSeries>"
-        )
+        doc = DOC.replace("<TimeSeries>", "<ns:TimeSeries>").replace("</TimeSeries>", "</ns:TimeSeries>")
         assert len(parse_series(doc)) == 2
 
     def test_attributes_on_structural_tags(self):
@@ -97,9 +92,7 @@ class TestParsing:
 class TestRobustness:
     def test_an_empty_or_truncated_document_yields_nothing_rather_than_raising(self):
         assert parse_series("") == []
-        assert parse_series("<GL_MarketDocument><TimeSeries><MktPSRType>") == [
-            {"psr": None, "periods": []}
-        ]
+        assert parse_series("<GL_MarketDocument><TimeSeries><MktPSRType>") == [{"psr": None, "periods": []}]
 
     def test_a_non_numeric_quantity_drops_the_point_not_the_document(self):
         doc = DOC.replace("<quantity>1000</quantity>", "<quantity>n/a</quantity>")
@@ -137,10 +130,7 @@ def build_document(series=4, points=96):
             "<end>2026-08-16T00:00Z</end></timeInterval><resolution>PT15M</resolution>"
         )
         for pos in range(1, points + 1):
-            parts.append(
-                f"<Point><position>{pos}</position>"
-                f"<quantity>{random.randint(100, 9000)}</quantity></Point>"
-            )
+            parts.append(f"<Point><position>{pos}</position><quantity>{random.randint(100, 9000)}</quantity></Point>")
         parts.append("</Period></TimeSeries>")
     parts.append("</GL_MarketDocument>")
     return "\n".join(parts)
@@ -153,12 +143,7 @@ def test_a_full_day_parses_completely():
     assert len(series) == 4
     assert sum(len(p["points"]) for s in series for p in s["periods"]) == 384
     # Every quantity survived as a number, which is what the bucket fill needs.
-    assert all(
-        isinstance(q, float)
-        for s in series
-        for p in s["periods"]
-        for _, q in p["points"]
-    )
+    assert all(isinstance(q, float) for s in series for p in s["periods"] for _, q in p["points"])
 
 
 class TestStreaming:
@@ -206,9 +191,7 @@ class TestStreaming:
         assert large < small * 2, f"peak grew with the document: {small} -> {large}"
         # And the absolute claim the device depends on: the window is a small
         # fraction of the response, not a copy of it.
-        assert large < size // 4, (
-            f"peak {large} is not small against a {size} byte body"
-        )
+        assert large < size // 4, f"peak {large} is not small against a {size} byte body"
 
     def test_a_stream_that_stops_mid_document_yields_what_was_read(self):
         # A dropped connection is a partial curve, not an exception and not a

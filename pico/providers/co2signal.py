@@ -51,9 +51,7 @@ class Co2SignalProvider(SampledProvider):
         )
 
     def fetch_current(self, latitude, longitude, country_code):
-        if not (
-            CONFIG.providers.co2signal.enabled and CONFIG.providers.co2signal.token
-        ):
+        if not (CONFIG.providers.co2signal.enabled and CONFIG.providers.co2signal.token):
             raise ProviderError("CO2Signal disabled/missing token")
 
         params = {"lat": str(latitude), "lon": str(longitude)}

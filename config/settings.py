@@ -14,9 +14,7 @@ class LocationDefaults:
 @dataclass(frozen=True)
 class EntsoeSettings:
     token: str = field(default="", metadata={"env": "ENTSOE_TOKEN"})
-    base_url: str = field(
-        default="https://web-api.tp.entsoe.eu/api", metadata={"env": "ENTSOE_BASE"}
-    )
+    base_url: str = field(default="https://web-api.tp.entsoe.eu/api", metadata={"env": "ENTSOE_BASE"})
     area_override: str = field(default="", metadata={"env": "ENTSOE_AREA"})
 
 
@@ -37,24 +35,16 @@ class WattTimeSettings:
     password: str = field(default="", metadata={"env": "WATTTIME_PASSWORD"})
     signal: str = field(default="co2_moer", metadata={"env": "WATTTIME_SIGNAL"})
     region_override: str = field(default="", metadata={"env": "WATTTIME_REGION"})
-    region_by_country: bool = field(
-        default=True, metadata={"env": "WATTTIME_REGION_BY_COUNTRY"}
-    )
-    base_url: str = field(
-        default="https://api.watttime.org", metadata={"env": "WATTTIME_BASE"}
-    )
+    region_by_country: bool = field(default=True, metadata={"env": "WATTTIME_REGION_BY_COUNTRY"})
+    base_url: str = field(default="https://api.watttime.org", metadata={"env": "WATTTIME_BASE"})
 
 
 @dataclass(frozen=True)
 class SimProviderSettings:
-    electricity_maps: ElectricityMapsSettings = field(
-        default_factory=ElectricityMapsSettings
-    )
+    electricity_maps: ElectricityMapsSettings = field(default_factory=ElectricityMapsSettings)
     entsoe: EntsoeSettings = field(default_factory=EntsoeSettings)
     watttime: WattTimeSettings = field(default_factory=WattTimeSettings)
-    allow_fallback: bool = field(
-        default=True, metadata={"env": "PICO_ALLOW_SIM_FALLBACK"}
-    )
+    allow_fallback: bool = field(default=True, metadata={"env": "PICO_ALLOW_SIM_FALLBACK"})
 
 
 @dataclass(frozen=True)
@@ -68,27 +58,21 @@ class MockConfig:
     server: SimServerSettings
     defaults: LocationDefaults
     providers: SimProviderSettings
-    cache_refresh_seconds: int = field(
-        default=3600, metadata={"env": "PICO_CACHE_REFRESH_SECONDS"}
-    )
+    cache_refresh_seconds: int = field(default=3600, metadata={"env": "PICO_CACHE_REFRESH_SECONDS"})
 
     @property
-    def host(self):
+    def host(self) -> str:
         return self.server.host
 
     @property
-    def port(self):
+    def port(self) -> int:
         return self.server.port
 
 
 @dataclass(frozen=True)
 class WebUpstreamSettings:
-    pico_base_url: str = field(
-        default="http://127.0.0.1:8080", metadata={"env": "PICO_BASE_URL"}
-    )
-    request_timeout_seconds: int = field(
-        default=15, metadata={"env": "PICO_REQUEST_TIMEOUT_SEC"}
-    )
+    pico_base_url: str = field(default="http://127.0.0.1:8080", metadata={"env": "PICO_BASE_URL"})
+    request_timeout_seconds: int = field(default=15, metadata={"env": "PICO_REQUEST_TIMEOUT_SEC"})
     max_retries: int = field(default=3, metadata={"env": "PICO_REQUEST_RETRIES"})
 
 
@@ -109,7 +93,7 @@ class WebConfig:
     logging: WebLoggingSettings
 
     @property
-    def port(self):
+    def port(self) -> int:
         return self.server.port
 
 
@@ -122,13 +106,9 @@ class FirmwareWifiSettings:
 @dataclass(frozen=True)
 class FirmwareProviderSettings:
     ukci_enabled: bool = field(default=True, metadata={"env": "UKCI_ENABLED"})
-    electricity_maps: ElectricityMapsSettings = field(
-        default_factory=ElectricityMapsSettings
-    )
+    electricity_maps: ElectricityMapsSettings = field(default_factory=ElectricityMapsSettings)
     watttime: WattTimeSettings = field(default_factory=WattTimeSettings)
-    watttime_cooldown_sec: int = field(
-        default=24 * 3600, metadata={"env": "WT_COOLDOWN_SEC"}
-    )
+    watttime_cooldown_sec: int = field(default=24 * 3600, metadata={"env": "WT_COOLDOWN_SEC"})
 
 
 @dataclass(frozen=True)
@@ -147,15 +127,15 @@ class FirmwareThresholdSettings:
 
 @dataclass(frozen=True)
 class FirmwareServerSettings:
-    host: str = field(default="0.0.0.0", metadata={"env": "HOST"})
+    # The mock/firmware server binds every interface on purpose: it is reached
+    # from the device on the LAN, not from localhost.
+    host: str = field(default="0.0.0.0", metadata={"env": "HOST"})  # noqa: S104
     port: int = field(default=8080, metadata={"env": "PICO_PORT"})
 
 
 @dataclass(frozen=True)
 class FirmwareDisplaySettings:
-    render_min_interval_sec: int = field(
-        default=60, metadata={"env": "RENDER_MIN_INTERVAL_SEC"}
-    )
+    render_min_interval_sec: int = field(default=60, metadata={"env": "RENDER_MIN_INTERVAL_SEC"})
 
 
 @dataclass(frozen=True)
@@ -167,9 +147,7 @@ class FirmwareConfig:
     thresholds: FirmwareThresholdSettings
     server: FirmwareServerSettings
     display: FirmwareDisplaySettings
-    cache_refresh_seconds: int = field(
-        default=3600, metadata={"env": "PICO_CACHE_REFRESH_SECONDS"}
-    )
+    cache_refresh_seconds: int = field(default=3600, metadata={"env": "PICO_CACHE_REFRESH_SECONDS"})
 
 
 @dataclass(frozen=True)

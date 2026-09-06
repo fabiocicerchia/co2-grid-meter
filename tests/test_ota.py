@@ -9,9 +9,9 @@ would shadow the stdlib http package. Same pattern as test_export.py.
 
 import hashlib
 import importlib.util
-import os
 import pathlib
 import sys
+from pathlib import Path
 
 import pytest
 
@@ -43,10 +43,7 @@ def device(tmp_path, monkeypatch):
 
 
 def manifest_for(files):
-    return {
-        name: {"sha256": hashlib.sha256(body).hexdigest(), "size": len(body)}
-        for name, body in files.items()
-    }
+    return {name: {"sha256": hashlib.sha256(body).hexdigest(), "size": len(body)} for name, body in files.items()}
 
 
 def stage_all(files):
@@ -220,7 +217,7 @@ def test_a_leftover_part_file_is_cleared_by_the_next_begin(device):
     ota._mkdirs(ota.STAGING_DIR)
     (device / "ota/staging/main.py.part").write_bytes(b"half a download")
     ota.begin(manifest_for(NEW))
-    assert os.listdir(ota.STAGING_DIR) == []
+    assert list(Path(ota.STAGING_DIR).iterdir()) == []
 
 
 def test_status_reports_what_an_update_did(device):

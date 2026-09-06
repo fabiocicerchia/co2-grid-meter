@@ -25,9 +25,7 @@ require = _settings.require
 required_names = _settings.required_names
 flatten = _settings.flatten
 
-TEMPLATE = (
-    pathlib.Path(__file__).resolve().parents[1] / "pico" / "settings.example.json"
-)
+TEMPLATE = pathlib.Path(__file__).resolve().parents[1] / "pico" / "settings.example.json"
 
 
 def fake_config():
@@ -177,9 +175,7 @@ class TestTemplate:
         """
         import ast
 
-        source = (
-            pathlib.Path(__file__).resolve().parents[1] / "pico" / "config.py"
-        ).read_text()
+        source = (pathlib.Path(__file__).resolve().parents[1] / "pico" / "config.py").read_text()
         tree = ast.parse(source)
 
         def names_of(node, prefix=""):
@@ -195,9 +191,7 @@ class TestTemplate:
                             out.add(prefix + target.id)
             return out
 
-        config_cls = next(
-            n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == "CONFIG"
-        )
+        config_cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == "CONFIG")
         known = names_of(config_cls)
 
         data = json.loads(TEMPLATE.read_text())

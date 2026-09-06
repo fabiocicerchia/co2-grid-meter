@@ -1,3 +1,4 @@
+import contextlib
 import logging
 import os
 import sys
@@ -42,23 +43,16 @@ class CONFIG:
         utc_offset_hours = 1
         observes_eu_dst = True
 
-        # UKCI
-        # latitude = 51.5072
-        # longitude = 0.1276
-        # city = "London"
-        # country = "GB"
-
-        # ELECTRICITY MAP
-        # latitude = 59.3327
-        # longitude = 18.0656
-        # city = "Stockholm"
-        # country = "SE"
-
-        # WATTTIME
-        # latitude = 37.7749
-        # longitude = -122.4194  # west of Greenwich: the sign is load-bearing
-        # city = "San Francisco"
-        # country = "CAISO_NORTH"
+        # A location each provider actually covers, to paste over the four
+        # values above when switching. Kept as data rather than as commented-out
+        # assignments, which read as code someone forgot to delete.
+        #
+        #   UKCI              51.5072,   0.1276    London,        GB
+        #   ELECTRICITY MAP   59.3327,  18.0656    Stockholm,     SE
+        #   WATTTIME          37.7749, -122.4194   San Francisco, CAISO_NORTH
+        #
+        # The WattTime longitude is negative: west of Greenwich, and the sign
+        # is load-bearing.
 
     class web:
         # Serve the dashboard's own files from the device, for an install with
@@ -125,7 +119,9 @@ class CONFIG:
         yellow_percentile_max = 0.50
 
     class server:
-        host = "0.0.0.0"
+        # Every interface on purpose: the device is reached from the LAN, and
+        # binding localhost would serve nobody.
+        host = "0.0.0.0"  # noqa: S104
         port = 8080
 
     class display:
@@ -155,10 +151,8 @@ CRASH_DIR = "crashdumps"
 
 
 def _safe_mkdir(path: str) -> None:
-    try:
+    with contextlib.suppress(OSError):
         os.mkdir(path)
-    except OSError:
-        pass
 
 
 def _ensure_dirs() -> None:
@@ -195,10 +189,8 @@ def prune_old_logs(days: int = 2) -> None:
 
     entries.sort(reverse=True)
     for _, full in entries[days:]:
-        try:
+        with contextlib.suppress(OSError):
             os.remove(full)
-        except OSError:
-            pass
 
 
 def write_crashdump(error: Exception, context: str = "runtime") -> str:
@@ -246,9 +238,7 @@ def build_firmware_logger(name: str = "pico.firmware"):
     logger.propagate = False
 
     stream_handler = logging.StreamHandler()
-    stream_handler.setFormatter(
-        logging.Formatter("%(asctime)s %(levelname)s %(message)s")
-    )
+    stream_handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)s %(message)s"))
 
     file_handler = _DailyFileLogHandler()
     file_handler.setFormatter(logging.Formatter("%(levelname)s %(message)s"))

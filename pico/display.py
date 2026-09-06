@@ -21,10 +21,7 @@ _epd = None
 def get_epd():
     global _epd
     if _epd is None:
-        if CONFIG.display.landscape:
-            _epd = EPD_2in13_B_V4_Landscape()
-        else:
-            _epd = EPD_2in13_B_V4_Portrait()
+        _epd = EPD_2in13_B_V4_Landscape() if CONFIG.display.landscape else EPD_2in13_B_V4_Portrait()
         epd_bind_frames(_epd)
 
     return _epd
@@ -194,12 +191,8 @@ def draw_current_panel(epd, current_ci, verdict, next_line):
     panel_w = max(40, screen_w - 10)
 
     # Clear panel area first.
-    epd.black_frame.fill_rect(
-        panel_x + 1, panel_y + 1, panel_w - 2, panel_h - 2, EINK_WHITE
-    )
-    epd.red_frame.fill_rect(
-        panel_x + 1, panel_y + 1, panel_w - 2, panel_h - 2, EINK_WHITE
-    )
+    epd.black_frame.fill_rect(panel_x + 1, panel_y + 1, panel_w - 2, panel_h - 2, EINK_WHITE)
+    epd.red_frame.fill_rect(panel_x + 1, panel_y + 1, panel_w - 2, panel_h - 2, EINK_WHITE)
 
     # Black background + white text.
     text_frame = epd.black_frame

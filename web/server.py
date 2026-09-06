@@ -25,33 +25,36 @@ logging.basicConfig(
 LOGGER = logging.getLogger("web.server")
 
 HTTP_SESSION = Session()
-_SERVER: HTTPServer | None = None
 
 # Backwards-compatible name: code may import `Handler` from this module
 Handler = create_handler(config=CONFIG, logger=LOGGER, http_session=HTTP_SESSION)
 
 
-def _shutdown_server(*_args) -> None:
-    # `global` without an assignment does nothing — _SERVER is only read here.
+def _shutdown(server: HTTPServer) -> None:
+    """Stop serving and close the upstream session, then exit."""
     LOGGER.info("Shutting down dashboard server")
     try:
-        if _SERVER is not None:
-            _SERVER.shutdown()
-            _SERVER.server_close()
+        server.shutdown()
+        server.server_close()
     finally:
         HTTP_SESSION.close()
     sys.exit(0)
 
 
 def run_server() -> None:
-    global _SERVER
+    """Serve until a signal arrives.
+
+    The signal handlers are registered here, closing over the server, rather
+    than reaching for a module-level one: the handler cannot fire before there
+    is something to shut down, and nothing else in the module can see it.
+    """
     server_address = ("127.0.0.1", CONFIG.server.port)
     LOGGER.info("Dashboard server listening on http://%s:%s", *server_address)
-    _SERVER = HTTPServer(server_address, Handler)
-    _SERVER.serve_forever()
+    server = HTTPServer(server_address, Handler)
+    for received in (signal.SIGINT, signal.SIGTERM):
+        signal.signal(received, lambda *_args: _shutdown(server))
+    server.serve_forever()
 
 
 if __name__ == "__main__":
-    signal.signal(signal.SIGINT, _shutdown_server)
-    signal.signal(signal.SIGTERM, _shutdown_server)
     run_server()

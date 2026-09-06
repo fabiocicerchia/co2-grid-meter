@@ -17,9 +17,7 @@ try:
     if outcome == "rolled-back":
         print("OTA: new firmware never reached the serving loop — rolled back")
     elif outcome == "trying":
-        print(
-            "OTA: booting new firmware, attempt %s" % ota.read_state().get("attempts")
-        )
+        print("OTA: booting new firmware, attempt %s" % ota.read_state().get("attempts"))
 # Broad on purpose: boot must continue whatever happens.
 except Exception as error:
     # No ota.py, an unreadable state file, a filesystem that will not stat:

@@ -1,7 +1,7 @@
+import contextlib
 import datetime
 import gc
 import time
-from datetime import timezone
 
 import ujson
 import urequests
@@ -17,6 +17,10 @@ from config import CONFIG, build_firmware_logger
 # Re-exported, not used here: providers import these from utils and there is no
 # reason to churn every call site over where the code physically lives.
 __all__ = ["_quote", "_to_str", "iso_z_to_epoch", "urlencode_simple"]
+
+
+# The only status this firmware treats as an answer.
+_HTTP_OK = 200
 
 
 def free_mem():
@@ -55,15 +59,13 @@ def safe_float(value):
 
 def close_response(response):
     if response:
-        try:
+        with contextlib.suppress(Exception):
             response.close()
-        except Exception:
-            pass
 
 
 def http_get(url, error_label, headers=None, auth=None):
     response = urequests.get(url, headers=headers, auth=auth)
-    if response.status_code != 200:
+    if response.status_code != _HTTP_OK:
         close_response(response)
         raise ProviderError("%s HTTP %d" % (error_label, response.status_code))
     return response
@@ -73,10 +75,7 @@ def http_get_json(url, error_label, headers=None, auth=None, content_parser=Fals
     response = None
     try:
         response = http_get(url, error_label, headers=headers, auth=auth)
-        if content_parser:
-            payload = ujson.loads(response.content)
-        else:
-            payload = response.json()
+        payload = ujson.loads(response.content) if content_parser else response.json()
         return payload or {}
     finally:
         close_response(response)
@@ -129,7 +128,6 @@ def _now_stamp():
     return _format_timestamp(time.localtime(), include_seconds=True, separator=" ")
 
 
-# TODO: _log_rotate(max_files=3)
 def log(message):
     global LOGGER
     LOGGER = build_firmware_logger()
@@ -169,7 +167,7 @@ def _resolution_to_seconds(resolution_text):
 
 
 def iso_utc(dt: datetime.datetime) -> str:
-    return dt.astimezone(timezone.utc).isoformat().replace("+00:00", "Z")
+    return dt.astimezone(datetime.UTC).isoformat().replace("+00:00", "Z")
 
 
 class TextStream:

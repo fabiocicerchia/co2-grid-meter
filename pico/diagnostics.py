@@ -51,9 +51,7 @@ def network_summary(ifconfig):
     """(ip, netmask, gateway, dns) -> a dict, tolerating a short tuple."""
     values = list(ifconfig or ())
     return {
-        field: (
-            values[i].strip() if i < len(values) and isinstance(values[i], str) else ""
-        )
+        field: (values[i].strip() if i < len(values) and isinstance(values[i], str) else "")
         for i, field in enumerate(_IFCONFIG_FIELDS)
     }
 
@@ -96,9 +94,7 @@ def _unique(values):
 def format_location(geo):
     """`Berlin, Berlin, Germany (DE)` — as much as is known, nothing invented."""
     geo = geo or {}
-    text = ", ".join(
-        _unique(geo.get(key) or "" for key in ("city", "region", "country"))
-    )
+    text = ", ".join(_unique(geo.get(key) or "" for key in ("city", "region", "country")))
     cc = geo.get("country_code") or ""
     if cc and cc not in text:
         text = ("%s (%s)" % (text, cc)) if text else cc

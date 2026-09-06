@@ -27,6 +27,8 @@ GRAPH_DASH_LEN = 3
 GRAPH_DASH_GAP = 5
 # Day ticks: hours relative to now, and the label drawn under each.
 GRAPH_DAY_TICKS = ((-48, "-2d"), (-24, "-1d"), (0, "now"))
+# One point is a dot, not a line.
+_MIN_PLOTTABLE_POINTS = 2
 
 
 class GraphAxes:
@@ -45,9 +47,7 @@ class GraphAxes:
         self.plot_h = max(8, self.height - GRAPH_TICK_BAND)
 
         # Y-scale from min/max over last week + current timeline values.
-        self.values = [
-            v for v in current_line + week_line if isinstance(v, (int, float))
-        ]
+        self.values = [v for v in current_line + week_line if isinstance(v, (int, float))]
         self.low = min(self.values) if self.values else 0
         self.high = max(self.values) if self.values else 0
 
@@ -67,9 +67,7 @@ class GraphAxes:
 
     def y_from_norm(self, normalized):
         normalized = min(1.0, max(0.0, normalized))
-        return (
-            self.base_y + (self.plot_h - 2) - int(round(normalized * (self.plot_h - 3)))
-        )
+        return self.base_y + (self.plot_h - 2) - int(round(normalized * (self.plot_h - 3)))
 
 
 def draw_series(frame, axes, values, dotted=False):
@@ -155,9 +153,7 @@ def draw_day_ticks(epd, axes):
         if idx < 0 or idx >= axes.npts:
             continue
         x = axes.x_at(idx)
-        draw_vline(
-            epd.black_frame, x, tick_y0, max(1, tick_y1 - tick_y0 + 1), color=EINK_BLACK
-        )
+        draw_vline(epd.black_frame, x, tick_y0, max(1, tick_y1 - tick_y0 + 1), color=EINK_BLACK)
         draw_text(
             epd.black_frame,
             max(axes.base_x + 1, x - 8),
@@ -183,7 +179,7 @@ def draw_graph(epd, current_line, week_line):
         fill=False,
     )
 
-    if not axes.values or axes.npts < 2:
+    if not axes.values or axes.npts < _MIN_PLOTTABLE_POINTS:
         return
 
     # Current timeline: solid black. Previous-week timeline: dotted black.

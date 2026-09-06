@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Callable
-from dataclasses import MISSING, fields, is_dataclass
+from dataclasses import MISSING, Field, fields, is_dataclass
 from typing import Any, get_args, get_origin
 
 from config import UnifiedConfig
@@ -14,7 +14,7 @@ def _to_bool(raw_value: str) -> bool:
     return str(raw_value).strip().lower() in {"1", "true", "yes", "on"}
 
 
-def _coerce_value(raw_value: str, target_type):
+def _coerce_value(raw_value: str, target_type: Any) -> Any:
     origin = get_origin(target_type)
     normalized_type = get_args(target_type)[0] if origin is not None else target_type
 
@@ -31,17 +31,15 @@ def _env_for_field(
     current_path: tuple[str, ...],
     env_overrides: dict[str, str] | None,
     metadata_env: str | None,
-):
+) -> str | None:
     if not env_overrides:
         return metadata_env
 
     joined_path = ".".join((*current_path, field_name))
-    return (
-        env_overrides.get(joined_path) or env_overrides.get(field_name) or metadata_env
-    )
+    return env_overrides.get(joined_path) or env_overrides.get(field_name) or metadata_env
 
 
-def _default_for_field(item):
+def _default_for_field(item: Field) -> Any:
     if item.default is not MISSING:
         return item.default
     if item.default_factory is not MISSING:  # type: ignore[attr-defined]
@@ -49,7 +47,7 @@ def _default_for_field(item):
     raise ValueError(f"Missing required config field: {item.name}")
 
 
-def _value_for_field(item, field_type, current_path, env_overrides):
+def _value_for_field(item: Field, field_type: Any, current_path: tuple[str, ...], env_overrides: dict[str, str]) -> Any:
     env_name = _env_for_field(
         item.name,
         current_path,
@@ -62,10 +60,10 @@ def _value_for_field(item, field_type, current_path, env_overrides):
 
 
 def _build_dataclass(
-    dataclass_type,
+    dataclass_type: type,
     env_overrides: dict[str, str] | None = None,
     current_path: tuple[str, ...] = (),
-):
+) -> Any:
     values: dict[str, Any] = {}
     env_overrides = env_overrides or {}
 
@@ -86,9 +84,7 @@ def _build_dataclass(
                     env_overrides,
                 )
             except ValueError as error:
-                raise ValueError(
-                    f"Missing required config field: {dataclass_type.__name__}.{item.name}"
-                ) from error
+                raise ValueError(f"Missing required config field: {dataclass_type.__name__}.{item.name}") from error
 
     return dataclass_type(**values)
 
