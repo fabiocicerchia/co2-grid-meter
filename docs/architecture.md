@@ -47,7 +47,7 @@ The project has three deployable pieces that share the same config schema
 
 ## Data flow
 
-```
+```json
 [provider APIs] -> pico/providers -> pico/app.py (cache, recommend) -> pico/http.py -> browser
                                                   \-> pico/fw_render.py -> pico/display.py -> e-ink
                                                                               ^
@@ -94,11 +94,11 @@ export PICO_CACHE_REFRESH_SECONDS=900  # refresh every 15 minutes
 Provider fallback order remains:
 
 1. UK Carbon Intensity (`GB/UK`)
-2. Carbon Intensity API (if enabled — keyless, so there is no token to check)
-3. WattTime (if enabled + credentials)
-4. ENTSO-E (if token + mapped region)
-5. Electricity Maps (if enabled + token)
-6. Simulated fallback (`PICO_ALLOW_SIM_FALLBACK=1`)
+1. Carbon Intensity API (if enabled — keyless, so there is no token to check)
+1. WattTime (if enabled + credentials)
+1. ENTSO-E (if token + mapped region)
+1. Electricity Maps (if enabled + token)
+1. Simulated fallback (`PICO_ALLOW_SIM_FALLBACK=1`)
 
 ### Carbon Intensity API
 

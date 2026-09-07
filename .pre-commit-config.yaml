@@ -76,7 +76,9 @@ repos:
   # Biome rather than eslint: one binary, no plugin matrix, no new entry in
   # package.json. Run through npx as a local hook — the biomejs/pre-commit
   # environment installs the wrapper without its platform binary and dies.
-  # Rules live in biome.json; the formatter is off, this is a linter only.
+  # Rules live in biome.json, and the formatter is on: `biome ci` checks the
+  # formatting as well as the rules, which is what holds the 120-column limit
+  # in place (FC-GEN-045).
   - repo: local
     hooks:
       - id: biome
@@ -97,3 +99,9 @@ repos:
     rev: ed3524a5a82eb1a3cb7106d362772d465c95a684  # v0.8.3
     hooks:
       - id: greenlint
+
+  # FC-MD-008 - markdownlint in CI, blocking. Rules live in .markdownlint.jsonc.
+  - repo: https://github.com/DavidAnson/markdownlint-cli2
+    rev: b82a6c8896e491b9cb377a99ff3412131920681b  # v0.23.2
+    hooks:
+      - id: markdownlint-cli2

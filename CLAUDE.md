@@ -12,18 +12,22 @@ run/wait recommendation, plus a desktop dashboard (`web/`) and a mock Pico
 ## Commands
 
 ```sh
-# test: pytest -q
-# lint: pre-commit run --all-files   (ruff + gitleaks + editorconfig etc.)
-# run:  ./start.sh                   (mock Pico + dashboard together)
-make help    # Show this help
-make setup   # Install the pre-commit hook
-make lint    # Run all pre-commit checks on the whole tree
-make test    # Run tests
+make help     # Show this help
+make setup    # .venv + runtime and dev dependencies + the pre-commit hook
+make install  # Runtime dependencies into the active interpreter
+make build    # docker build — the dashboard image
+make run      # ./start.sh — mock Pico and dashboard together
+make test     # pytest
+make lint     # pre-commit run --all-files — the whole gate
+make format   # ruff format .
+make analyze  # trivy fs
 ```
 
 ## Tooling
 
-- `make setup` installs the pre-commit hook, and that is the whole of it.
+- `make setup` creates `.venv` — the one `start.sh` activates — installs
+  `requirements.txt` and `requirements-dev.txt` into it, and installs the
+  pre-commit hook.
   Don't add a `.githooks/` directory: `core.hooksPath` replaces `.git/hooks/`
   wholesale, so setting it silently stops every pre-commit hook from running.
 - Hooks are pinned by commit SHA with the tag in a trailing comment. A tag can
