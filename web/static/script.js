@@ -4,12 +4,18 @@ const K = {
   THEME: "co2_meter_theme_v1",
   AUTO: "co2_meter_auto_refresh_v1",
   INT: "co2_meter_auto_interval_v1",
-  GLAT: "geo_lat", GLON: "geo_lon", GCITY: "geo_city", GCC: "geo_cc",
+  GLAT: "geo_lat",
+  GLON: "geo_lon",
+  GCITY: "geo_city",
+  GCC: "geo_cc",
 };
 const CFG = { BACK_H: 48, FWD_H: 12, LEDS: 12, GREEN: 4, YELLOW: 4, P_GREEN: 0.33, P_YELLOW: 0.66 };
 
 const $ = (id) => document.getElementById(id);
-const setText = (id, v) => { const el = $(id); if (el) el.textContent = v; };
+const setText = (id, v) => {
+  const el = $(id);
+  if (el) el.textContent = v;
+};
 const cssVar = (n) => getComputedStyle(document.body).getPropertyValue(n).trim();
 const ls = { get: (k, d = "") => localStorage.getItem(k) ?? d, set: (k, v) => localStorage.setItem(k, v) };
 const num = (v, d = 0) => (Number.isFinite(+v) ? +v : d);
@@ -17,21 +23,33 @@ const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 
 const I18N = {
   en: {
-    dashboard_title_suffix: 'grid CO₂ dashboard (local)', auto_refresh: 'Auto refresh', refresh_now: 'Refresh now',
-    current: 'Current', intensity: 'Intensity', recommendation: 'Recommendation', reason: 'Reason',
-    next_window: 'Next window', chart_title: 'Past 48h + Next 12h'
+    dashboard_title_suffix: "grid CO₂ dashboard (local)",
+    auto_refresh: "Auto refresh",
+    refresh_now: "Refresh now",
+    current: "Current",
+    intensity: "Intensity",
+    recommendation: "Recommendation",
+    reason: "Reason",
+    next_window: "Next window",
+    chart_title: "Past 48h + Next 12h",
   },
   it: {
-    dashboard_title_suffix: 'dashboard CO₂ di rete (locale)', auto_refresh: 'Aggiornamento automatico', refresh_now: 'Aggiorna ora',
-    current: 'Attuale', intensity: 'Intensità', recommendation: 'Raccomandazione', reason: 'Motivo',
-    next_window: 'Prossima finestra', chart_title: 'Ultime 48h + Prossime 12h'
-  }
+    dashboard_title_suffix: "dashboard CO₂ di rete (locale)",
+    auto_refresh: "Aggiornamento automatico",
+    refresh_now: "Aggiorna ora",
+    current: "Attuale",
+    intensity: "Intensità",
+    recommendation: "Raccomandazione",
+    reason: "Motivo",
+    next_window: "Prossima finestra",
+    chart_title: "Ultime 48h + Prossime 12h",
+  },
 };
 
 function applyI18n(lang) {
   const dict = I18N[lang] || I18N.en;
-  document.querySelectorAll('[data-i18n]').forEach((el) => {
-    const key = el.getAttribute('data-i18n');
+  document.querySelectorAll("[data-i18n]").forEach((el) => {
+    const key = el.getAttribute("data-i18n");
     if (dict[key]) el.textContent = dict[key];
   });
 }
@@ -59,24 +77,34 @@ function geoQS(prefix = "&") {
   const city = ls.get(K.GCITY, "").trim();
 
   const q = new URLSearchParams();
-  if (lat && lon) { q.set("lat", lat); q.set("lon", lon); }
+  if (lat && lon) {
+    q.set("lat", lat);
+    q.set("lon", lon);
+  }
   if (cc) q.set("cc", cc);
   if (city) q.set("city", city);
 
   const s = q.toString();
-  return s ? (prefix + s) : "";
+  return s ? prefix + s : "";
 }
 
 /* ----------------- LED meter ----------------- */
 const percentile = (sorted, x) => {
-  const n = sorted.length; if (!n) return null;
-  let lo = 0, hi = n;
-  while (lo < hi) { const m = (lo + hi) >> 1; if (sorted[m] < x) lo = m + 1; else hi = m; }
+  const n = sorted.length;
+  if (!n) return null;
+  let lo = 0,
+    hi = n;
+  while (lo < hi) {
+    const m = (lo + hi) >> 1;
+    if (sorted[m] < x) lo = m + 1;
+    else hi = m;
+  }
   return lo / n;
 };
 
 function initLedMeter() {
-  const meter = $("meter"); if (!meter) return;
+  const meter = $("meter");
+  if (!meter) return;
   meter.innerHTML = "";
   for (let i = 0; i < CFG.LEDS; i++) {
     const d = document.createElement("div");
@@ -87,18 +115,24 @@ function initLedMeter() {
 }
 
 function setLedMeter(level, label = "—") {
-  const meter = $("meter"); if (!meter) return;
+  const meter = $("meter");
+  if (!meter) return;
   meter.querySelectorAll(".led").forEach((el, i) => {
-    const on = i < level, c = el.dataset.color;
+    const on = i < level,
+      c = el.dataset.color;
     el.className = "led" + (on ? ` on ${c}` : "");
   });
   setText("meterLabel", label);
 }
 
 function meterFromWeekDistribution(currentCi, weekSeries) {
-  const vals = (weekSeries || []).map((p) => p.ci).filter(Number.isFinite).sort((a, b) => a - b);
+  const vals = (weekSeries || [])
+    .map((p) => p.ci)
+    .filter(Number.isFinite)
+    .sort((a, b) => a - b);
   if (vals.length < 12) return setLedMeter(0, "Collecting baseline…");
-  const p = percentile(vals, currentCi); if (p == null) return setLedMeter(0, "No baseline");
+  const p = percentile(vals, currentCi);
+  if (p == null) return setLedMeter(0, "No baseline");
 
   const level = clamp(Math.round(p * CFG.LEDS), 0, CFG.LEDS);
   const zone = p <= CFG.P_GREEN ? "cleaner than usual" : p <= CFG.P_YELLOW ? "around average" : "dirtier than usual";
@@ -106,23 +140,28 @@ function meterFromWeekDistribution(currentCi, weekSeries) {
 }
 
 /* ----------------- chart ----------------- */
-const DOW = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 function sizeCanvasToContainer(c) {
-  const p = c?.parentElement; if (!p) return;
-  const r = p.getBoundingClientRect(), dpr = window.devicePixelRatio || 1;
+  const p = c?.parentElement;
+  if (!p) return;
+  const r = p.getBoundingClientRect(),
+    dpr = window.devicePixelRatio || 1;
   c.width = Math.max(200, Math.floor(r.width * dpr));
   c.height = Math.max(200, Math.floor(r.height * dpr));
 }
 
 function drawChart(cur, overlayShifted) {
-  const canvas = $("chart"); if (!canvas) return;
+  const canvas = $("chart");
+  if (!canvas) return;
   sizeCanvasToContainer(canvas);
 
   const ctx = canvas.getContext("2d");
   const dpr = window.devicePixelRatio || 1;
-  const W = canvas.width, H = canvas.height;
-  const w = W / dpr, h = H / dpr;
+  const W = canvas.width,
+    H = canvas.height;
+  const w = W / dpr,
+    h = H / dpr;
 
   const C = {
     axis: cssVar("--axis") || "#bbb",
@@ -139,7 +178,10 @@ function drawChart(cur, overlayShifted) {
   ctx.scale(1 / dpr, 1 / dpr);
 
   const pad = { L: 64, R: 20, T: 18, B: 88 };
-  const x0 = pad.L, y0 = pad.T, x1 = w - pad.R, y1 = h - pad.B;
+  const x0 = pad.L,
+    y0 = pad.T,
+    x1 = w - pad.R,
+    y1 = h - pad.B;
 
   ctx.strokeStyle = C.axis;
   ctx.strokeRect(x0, y0, x1 - x0, y1 - y0);
@@ -153,19 +195,26 @@ function drawChart(cur, overlayShifted) {
   const all = curClip.concat(ovClip);
 
   if (all.length < 2) {
-    ctx.fillStyle = C.fg; ctx.font = "14px system-ui";
+    ctx.fillStyle = C.fg;
+    ctx.font = "14px system-ui";
     ctx.fillText("No data yet (or endpoint not available).", x0 + 10, y0 + 24);
-    ctx.restore(); return;
+    ctx.restore();
+    return;
   }
 
-  let min = Infinity, max = -Infinity;
-  for (const p of all) { min = Math.min(min, p.ci); max = Math.max(max, p.ci); }
+  let min = Infinity,
+    max = -Infinity;
+  for (const p of all) {
+    min = Math.min(min, p.ci);
+    max = Math.max(max, p.ci);
+  }
   if (max === min) max = min + 1;
 
   const X = (t) => x0 + ((t - start) * (x1 - x0)) / Math.max(1, end - start);
   const Y = (ci) => y1 - ((ci - min) * (y1 - y0)) / (max - min);
 
-  ctx.fillStyle = C.fg; ctx.font = "12px system-ui";
+  ctx.fillStyle = C.fg;
+  ctx.font = "12px system-ui";
   ctx.fillText(String(Math.round(max)), 10, y0 + 12);
   ctx.fillText(String(Math.round(min)), 10, y1);
 
@@ -175,15 +224,23 @@ function drawChart(cur, overlayShifted) {
 
   ctx.font = "11px system-ui";
   for (let t = firstHour; t <= end; t += hourMs) {
-    const x = X(t), d = new Date(t), isMidnight = d.getHours() === 0;
+    const x = X(t),
+      d = new Date(t),
+      isMidnight = d.getHours() === 0;
 
     ctx.strokeStyle = isMidnight ? C.midnight : C.grid;
     ctx.lineWidth = isMidnight ? 2 : 1;
-    ctx.beginPath(); ctx.moveTo(x, y0); ctx.lineTo(x, y1); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x, y0);
+    ctx.lineTo(x, y1);
+    ctx.stroke();
     ctx.lineWidth = 1;
 
     ctx.strokeStyle = C.axis;
-    ctx.beginPath(); ctx.moveTo(x, y1); ctx.lineTo(x, y1 + (isMidnight ? 10 : 6)); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(x, y1);
+    ctx.lineTo(x, y1 + (isMidnight ? 10 : 6));
+    ctx.stroke();
 
     const hr = d.getHours();
     if (!isMidnight && hr % 2 === 0) {
@@ -198,7 +255,9 @@ function drawChart(cur, overlayShifted) {
   }
 
   for (const m of midnights) {
-    const d = m.d, dd = String(d.getDate()).padStart(2, "0"), mm = String(d.getMonth() + 1).padStart(2, "0");
+    const d = m.d,
+      dd = String(d.getDate()).padStart(2, "0"),
+      mm = String(d.getMonth() + 1).padStart(2, "0");
     ctx.fillStyle = C.fg;
     ctx.font = "bold 12px system-ui";
     ctx.fillText(DOW[d.getDay()], m.x - 14, y1 + 40);
@@ -224,16 +283,24 @@ function drawChart(cur, overlayShifted) {
 
   ctx.strokeStyle = C.now;
   ctx.setLineDash([3, 3]);
-  ctx.beginPath(); ctx.moveTo(X(now), y0); ctx.lineTo(X(now), y1); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(X(now), y0);
+  ctx.lineTo(X(now), y1);
+  ctx.stroke();
   ctx.setLineDash([]);
-  ctx.fillStyle = C.fg; ctx.font = "12px system-ui";
+  ctx.fillStyle = C.fg;
+  ctx.font = "12px system-ui";
   ctx.fillText("now", X(now) + 6, y0 + 14);
 
-  ctx.fillStyle = C.fg; ctx.font = "12px system-ui";
+  ctx.fillStyle = C.fg;
+  ctx.font = "12px system-ui";
   ctx.fillText("Actual (past 48h)", x0 + 10, y0 + 14);
   ctx.setLineDash([6, 6]);
   ctx.strokeStyle = C.overlay;
-  ctx.beginPath(); ctx.moveTo(x0 + 150, y0 + 10); ctx.lineTo(x0 + 195, y0 + 10); ctx.stroke();
+  ctx.beginPath();
+  ctx.moveTo(x0 + 150, y0 + 10);
+  ctx.lineTo(x0 + 195, y0 + 10);
+  ctx.stroke();
   ctx.setLineDash([]);
   ctx.fillText("Past-week overlay (incl. next 12h)", x0 + 205, y0 + 14);
 
@@ -251,7 +318,10 @@ async function loadWindowFromServer() {
   const j1 = await r1.json();
   if (j1?.error) throw new Error(j1.error);
 
-  const r2 = await fetch(`/api/em/window-overlay?back_hours=${CFG.BACK_H}&forward_hours=${CFG.FWD_H}${geoQS("&")}${qs}`, { cache: "no-store" });
+  const r2 = await fetch(
+    `/api/em/window-overlay?back_hours=${CFG.BACK_H}&forward_hours=${CFG.FWD_H}${geoQS("&")}${qs}`,
+    { cache: "no-store" },
+  );
   const j2 = await r2.json();
   if (j2?.error) throw new Error(j2.error);
 
@@ -272,7 +342,9 @@ async function pollPicoStatus() {
   const j = await fetch(`/api/status${qs}`, { cache: "no-store" }).then((r) => r.json());
 
   if (j?.error) {
-    ["ci","verdict","next","device"].forEach((id) => { setText(id, "—"); });
+    ["ci", "verdict", "next", "device"].forEach((id) => {
+      setText(id, "—");
+    });
     setText("reason", j.error);
     lastCurrentCi = null;
     return setLedMeter(0, "No current data");
@@ -308,8 +380,14 @@ let autoTimer = null;
 let progressRAF = null;
 let progressStart = null;
 
-const setProgress = (pct) => { const b = $("topProgress"); if (b) b.style.width = `${clamp(pct, 0, 100).toFixed(2)}%`; };
-const resetProgress = () => { progressStart = performance.now(); setProgress(0); };
+const setProgress = (pct) => {
+  const b = $("topProgress");
+  if (b) b.style.width = `${clamp(pct, 0, 100).toFixed(2)}%`;
+};
+const resetProgress = () => {
+  progressStart = performance.now();
+  setProgress(0);
+};
 const humanInterval = (ms) => (ms < 60000 ? `${Math.round(ms / 1000)}s` : `${Math.round(ms / 60000)}m`);
 
 function updateAutoUI() {
@@ -324,25 +402,36 @@ function updateAutoUI() {
 function startAuto() {
   stopAuto();
   const ms = num($("refreshEvery")?.value, 30000);
-  setIntervalStore(ms); setAuto(true);
-  resetProgress(); refreshAllOnce().catch(() => {});
+  setIntervalStore(ms);
+  setAuto(true);
+  resetProgress();
+  refreshAllOnce().catch(() => {});
   autoTimer = setInterval(() => refreshAllOnce().catch(() => {}), ms);
   updateAutoUI();
 }
 
 function stopAuto() {
   if (autoTimer) clearInterval(autoTimer);
-  autoTimer = null; setAuto(false);
-  updateAutoUI(); resetProgress(); setProgress(0);
+  autoTimer = null;
+  setAuto(false);
+  updateAutoUI();
+  resetProgress();
+  setProgress(0);
 }
 
-function toggleAuto() { autoTimer ? stopAuto() : startAuto(); }
+function toggleAuto() {
+  autoTimer ? stopAuto() : startAuto();
+}
 
 function startProgressLoop() {
   const step = () => {
     const on = !!autoTimer;
     const ms = num($("refreshEvery")?.value, 30000);
-    if (!on) { setProgress(0); progressRAF = requestAnimationFrame(step); return; }
+    if (!on) {
+      setProgress(0);
+      progressRAF = requestAnimationFrame(step);
+      return;
+    }
     if (progressStart == null) progressStart = performance.now();
     setProgress(((performance.now() - progressStart) / ms) * 100);
     progressRAF = requestAnimationFrame(step);
@@ -351,7 +440,13 @@ function startProgressLoop() {
 }
 
 /* ----------------- init ----------------- */
-function debounce(fn, t = 150) { let h; return (...a) => { clearTimeout(h); h = setTimeout(() => fn(...a), t); }; }
+function debounce(fn, t = 150) {
+  let h;
+  return (...a) => {
+    clearTimeout(h);
+    h = setTimeout(() => fn(...a), t);
+  };
+}
 
 document.addEventListener("DOMContentLoaded", () => {
   initLedMeter();
@@ -372,14 +467,20 @@ document.addEventListener("DOMContentLoaded", () => {
   applyTheme(mode);
   $("themeToggle")?.addEventListener("change", (e) => {
     const m = e.target.checked ? "dark" : "light";
-    setTheme(m); applyTheme(m);
+    setTheme(m);
+    applyTheme(m);
   });
 
   // auto refresh
   if ($("refreshEvery")) $("refreshEvery").value = String(getInterval());
   $("toggleAuto")?.addEventListener("click", toggleAuto);
-  $("lang")?.addEventListener("change", (e) => { ls.set("co2_meter_lang", e.target.value); applyI18n(e.target.value); });
-  const currentLang = ls.get("co2_meter_lang", "en"); if ($("lang")) $("lang").value = currentLang; applyI18n(currentLang);
+  $("lang")?.addEventListener("change", (e) => {
+    ls.set("co2_meter_lang", e.target.value);
+    applyI18n(e.target.value);
+  });
+  const currentLang = ls.get("co2_meter_lang", "en");
+  if ($("lang")) $("lang").value = currentLang;
+  applyI18n(currentLang);
 
   $("refreshEvery")?.addEventListener("change", () => {
     const ms = num($("refreshEvery")?.value, 30000);
@@ -388,9 +489,10 @@ document.addEventListener("DOMContentLoaded", () => {
     autoTimer ? startAuto() : resetProgress();
   });
 
-  window.addEventListener("resize", debounce(() => loadWindowFromServer().catch(() => {})));
+  window.addEventListener(
+    "resize",
+    debounce(() => loadWindowFromServer().catch(() => {})),
+  );
 
-  getAuto()
-    ? startAuto()
-    : (refreshAllOnce().catch(() => {}), updateAutoUI(), resetProgress(), setProgress(0));
+  getAuto() ? startAuto() : (refreshAllOnce().catch(() => {}), updateAutoUI(), resetProgress(), setProgress(0));
 });
