@@ -30,6 +30,10 @@ DAY_SEC = 24 * HOUR_SEC
 FIGURES = ("consumption_lifecycle", "lifecycle", "direct")
 
 
+# "YYYY-MM-DD" — anything else is not a date this API returns.
+_ISO_DATE_CHARS = 10
+
+
 def history_path(country_code, date_str, zone=""):
     """Path for one UTC day (`/v2/IT/history/2026-08-27`, or with a zone
     segment for a bidding zone). An uppercase segment is a code and a
@@ -39,7 +43,7 @@ def history_path(country_code, date_str, zone=""):
     if not code:
         raise ValueError("country code is required")
     date = (date_str or "").strip()
-    if len(date) != 10:
+    if len(date) != _ISO_DATE_CHARS:
         raise ValueError("date must be YYYY-MM-DD")
     area = (zone or "").strip().upper()
     if area:

@@ -112,9 +112,7 @@ class TestLocaleIntegrity:
         for code, table in LOCALES.items():
             for key, text in table.items():
                 rendered = re.sub(r"%d", "8888", re.sub(r"%s", "88:88", text))
-                assert len(rendered) <= MAX_LABEL_CHARS + 8, (
-                    f"{code}:{key} is {len(rendered)} chars"
-                )
+                assert len(rendered) <= MAX_LABEL_CHARS + 8, f"{code}:{key} is {len(rendered)} chars"
 
 
 class TestMemoryBudget:
@@ -177,9 +175,7 @@ def test_the_language_setting_the_firmware_reads_exists():
     pico = str(REPO / "pico")
     sys.path.insert(0, pico)
     try:
-        spec = importlib.util.spec_from_file_location(
-            "pico_config_for_i18n", REPO / "pico" / "config.py"
-        )
+        spec = importlib.util.spec_from_file_location("pico_config_for_i18n", REPO / "pico" / "config.py")
         config = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(config)
     finally:

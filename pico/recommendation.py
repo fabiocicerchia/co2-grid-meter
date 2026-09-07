@@ -6,6 +6,9 @@ from utils import floor_hour_epoch, fmt_hhmm_local, iso_z_to_epoch, percentile
 
 from config import CONFIG
 
+# A day of readings: less than that cannot say where in the cycle we are.
+_MIN_HISTORY_HOURS = 24
+
 
 def compute_recommendation(current_carbon_intensity, overlay_history, now_epoch):
     values = [
@@ -13,7 +16,7 @@ def compute_recommendation(current_carbon_intensity, overlay_history, now_epoch)
         for item in overlay_history
         if isinstance(item.get("carbonIntensity"), (int, float))
     ]
-    if len(values) < 24:
+    if len(values) < _MIN_HISTORY_HOURS:
         return {
             "verdict": "OK",
             "reason": "Collecting baseline",

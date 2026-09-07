@@ -32,6 +32,7 @@ tying rollback to a provider being reachable would roll back perfectly good
 firmware during an upstream outage.
 """
 
+import contextlib
 import os
 
 try:  # MicroPython
@@ -72,9 +73,9 @@ class OtaError(Exception):
 def _exists(path):
     try:
         os.stat(path)
-        return True
     except OSError:
         return False
+    return True
 
 
 def _mkdirs(path):
@@ -85,17 +86,13 @@ def _mkdirs(path):
             continue
         grown = part if not grown else grown + "/" + part
         if not _exists(grown):
-            try:
+            with contextlib.suppress(OSError):
                 os.mkdir(grown)
-            except OSError:
-                pass
 
 
 def _remove(path):
-    try:
+    with contextlib.suppress(OSError):
         os.remove(path)
-    except OSError:
-        pass
 
 
 def _replace(src, dst):
@@ -107,8 +104,9 @@ def _replace(src, dst):
     """
     try:
         os.rename(src, dst)
-        return
     except OSError:
+        # The destination is already there: MicroPython's rename will not
+        # replace it, so clear the way and retry.
         _remove(dst)
         os.rename(src, dst)
 

@@ -76,11 +76,10 @@ def _auto_geo_defaults():
         log("Auto-geo resolved to %s" % format_location(_geo_details))
         if _geo_details.get("isp"):
             log("ISP: %s" % _geo_details["isp"])
-        return _auto_geo_cache
     except Exception as error:
         log("Auto-geo failed: %s" % error)
         _auto_geo_expires = now + int(CONFIG.geo.failure_retry_seconds)
-        return _auto_geo_cache
+    return _auto_geo_cache
 
 
 def log_boot_diagnostics():
@@ -154,7 +153,6 @@ def series_points(series_json):
     return points
 
 
-# TODO: add a variable to force switch the provide and the city
 _dummy_rng_state = int(time.time()) & 0x7FFFFFFF
 
 # A plausible day of intensities; the dummy provider draws uniformly between
@@ -183,10 +181,7 @@ def dummy_fetch_window_any(lat, lon, city, country_code, start_epoch, end_epoch)
         cursor += 3600
 
     if history:
-        log(
-            "DUMMY provider generated %d points in range [%d, %d]"
-            % (len(history), min_ci, max_ci)
-        )
+        log("DUMMY provider generated %d points in range [%d, %d]" % (len(history), min_ci, max_ci))
     return {"city": "Dummy", "history": history, "_provider": "dummy"}, "dummy"
 
 
@@ -207,13 +202,9 @@ def _fetch_window(lat, lon, city, cc, start_epoch, end_epoch):
     global _last_provider_used
     log("Fetching data...")
     if CONFIG.providers.force_dummy:
-        data, provider_used = dummy_fetch_window_any(
-            lat, lon, city, cc, start_epoch, end_epoch
-        )
+        data, provider_used = dummy_fetch_window_any(lat, lon, city, cc, start_epoch, end_epoch)
     else:
-        data, provider_used = fetch_window_any(
-            lat, lon, city, cc, start_epoch, end_epoch
-        )
+        data, provider_used = fetch_window_any(lat, lon, city, cc, start_epoch, end_epoch)
     log("Provider used: %s" % provider_used)
     data["_provider"] = provider_used
     _last_provider_used = provider_used
@@ -231,9 +222,7 @@ def get_window(lat, lon, city, cc, start_epoch, end_epoch):
     # is idempotent, and a device whose thread cannot start still serves — the
     # fetcher falls back to fetching inline.
     _fetcher.start()
-    data = _fetcher.get_or_set(
-        key, lambda: _fetch_window(lat, lon, city, cc, start_epoch, end_epoch)
-    )
+    data = _fetcher.get_or_set(key, lambda: _fetch_window(lat, lon, city, cc, start_epoch, end_epoch))
     if data is None:
         # Nothing has ever been fetched for this window and the first attempt
         # did not finish in time. Raised, not returned empty: every caller
@@ -307,9 +296,7 @@ def build_status_bundle(params):
     if current_intensity is None:
         raise ProviderError("No carbonIntensity in last point")
 
-    overlay_data = handle_em_overlay(
-        {"lat": str(lat), "lon": str(lon), "city": city, "cc": cc}
-    )
+    overlay_data = handle_em_overlay({"lat": str(lat), "lon": str(lon), "city": city, "cc": cc})
     recommendation = recommend_from_week(
         current_intensity,
         overlay_data.get("history") or [],

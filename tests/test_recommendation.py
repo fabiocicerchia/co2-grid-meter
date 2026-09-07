@@ -16,9 +16,7 @@ def _overlay(hours=48, base=200):
     now = datetime.now(timezone.utc) - timedelta(days=7)
     return [
         {
-            "datetime": (now + timedelta(hours=index))
-            .isoformat()
-            .replace("+00:00", "Z"),
+            "datetime": (now + timedelta(hours=index)).isoformat().replace("+00:00", "Z"),
             "carbonIntensity": base + (index % 10),
         }
         for index in range(hours)

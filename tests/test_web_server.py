@@ -77,9 +77,7 @@ def test_api_status_success():
 
 
 def test_api_status_handles_provider_http_error():
-    session = FakeSession(
-        FakeResponse({"error": "bad"}, ok=False, status_code=500, text="boom")
-    )
+    session = FakeSession(FakeResponse({"error": "bad"}, ok=False, status_code=500, text="boom"))
     handler_cls = web_handler.create_handler(
         config=_config(),
         logger=type("L", (), {"warning": lambda *a, **k: None})(),

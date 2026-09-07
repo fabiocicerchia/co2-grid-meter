@@ -1,3 +1,4 @@
+import contextlib
 import os
 import time
 from abc import ABC, abstractmethod
@@ -22,7 +23,7 @@ def load_json_store(path):
     """
     for candidate in (path, path + ".bak", path + ".tmp"):
         try:
-            with open(candidate, "r") as fh:
+            with open(candidate) as fh:
                 payload = ujson.loads(fh.read())
                 if isinstance(payload, dict):
                     return payload
@@ -44,15 +45,11 @@ def save_json_store(path, payload, label=""):
         with open(tmp_file, "w") as fh:
             fh.write(ujson.dumps(payload))
 
-        try:
+        with contextlib.suppress(Exception):
             os.remove(bak_file)
-        except Exception:
-            pass
 
-        try:
+        with contextlib.suppress(Exception):
             os.rename(path, bak_file)
-        except Exception:
-            pass
 
         os.rename(tmp_file, path)
     except Exception as error:
@@ -138,6 +135,11 @@ def _latest_history(samples, end):
     )
 
 
+# A failed collection retries on the next minute rather than on the normal
+# interval: the window it missed is the one someone is looking at.
+_COLLECT_RETRY_SECONDS = 60
+
+
 class EmissionsProvider(ABC):
     provider_name: str
 
@@ -208,9 +210,7 @@ class SampledProvider(EmissionsProvider):
             return samples
 
         try:
-            intensity, city, resolved_cc = self.fetch_current(
-                latitude, longitude, country_code
-            )
+            intensity, city, resolved_cc = self.fetch_current(latitude, longitude, country_code)
             sample = {
                 "ts": self.sample_hour(now),
                 "carbonIntensity": intensity,
@@ -220,11 +220,10 @@ class SampledProvider(EmissionsProvider):
             samples = _upsert_sample(samples, sample, self.retention_hours)
             self._save_store(samples)
             self._defer(self.collect_interval_sec)
-            return samples
         except Exception as error:
             log("%s collect failed: %s" % (self.provider_name, error))
-            self._defer(60)
-            return samples
+            self._defer(_COLLECT_RETRY_SECONDS)
+        return samples
 
     def fetch_history(self, latitude, longitude, country_code, start, end):
         cc = (country_code or "").upper()

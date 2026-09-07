@@ -46,10 +46,7 @@ def _defined(tree):
 
 def test_bare_name_imports_resolve():
     modules = _modules()
-    trees = {
-        name: ast.parse(path.read_text(encoding="utf-8"))
-        for name, path in modules.items()
-    }
+    trees = {name: ast.parse(path.read_text(encoding="utf-8")) for name, path in modules.items()}
     defined = {name: _defined(tree) for name, tree in trees.items()}
 
     missing = []
@@ -66,9 +63,6 @@ def test_bare_name_imports_resolve():
                 if alias.name == "*":
                     continue
                 if alias.name not in defined[target]:
-                    missing.append(
-                        f"pico/{name}.py imports {alias.name!r} from "
-                        f"{target}, which does not define it"
-                    )
+                    missing.append(f"pico/{name}.py imports {alias.name!r} from {target}, which does not define it")
 
     assert not missing, "\n".join(missing)

@@ -17,6 +17,10 @@ from config import CONFIG
 from providers.base import EmissionsProvider
 from providers.entsoe_parse import iter_series
 
+# The only status this provider treats as an answer.
+_HTTP_OK = 200
+
+
 ENTSOE_DOMAIN = {
     # Core ENTSO-E domains + common aliases.
     "AL": "10YAL-KESH-----5",
@@ -103,9 +107,7 @@ PSR_EMISSION_FACTOR = {
 }
 
 
-def _fill_range(
-    buckets, period_start_epoch, interval_sec, start_pos, end_pos, mw, emission
-):
+def _fill_range(buckets, period_start_epoch, interval_sec, start_pos, end_pos, mw, emission):
     """Fill hourly buckets for positions [start_pos, end_pos) with a constant mw value
     (A03 step-curve fill: the last known point holds until the next one)."""
     if mw <= 0:
@@ -153,11 +155,7 @@ def _fold_period(buckets, period, emission):
         last_position = position
         last_quantity = quantity
 
-    if (
-        last_position is not None
-        and last_quantity is not None
-        and total_positions is not None
-    ):
+    if last_position is not None and last_quantity is not None and total_positions is not None:
         _fill_range(
             buckets,
             period_start_epoch,
@@ -224,9 +222,7 @@ class EntsoeProvider(EmissionsProvider):
             "periodStart": self.period_timestamp(start),
             "periodEnd": self.period_timestamp(end),
         }
-        return (
-            _to_str(CONFIG.providers.entsoe.base_url) + "?" + urlencode_simple(params)
-        )
+        return _to_str(CONFIG.providers.entsoe.base_url) + "?" + urlencode_simple(params)
 
     def fetch_history(self, latitude, longitude, country_code, start, end):
         if not CONFIG.providers.entsoe.token:
@@ -243,7 +239,7 @@ class EntsoeProvider(EmissionsProvider):
             response = urequests.get(self._history_url(mapped_country, start, end))
             log("Provider request made")
 
-            if response.status_code != 200:
+            if response.status_code != _HTTP_OK:
                 raise ProviderError("ENTSO-E HTTP %d" % response.status_code)
 
             # One pass over the six fields this actually reads, rather than

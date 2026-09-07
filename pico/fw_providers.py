@@ -10,7 +10,6 @@ from utils import ProviderError
 from config import CONFIG
 
 
-# TODO: Refactor to use is_enabled
 def _select(country_code):
     """The one configured provider, as (name, class).
 
@@ -63,10 +62,7 @@ def _select(country_code):
 
     enabled = [(name, cls) for name, required, cls in candidates if all(required)]
     if len(enabled) > 1:
-        raise ProviderError(
-            "Enable only one provider at a time: %s"
-            % ",".join(name for name, _ in enabled)
-        )
+        raise ProviderError("Enable only one provider at a time: %s" % ",".join(name for name, _ in enabled))
     if not enabled:
         raise ProviderError("No providers available")
     return enabled[0]
@@ -79,7 +75,5 @@ def selected_provider(country_code):
 def fetch_window_any(lat, lon, city, country_code, start_epoch, end_epoch):
     del city
     provider, provider_class = _select(country_code)
-    history = provider_class().fetch_history(
-        lat, lon, country_code, start_epoch, end_epoch
-    )
+    history = provider_class().fetch_history(lat, lon, country_code, start_epoch, end_epoch)
     return history, provider

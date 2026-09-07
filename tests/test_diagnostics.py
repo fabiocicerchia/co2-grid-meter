@@ -46,9 +46,7 @@ IPAPI = {
 
 class TestNetworkSummary:
     def test_reads_the_whole_ifconfig(self):
-        got = network_summary(
-            ("192.168.1.50", "255.255.255.0", "192.168.1.1", "1.1.1.1")
-        )
+        got = network_summary(("192.168.1.50", "255.255.255.0", "192.168.1.1", "1.1.1.1"))
         assert got == {
             "ip": "192.168.1.50",
             "netmask": "255.255.255.0",
@@ -68,9 +66,12 @@ class TestGeoSummary:
         for payload in (IPWHO, IPAPI):
             summary = geo_summary(payload)
             flat = repr(summary)
-            assert "52.52" not in flat and "13.405" not in flat
-            assert "38.7" not in flat and "-9.14" not in flat
-            assert "latitude" not in summary and "lat" not in summary
+            assert "52.52" not in flat
+            assert "13.405" not in flat
+            assert "38.7" not in flat
+            assert "-9.14" not in flat
+            assert "latitude" not in summary
+            assert "lat" not in summary
 
     def test_reads_both_provider_spellings(self):
         assert geo_summary(IPWHO)["region"] == "Berlin"
@@ -107,19 +108,19 @@ class TestFormatting:
 
 class TestBootLines:
     def test_covers_what_the_issue_asked_for(self):
-        net = network_summary(
-            ("192.168.1.50", "255.255.255.0", "192.168.1.1", "1.1.1.1")
-        )
+        net = network_summary(("192.168.1.50", "255.255.255.0", "192.168.1.1", "1.1.1.1"))
         lines = boot_lines(net, geo_summary(IPWHO))
         joined = "\n".join(lines)
         assert "192.168.1.50" in joined
-        assert "255.255.255.0" in joined and "192.168.1.1" in joined
+        assert "255.255.255.0" in joined
+        assert "192.168.1.1" in joined
         assert "Berlin, Germany (DE)" in joined
         assert "Telekom" in joined
 
     def test_never_logs_a_coordinate(self):
         joined = "\n".join(boot_lines(network_summary(()), geo_summary(IPWHO)))
-        assert "52.52" not in joined and "13.405" not in joined
+        assert "52.52" not in joined
+        assert "13.405" not in joined
 
     def test_missing_pieces_degrade_to_placeholders(self):
         # No network, no geo: still one readable line each, no exception.
@@ -128,6 +129,4 @@ class TestBootLines:
         assert lines[1] == "Location: unknown"
 
     def test_isp_line_is_omitted_when_unknown(self):
-        assert not any(
-            line.startswith("ISP:") for line in boot_lines({}, {"city": "Oslo"})
-        )
+        assert not any(line.startswith("ISP:") for line in boot_lines({}, {"city": "Oslo"}))

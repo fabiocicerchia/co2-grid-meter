@@ -1,3 +1,29 @@
+# FC-PY-001: the house rule set, the same selection every other Python repo in
+# the fleet carries. In ruff.toml because this repo installs nothing — the
+# firmware is copied to a device and the rest is scripts.
+line-length = 120           # FC-GEN-045
+# The OLDEST Python CI runs, not the newest: the matrix in ci.yml starts at
+# 3.10, and a target above it lets UP rewrite to syntax that version cannot
+# import (UP017 turned timezone.utc into datetime.UTC, which is 3.11+).
+# The firmware is MicroPython, a subset of this; exceptions are listed below.
+target-version = "py310"
+
+[lint]
+select = [
+  "E", "W", "F", "I", "N", "UP", "ANN", "ASYNC", "S", "B", "A", "C4", "DTZ",
+  "T20", "PT", "RET", "SIM", "PTH", "ERA", "TD", "FIX", "PLR2004", "TRY", "PL", "RUF",
+]
+ignore = [
+  "ANN401",      # Any in *args/**kwargs — FC-GEN-016's comment rule covers it
+  "TRY003",      # long messages inline; FC-GEN-022 wants them descriptive
+]
+
+# An en dash is deliberate typography in this prose, not a mistyped hyphen.
+allowed-confusables = ["–", "—", "·", "×"]
+
+[lint.flake8-annotations]
+mypy-init-return = true
+
 # pico/ is MicroPython firmware, not CPython application code, and four of
 # ruff's defaults argue against how firmware has to be written:
 #
@@ -16,4 +42,69 @@
 #
 # Everything else — web/, mock/, tests/, common_config.py — is linted in full.
 [lint.per-file-ignores]
-"pico/**" = ["UP031", "BLE001", "S110", "RUF046", "PLW0602", "TRY401", "FURB188"]
+"pico/**" = [
+  "UP031",
+  "BLE001",
+  "S110",
+  "RUF046",
+  "PLW0602",
+  "TRY401",
+  "FURB188",
+  # Two more the house set brings, for the same reason as the four above:
+  #
+  #   PTH    — MicroPython has no `pathlib`. Every rewrite this offers turns
+  #            working firmware into an ImportError on the device that no
+  #            CPython test run would see.
+  #   ANN    — the MicroPython compiler discards annotations without evaluating
+  #            them, so they cost flash and parse-time RAM on a board with
+  #            ~264 KB and buy nothing the device can check. Everything that
+  #            runs on CPython — web/, mock/, config/, common_config.py — is
+  #            annotated in full.
+  "PTH",
+  "ANN",
+  # And three the device's own shape argues against:
+  #
+  #   PLW0603 — a microcontroller has one process and no injection point. The
+  #             module-level caches are the firmware's state, and `global` is
+  #             how it says so.
+  #   T201    — `print` on the device is the serial console, which is the only
+  #             log there is.
+  "PLW0603",
+  "T201",
+  #   PLC0415 — a firmware module imports `network`, `ota` or a display driver
+  #             inside the function that needs it, because the same file also
+  #             runs on the mock server where those do not exist.
+  #   PLR0913 — a window is six scalars (lat, lon, city, country, start, end).
+  #             Boxing them into a record allocates on every call, on a device
+  #             where allocation is the thing being counted.
+  "PLC0415",
+  "PLR0913",
+  "PLR0917",
+]
+# The config schema is nested lowercase classes because that is how it is read:
+# `CONFIG.wifi.ssid`, overlaid from settings.json by the same names.
+"pico/config.py" = ["N801"]
+# Calendar arithmetic: the months, days, hours and minutes in a date are the
+# definition of a date, and naming 12 or 59 says less than the number does.
+# `pico/pages.py` is markup and CSS held as string constants, which have no
+# line structure a limit could improve.
+"pico/textutil.py" = ["PLR2004"]
+"pico/timeutil.py" = ["PLR2004"]
+"pico/pages.py" = ["E501"]
+# A port of Waveshare's own driver. The names are the vendor's API, and
+# renaming them would silently fork it from the datasheet and the upstream
+# examples anyone would compare it against.
+"pico/epd_driver.py" = ["N801", "N802", "N803", "N806"]
+# assert is the point; a magic number in a fixture is the fixture; the fake
+# classes stand in for MicroPython modules and are named as those modules are.
+"tests/**" = [
+  "S101",     # assert is the point
+  "ANN",      # a fixture's type is obvious from the fixture
+  "PLR2004",  # a magic number in a fixture is the fixture
+  "PLC0415",  # importing inside a test is how you patch before import
+  "N801",     # the fakes are named as the MicroPython modules they stand in for
+  "T201",     # a test that prints is reporting, not debugging
+  "S105",     # "t" is a fixture token, not a credential
+  "S311",     # the random data is a fixture, not a key
+  "S310",     # the URL under test is this test's own local server
+]

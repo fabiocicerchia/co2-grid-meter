@@ -52,6 +52,10 @@ _last_render = 0
 TIMELINE_POINTS = 60
 
 
+# Half a day of history, below which the overlay says nothing about a trend.
+_MIN_OVERLAY_POINTS = 12
+
+
 def make_next_line(recommendation):
     wait_hours = recommendation.get("wait_hours")
     if isinstance(wait_hours, int) and wait_hours > 0:
@@ -60,9 +64,7 @@ def make_next_line(recommendation):
             wait_hours,
             fmt_hhmm_local(int(time.time()) + wait_hours * 3600),
         )
-    return (recommendation.get("reason") or "").strip()[
-        :22
-    ]  # TODO: THIS LINE IS NOT REALLY NEEDED
+    return (recommendation.get("reason") or "").strip()[:22]
 
 
 # ---- Periodic e-ink refresh (decoupled from HTTP polling) ----
@@ -135,10 +137,7 @@ def aligned_lines(window_json, overlay_json, now_epoch):
     overlay_points = series_points(overlay_json)
     week_map = {ts + WEEK_SECONDS: v for ts, v in overlay_points}
 
-    timeline = [
-        now_epoch - (CONFIG.timeline.back_hours_default * 3600) + i * 3600
-        for i in range(TIMELINE_POINTS)
-    ]
+    timeline = [now_epoch - (CONFIG.timeline.back_hours_default * 3600) + i * 3600 for i in range(TIMELINE_POINTS)]
     return (
         [current_map.get(ts) for ts in timeline],
         [week_map.get(ts) for ts in timeline],
@@ -152,7 +151,7 @@ def week_percentile(current_intensity, overlay_values):
     None when half a day of overlay is missing: a percentile over four points
     is noise, and the LED bar and the zone both read better as "unknown".
     """
-    if len(overlay_values) < 12:
+    if len(overlay_values) < _MIN_OVERLAY_POINTS:
         return None
     return percentile(sorted(overlay_values), current_intensity)
 
@@ -167,9 +166,7 @@ def render_screen(status_json, window_json, overlay_json):
 
     current_intensity = safe_float(status_json.get("carbonIntensity")) or 0.0
     recommendation = status_json.get("recommendation") or {}
-    current_line, week_line, overlay_values = aligned_lines(
-        window_json, overlay_json, floor_hour_epoch(now)
-    )
+    current_line, week_line, overlay_values = aligned_lines(window_json, overlay_json, floor_hour_epoch(now))
     percentile_value = week_percentile(current_intensity, overlay_values)
 
     if app._fresh_data:

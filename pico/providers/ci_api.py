@@ -105,9 +105,7 @@ class CiApiProvider(EmissionsProvider):
 
         by_hour = _hours_in_window(days, dates, start_utc, end_utc)
         if not by_hour:
-            raise ProviderError(
-                "Carbon Intensity API: no measured hours in %s" % (",".join(dates),)
-            )
+            raise ProviderError("Carbon Intensity API: no measured hours in %s" % (",".join(dates),))
         self._check_freshness(by_hour, end_utc, now_utc)
 
         history = [
@@ -175,9 +173,7 @@ class CiApiProvider(EmissionsProvider):
             return None
         type(self)._next_request_after = now + REQUEST_INTERVAL_SEC
 
-        url = CONFIG.providers.ci_api.base_url.rstrip("/") + history_path(
-            code, date, zone
-        )
+        url = CONFIG.providers.ci_api.base_url.rstrip("/") + history_path(code, date, zone)
         try:
             document = http_get_json(url, "Carbon Intensity API")
         except Exception as error:

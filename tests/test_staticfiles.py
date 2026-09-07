@@ -110,7 +110,8 @@ class TestConditionalGet:
         assert etag(100, 201) != base
 
     def test_an_etag_is_quoted(self):
-        assert etag(1, 2).startswith('"') and etag(1, 2).endswith('"')
+        assert etag(1, 2).startswith('"')
+        assert etag(1, 2).endswith('"')
 
     def test_matching_etag_is_not_modified(self):
         tag = etag(4643, 1_700_000_000)

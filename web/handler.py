@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
 
+import requests
 from requests import Session
 from requests.exceptions import RequestException
 
@@ -69,11 +70,11 @@ class PicoProxyHandler(BaseHTTPRequestHandler):
         return self.config.upstream.pico_base_url
 
     @staticmethod
-    def _return_error_payload(error: str, details: str):
+    def _return_error_payload(error: str, details: str) -> tuple[str, int]:
         payload = {"error": error, "details": details}
         return json.dumps(payload), 502
 
-    def _request_with_retry(self, url: str, params: dict):
+    def _request_with_retry(self, url: str, params: dict) -> requests.Response:
         last_error: Exception | None = None
         for attempt in range(self.config.upstream.max_retries):
             try:
@@ -97,7 +98,10 @@ class PicoProxyHandler(BaseHTTPRequestHandler):
                     },
                 )
                 time.sleep(backoff_seconds)
-        assert last_error is not None
+        # The loop either returned or set this; a bare `raise None` would be the
+        # confusing failure, so say what happened.
+        if last_error is None:
+            raise RuntimeError("retry loop ended without a response or an error")
         raise last_error
 
     def _pico_get_json(
@@ -105,7 +109,7 @@ class PicoProxyHandler(BaseHTTPRequestHandler):
         query: dict[str, list[str]],
         path: str,
         extra_params: dict | None = None,
-    ):
+    ) -> tuple[str, int]:
         base_url = self._pico_base_url(query)
         target_url = f"{base_url}{path}"
         query_params = {**(extra_params or {})}
@@ -123,13 +127,11 @@ class PicoProxyHandler(BaseHTTPRequestHandler):
             return self._return_error_payload("Failed to reach Pico", str(error))
 
         except ValueError as error:
-            return self._return_error_payload(
-                "Pico returned non-JSON response", str(error)
-            )
+            return self._return_error_payload("Pico returned non-JSON response", str(error))
 
     def _pico_get_text(
         self, query: dict[str, list[str]], path: str, extra_params: dict | None = None
-    ):
+    ) -> tuple[str, int]:
         """Like _pico_get_json, but relays the body untouched.
 
         An error still comes back as the JSON error payload — a dashboard that
@@ -138,19 +140,17 @@ class PicoProxyHandler(BaseHTTPRequestHandler):
         """
         base_url = self._pico_base_url(query)
         try:
-            response = self._request_with_retry(
-                f"{base_url}{path}", {**(extra_params or {})}
-            )
+            response = self._request_with_retry(f"{base_url}{path}", {**(extra_params or {})})
             if not response.ok:
                 return self._return_error_payload(
                     f"Pico returned HTTP {response.status_code}",
                     response.text[:800] if response.text else "",
                 )
-            return response.text, 200
         except RequestException as error:
             return self._return_error_payload("Failed to reach Pico", str(error))
+        return response.text, 200
 
-    def _respond_to(self, path: str, query: dict[str, list[str]]):
+    def _respond_to(self, path: str, query: dict[str, list[str]]) -> tuple[str, str, int]:
         """(content_type, body, status) for one URL path.
 
         Two tables rather than a chain of seven elifs: a static route differs
@@ -164,12 +164,8 @@ class PicoProxyHandler(BaseHTTPRequestHandler):
         export = TEXT_ROUTES.get(path)
         if export is not None:
             pico_path, forwarded, content_type = export
-            extra_params: dict[str, Any] = {
-                name: int(query[name][0]) for name in forwarded if name in query
-            }
-            body, status_code = self._pico_get_text(
-                query, pico_path, extra_params=extra_params
-            )
+            extra_params: dict[str, Any] = {name: int(query[name][0]) for name in forwarded if name in query}
+            body, status_code = self._pico_get_text(query, pico_path, extra_params=extra_params)
             return content_type, body, status_code
 
         route = API_ROUTES.get(path)
@@ -177,15 +173,11 @@ class PicoProxyHandler(BaseHTTPRequestHandler):
             return "text/plain", "", 404
 
         pico_path, forwarded = route
-        extra_params = {
-            name: int(query[name][0]) for name in forwarded if name in query
-        }
-        body, status_code = self._pico_get_json(
-            query, pico_path, extra_params=extra_params
-        )
+        extra_params = {name: int(query[name][0]) for name in forwarded if name in query}
+        body, status_code = self._pico_get_json(query, pico_path, extra_params=extra_params)
         return "application/json", body, status_code
 
-    def do_GET(self):
+    def do_GET(self) -> None:
         url = urlparse(self.path)
         query = parse_qs(url.query)
         content_type, body, status_code = self._respond_to(url.path, query)
@@ -195,17 +187,11 @@ class PicoProxyHandler(BaseHTTPRequestHandler):
         self.send_header("Content-Type", content_type)
         self.end_headers()
 
-        body_bytes = (
-            json.dumps(body).encode("utf-8")
-            if isinstance(body, (dict, list))
-            else str(body).encode("utf-8")
-        )
+        body_bytes = json.dumps(body).encode("utf-8") if isinstance(body, (dict, list)) else str(body).encode("utf-8")
         self.wfile.write(body_bytes)
 
 
-def create_handler(
-    *, config: Any, logger: Any, http_session: Session
-) -> type[BaseHTTPRequestHandler]:
+def create_handler(*, config: Any, logger: Any, http_session: Session) -> type[BaseHTTPRequestHandler]:
     """Create a request handler class bound to the given dependencies."""
     return type(
         "Handler",

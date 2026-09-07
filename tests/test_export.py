@@ -60,7 +60,8 @@ def test_csv_is_bounded_and_keeps_the_newest_rows():
     big = window(*[(f"2026-09-{d + 1:02d}T00:00:00Z", 400 + d) for d in range(30)])
     rows = export.window_csv(big, max_rows=5).strip().split("\r\n")
     assert len(rows) == 6  # header + 5
-    assert rows[1].endswith(",425") and rows[-1].endswith(",429")
+    assert rows[1].endswith(",425")
+    assert rows[-1].endswith(",429")
 
 
 def test_csv_drops_holes_rather_than_emitting_half_a_row():
@@ -77,7 +78,8 @@ def test_csv_drops_holes_rather_than_emitting_half_a_row():
     }
     rows = export.window_csv(ragged).strip().split("\r\n")
     assert len(rows) == 3  # header + the two usable points
-    assert rows[1].endswith(",430") and rows[2].endswith(",390")
+    assert rows[1].endswith(",430")
+    assert rows[2].endswith(",390")
 
 
 def test_csv_of_an_empty_window_is_a_header_not_an_error():
@@ -111,16 +113,20 @@ def test_summary_is_flat_and_carries_no_history():
     assert summary["carbon_intensity"] == 380
     assert summary["unit"] == "gCO2eq/kWh"
     assert summary["verdict"] == "GOOD"
-    assert summary["city"] == "Lisbon" and summary["cc"] == "PT"
+    assert summary["city"] == "Lisbon"
+    assert summary["cc"] == "PT"
     assert summary["provider"] == "electricity_maps"
     assert summary["uptime_seconds"] == 4210
     # The window's shape, which is what a rule branches on.
     assert summary["window_points"] == 3
-    assert summary["window_min"] == 380 and summary["window_max"] == 430
+    assert summary["window_min"] == 380
+    assert summary["window_max"] == 430
 
 
 def test_summary_survives_an_empty_window_and_a_missing_recommendation():
     summary = export.summary_from_window({}, None, None, "2026-09-01T12:00:00Z")
     assert summary["window_points"] == 0
-    assert summary["window_min"] is None and summary["window_max"] is None
-    assert summary["verdict"] is None and summary["wait_hours"] is None
+    assert summary["window_min"] is None
+    assert summary["window_max"] is None
+    assert summary["verdict"] is None
+    assert summary["wait_hours"] is None

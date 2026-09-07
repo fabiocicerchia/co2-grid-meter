@@ -12,7 +12,8 @@ class UkciProvider(EmissionsProvider):
     provider_name = "ukci"
 
     def is_enabled(self, country_code: str) -> bool:
-        return CONFIG.providers.ukci_enabled  # TODO: change to ukci.enabled
+        # Flat key, unlike the other providers' nested blocks — see TODO.md.
+        return CONFIG.providers.ukci_enabled
 
     def format_timestamp(self, epoch_value):
         return _format_timestamp(time.gmtime(epoch_value), include_seconds=False) + "Z"
@@ -22,8 +23,7 @@ class UkciProvider(EmissionsProvider):
             payload.get("data") or [],
             datetime_key="from",
             intensity_getter=lambda point: (
-                (point.get("intensity") or {}).get("actual")
-                or (point.get("intensity") or {}).get("forecast")
+                (point.get("intensity") or {}).get("actual") or (point.get("intensity") or {}).get("forecast")
             ),
         )
 

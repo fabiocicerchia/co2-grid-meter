@@ -120,13 +120,7 @@ def iso_z_to_epoch(iso_timestamp):
         if not (0 <= hour <= 23 and 0 <= minute <= 59 and 0 <= second <= 60):
             return None
 
-        return (
-            _days_from_civil(year, month, day) * 86400
-            + hour * 3600
-            + minute * 60
-            + second
-            + zone_offset
-        )
+        return _days_from_civil(year, month, day) * 86400 + hour * 3600 + minute * 60 + second + zone_offset
     except Exception:
         return None
 
