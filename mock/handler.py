@@ -2,7 +2,7 @@
 import json
 import logging
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from http.server import BaseHTTPRequestHandler
 from urllib.parse import ParseResult, parse_qs, urlparse
 
@@ -89,7 +89,7 @@ class MockPicoHandler(BaseHTTPRequestHandler):
         content_type = "application/json"
         status_code = 404
         if url.path == "/status":
-            now_utc = floor_hour(datetime.now(UTC))
+            now_utc = floor_hour(datetime.now(timezone.utc))
             start_time = now_utc - timedelta(hours=36) - timedelta(days=7)
             end_time = now_utc + timedelta(hours=12) - timedelta(days=7)
             payload = self._window_response(location, start_time, end_time)
@@ -104,26 +104,26 @@ class MockPicoHandler(BaseHTTPRequestHandler):
             status_code = 200
         elif url.path == "/em/window":
             back_hours = int(query.get("back_hours", [48])[0])
-            end_time = floor_hour(datetime.now(UTC))
+            end_time = floor_hour(datetime.now(timezone.utc))
             start_time = end_time - timedelta(hours=back_hours)
             payload = self._window_response(location, start_time, end_time)
             status_code = 200
         elif url.path == "/em/window-overlay":
-            now_time = floor_hour(datetime.now(UTC))
+            now_time = floor_hour(datetime.now(timezone.utc))
             start_time = now_time - timedelta(hours=48, days=7)
             end_time = now_time + timedelta(hours=12) - timedelta(days=7)
             payload = self._window_response(location, start_time, end_time)
             status_code = 200
         elif url.path == "/em/window.csv":
             back_hours = int(query.get("back_hours", [48])[0])
-            end_time = floor_hour(datetime.now(UTC))
+            end_time = floor_hour(datetime.now(timezone.utc))
             start_time = end_time - timedelta(hours=back_hours)
             window = self._window_response(location, start_time, end_time)
             text_body = window_csv(window)
             content_type = "text/csv"
             status_code = 200
         elif url.path == "/em/summary":
-            now_utc = floor_hour(datetime.now(UTC))
+            now_utc = floor_hour(datetime.now(timezone.utc))
             window = self._window_response(location, now_utc - timedelta(hours=48), now_utc)
             current = float(window["history"][-1]["carbonIntensity"])
             payload = summary_from_window(

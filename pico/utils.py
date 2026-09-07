@@ -167,7 +167,7 @@ def _resolution_to_seconds(resolution_text):
 
 
 def iso_utc(dt: datetime.datetime) -> str:
-    return dt.astimezone(datetime.UTC).isoformat().replace("+00:00", "Z")
+    return dt.astimezone(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
 
 
 class TextStream:

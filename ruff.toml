@@ -2,9 +2,11 @@
 # the fleet carries. In ruff.toml because this repo installs nothing — the
 # firmware is copied to a device and the rest is scripts.
 line-length = 120           # FC-GEN-045
-# What CI runs the tests and the mock server on. The firmware is MicroPython,
-# which is a subset of this; the exceptions that matter are listed below.
-target-version = "py312"
+# The OLDEST Python CI runs, not the newest: the matrix in ci.yml starts at
+# 3.10, and a target above it lets UP rewrite to syntax that version cannot
+# import (UP017 turned timezone.utc into datetime.UTC, which is 3.11+).
+# The firmware is MicroPython, a subset of this; exceptions are listed below.
+target-version = "py310"
 
 [lint]
 select = [
