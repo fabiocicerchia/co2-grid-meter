@@ -151,3 +151,25 @@ def urlencode_simple(d):
     for k, v in d.items():
         parts.append("%s=%s" % (_quote(k), _quote(v)))
     return "&".join(parts)
+
+
+def wrap_lines(text, width, limit):
+    """`text` in at most `limit` lines of at most `width` characters.
+
+    Split on the last space that fits, so an error message on the e-ink breaks
+    between words; a word longer than the line is cut, because the alternative
+    is a blank line followed by a clipped one. The last line keeps whatever is
+    left rather than being dropped silently.
+    """
+    text = _to_str(text).strip()
+    lines = []
+    while text and len(lines) < limit:
+        if len(text) <= width:
+            lines.append(text)
+            break
+        cut = text.rfind(" ", 0, width + 1)
+        if cut <= 0:
+            cut = width
+        lines.append(text[:cut].rstrip())
+        text = text[cut:].lstrip()
+    return lines

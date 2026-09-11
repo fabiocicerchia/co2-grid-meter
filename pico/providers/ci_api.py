@@ -169,8 +169,17 @@ class CiApiProvider(EmissionsProvider):
         enough to draw.
         """
         now = int(time.time())
-        if now < self._next_request_after:
-            return None
+        # Wait out the rate limit rather than skipping the day. Skipping starved
+        # the overlay: the current window re-reads today's document on every
+        # refresh and took the slot each time, so the nine-day-old documents the
+        # overlay needs were never fetched and it failed with "no measured
+        # hours" on every tick. Clamped, so a backwards RTC step cannot park the
+        # fetch here. This runs on the fetcher's thread (pico/fetcher.py), so
+        # the wait is off the request path by construction.
+        wait = min(self._next_request_after - now, REQUEST_INTERVAL_SEC)
+        if wait > 0:
+            time.sleep(wait)
+            now += wait
         type(self)._next_request_after = now + REQUEST_INTERVAL_SEC
 
         url = CONFIG.providers.ci_api.base_url.rstrip("/") + history_path(code, date, zone)

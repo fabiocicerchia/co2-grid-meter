@@ -16,9 +16,19 @@ API and the on-flash sample store is only a cache of days already fetched.
 # Dropping the nulls upstream would slide every later value into the wrong
 # hour, so they are carried here and skipped by position, never by compaction.
 
-# The measured pipeline runs hourly; more than 65 minutes without a new hour
-# means a run was missed and the newest value no longer describes now.
-MAX_AGE_SEC = 3900
+# How old the newest hour may be before the window is refused.
+#
+# Measured in the wild, not derived from the hourly run: IT on 2026-09-11 was
+# generated at 05:21Z with hours through 04:00 and the last one still
+# incomplete, so the newest hour is already ~1h20m behind when a run lands and
+# ~2h20m behind just before the next one — ENTSO-E publishes late and the day
+# document aggregates what has arrived. 65 minutes (the old value) refused
+# every healthy window and the device never showed a reading at all.
+#
+# Four hours tolerates a skipped run without flapping and still catches the
+# failure this guards against: a pipeline that stopped, whose newest hour is a
+# day old. Calibrate per grid — a faster-publishing country can afford less.
+MAX_AGE_SEC = 4 * 3600
 
 HOUR_SEC = 3600
 DAY_SEC = 24 * HOUR_SEC

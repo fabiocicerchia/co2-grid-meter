@@ -227,7 +227,9 @@ def get_window(lat, lon, city, cc, start_epoch, end_epoch):
         # Nothing has ever been fetched for this window and the first attempt
         # did not finish in time. Raised, not returned empty: every caller
         # already handles a provider failure, and "warming up" is one.
-        raise ProviderError("No reading yet — the first fetch is still running")
+        # ASCII only: this string lands on the e-ink, whose framebuf font has
+        # no glyph for an em dash.
+        raise ProviderError("No reading yet - first fetch still running")
 
     published_at, _ = _fetcher.published(key)
     _fresh_data = published_at != _last_window_stamp

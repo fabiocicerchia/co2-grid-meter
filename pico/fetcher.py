@@ -30,6 +30,7 @@ the real code rather than a simulation of it.
 """
 
 import _thread
+import contextlib
 import time
 
 
@@ -56,11 +57,23 @@ MAX_PUBLISHED = 8
 # How long a request waits for the very first value. A device that answers
 # "no data" for the whole of its first fetch reads as broken; one that pauses
 # briefly on the first call and is instant afterwards reads as starting up.
-COLD_WAIT_SECONDS = 20
+#
+# Forty rather than twenty: a cold window spans three UTC day documents and the
+# Carbon Intensity API allows one request per ten seconds, so the first fetch
+# takes a little over thirty. Twenty meant the boot screen always showed "no
+# reading yet" for a fetch that was about to succeed.
+COLD_WAIT_SECONDS = 40
 
 # The worker's idle poll. Long enough not to burn the second core, short enough
 # that a refresh request is not visibly delayed.
 POLL_SECONDS = 0.2
+
+# Stack for the worker thread. MicroPython gives a new thread a few KB by
+# default, and a TLS GET plus a ujson parse of a provider's day document does
+# not fit: the fetch dies with "maximum recursion depth exceeded" — the stack
+# check, not real recursion — and the device never publishes a first reading.
+# Tune here if a provider with a deeper parse appears; the Pico W has the RAM.
+THREAD_STACK_BYTES = 16 * 1024
 
 
 class BackgroundFetcher:
@@ -160,6 +173,10 @@ class BackgroundFetcher:
                 return False
             self._running = True
         try:
+            # Best effort: CPython refuses sizes below its own minimum, which
+            # only means the test run keeps the stack it already had.
+            with contextlib.suppress(ValueError, AttributeError, RuntimeError):
+                _thread.stack_size(THREAD_STACK_BYTES)
             _thread.start_new_thread(self._loop, ())
         except Exception as error:
             # A device that cannot spawn the thread must still serve. The
