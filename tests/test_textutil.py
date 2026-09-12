@@ -22,6 +22,7 @@ iso_z_to_epoch = _textutil.iso_z_to_epoch
 urlencode_simple = _textutil.urlencode_simple
 _quote = _textutil._quote
 _to_str = _textutil._to_str
+wrap_lines = _textutil.wrap_lines
 
 
 class TestIsoToEpoch:
@@ -87,3 +88,25 @@ class TestUrlencode:
 
     def test_empty_mapping_is_an_empty_string(self):
         assert urlencode_simple({}) == ""
+
+
+class TestWrapLines:
+    # The e-ink placeholder screen is 29 characters wide over three lines; the
+    # previous code sliced it as `text[51:10]`, which is always empty, so every
+    # error on that screen was a clipped half-sentence.
+    def test_breaks_between_words_within_the_width(self):
+        assert wrap_lines("No reading yet - first fetch still running", 29, 3) == [
+            "No reading yet - first fetch",
+            "still running",
+        ]
+
+    def test_short_text_is_one_line_and_long_text_stops_at_the_limit(self):
+        assert wrap_lines("ready", 29, 3) == ["ready"]
+        assert len(wrap_lines("word " * 40, 29, 3)) == 3
+
+    def test_a_word_longer_than_the_line_is_cut_not_dropped(self):
+        assert wrap_lines("x" * 35, 29, 3) == ["x" * 29, "x" * 6]
+
+    def test_nothing_to_say_is_no_lines(self):
+        assert wrap_lines("", 29, 3) == []
+        assert wrap_lines(None, 29, 3) == []

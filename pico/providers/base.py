@@ -13,6 +13,8 @@ from utils import (
     safe_float,
 )
 
+from config import FLASH_LOCK
+
 
 def load_json_store(path):
     """A JSON file written by `save_json_store`, or {} if there is none.
@@ -42,17 +44,23 @@ def save_json_store(path, payload, label=""):
     bak_file = path + ".bak"
 
     try:
-        with open(tmp_file, "w") as fh:
-            fh.write(ujson.dumps(payload))
+        # This runs on the fetcher's thread, i.e. the RP2's second core, while
+        # the main loop is writing its own log lines to flash from the first.
+        # Two cores in a flash erase at once hangs the board — see FLASH_LOCK.
+        with FLASH_LOCK:
+            with open(tmp_file, "w") as fh:
+                fh.write(ujson.dumps(payload))
 
-        with contextlib.suppress(Exception):
-            os.remove(bak_file)
+            with contextlib.suppress(Exception):
+                os.remove(bak_file)
 
-        with contextlib.suppress(Exception):
-            os.rename(path, bak_file)
+            with contextlib.suppress(Exception):
+                os.rename(path, bak_file)
 
-        os.rename(tmp_file, path)
+            os.rename(tmp_file, path)
     except Exception as error:
+        # Outside the lock: `with` releases on the way out, and log() takes the
+        # same lock, which is not reentrant.
         log("%s store save failed: %s" % (label or path, error))
 
 

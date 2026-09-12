@@ -1,4 +1,5 @@
 import contextlib
+import errno
 import socket
 import struct
 import time
@@ -36,6 +37,9 @@ _HEADER_PARTS = 2
 
 
 NTP_EPOCH_OFFSET_SEC = 2208988800
+
+# accept() on a socket with a timeout: "nobody connected in the last second".
+_IDLE_ACCEPT_ERRNOS = (errno.ETIMEDOUT, errno.EAGAIN)
 
 
 def _readline(conn):
@@ -302,7 +306,11 @@ def get_connection(logger):
     try:
         conn, _ = _server_socket.accept()
     except OSError as error:
-        logger.exception("OSError %s" % error)
+        # The socket has a 1s timeout, so an idle device raises once a second.
+        # Logging that wrote 86k lines of "nobody called" a day to the log file
+        # on flash and buried the errors worth reading.
+        if not error.args or error.args[0] not in _IDLE_ACCEPT_ERRNOS:
+            logger.exception("OSError %s" % error)
         return None
     return conn
 

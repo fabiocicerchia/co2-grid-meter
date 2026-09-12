@@ -32,6 +32,7 @@ from display import (
 from fw_graph import draw_graph
 from fw_network import wifi_ok, wifi_signal_bars
 from i18n import t
+from textutil import wrap_lines
 from timeutil import WEEK_SECONDS
 from utils import (
     floor_hour_epoch,
@@ -54,6 +55,13 @@ TIMELINE_POINTS = 60
 
 # Half a day of history, below which the overlay says nothing about a trend.
 _MIN_OVERLAY_POINTS = 12
+
+# The detail line on a placeholder screen, wrapped. framebuf's built-in font is
+# 8x8, so a 250px panel fits about thirty characters and silently clips the
+# rest — which is what made every error message on this screen a half-sentence.
+_DETAIL_LINE_CHARS = 29
+_DETAIL_MAX_LINES = 3
+_DETAIL_LINE_HEIGHT = 10
 
 
 def make_next_line(recommendation):
@@ -114,13 +122,11 @@ def render_placeholder_screen(title, detail):
     draw_text(_epd.black_frame, 10, 28, title, color=EINK_BLACK)
 
     if detail:
-        detail_text = str(detail)
-        if title == "DATA ERROR":
-            # Show the error across two lines for readability on failure screen.
-            draw_text(_epd.red_frame, 5, 50, detail_text[:50], color=EINK_BLACK)
-            draw_text(_epd.red_frame, 5, 57, detail_text[51:10], color=EINK_BLACK)
-        else:
-            draw_text(_epd.black_frame, 5, 50, str(detail), color=EINK_BLACK)
+        # Errors in red, anything else in black — an error is the one screen
+        # worth spending the second ink pass on.
+        frame = _epd.red_frame if title == "DATA ERROR" else _epd.black_frame
+        for index, line in enumerate(wrap_lines(detail, _DETAIL_LINE_CHARS, _DETAIL_MAX_LINES)):
+            draw_text(frame, 5, 50 + index * _DETAIL_LINE_HEIGHT, line, color=EINK_BLACK)
     draw_top_bar(_epd)
     _epd.display()
 

@@ -84,6 +84,26 @@ from Conventional Commit messages — don't edit by hand, see [CONTRIBUTING.md](
 
 ### Fixed
 
+- Pico froze outright after a few minutes, holding the last frame on the
+  e-ink: the fetcher thread and the main loop wrote flash from the two cores at
+  once, which hangs the RP2. Every flash write now goes through one lock.
+- Log lines no longer list and stat the whole log directory on every message;
+  pruning runs once a day.
+- Pico stuck on "Waiting for data": the background fetcher's thread ran on
+  MicroPython's default stack, too small for a TLS request plus a JSON parse,
+  so every fetch failed with "maximum recursion depth exceeded".
+- Carbon Intensity API windows were refused as stale in normal operation: the
+  65-minute limit ignored ENTSO-E's publication lag, which leaves the newest
+  hour 1.5–2.5 h old. Raised to four hours.
+- The week-shifted overlay never loaded: the Carbon Intensity API rate limit
+  was handled by skipping the day document, and the current window's daily
+  re-read took the slot on every refresh, so the overlay's older days were
+  never fetched. It now waits out the limit instead.
+- Messages on the e-ink placeholder screen are wrapped over three lines
+  (`textutil.wrap_lines`) instead of being sliced to a clipped half-sentence.
+- The idle `accept()` timeout no longer writes an error line to the log on
+  flash every second.
+
 ### Security
 
 [Unreleased]: https://github.com/fabiocicerchia/co2-grid-meter/compare/main...HEAD

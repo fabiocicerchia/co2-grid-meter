@@ -1,3 +1,4 @@
+import _thread
 import contextlib
 import logging
 import os
@@ -149,6 +150,25 @@ class CONFIG:
 LOG_DIR = "logs"
 CRASH_DIR = "crashdumps"
 
+# Every flash write on this device goes through this lock.
+#
+# The fetcher runs on the RP2's second core (pico/fetcher.py) and writes flash
+# from there: the day-document store, and a log line per message. Erasing or
+# programming flash parks the other core and runs with interrupts off, so two
+# cores writing at once wedges both — no exception, no log line, the e-ink left
+# holding whatever it last drew. That is the "it froze showing yesterday's
+# time" failure, and it only appeared once the worker thread got a stack big
+# enough to actually reach its first write.
+#
+# MicroPython locks are not reentrant, so nothing called while holding this may
+# log or save a store.
+FLASH_LOCK = _thread.allocate_lock()
+
+# The day `prune_old_logs` last ran for. Pruning lists the directory and stats
+# every file in it; doing that per message turned one append into a full scan,
+# once a second for the whole life of the device.
+_last_pruned_day = ""
+
 
 def _safe_mkdir(path: str) -> None:
     with contextlib.suppress(OSError):
@@ -166,12 +186,17 @@ def _date_from_epoch(epoch: int | None = None) -> str:
 
 
 def append_log_line(message: str) -> None:
-    _ensure_dirs()
+    global _last_pruned_day
+
     day = _date_from_epoch()
-    path = "%s/%s.log" % (LOG_DIR, day)
-    with open(path, "a", encoding="utf-8") as handle:
-        handle.write("[%d] %s\n" % (int(time.time()), message))
-    prune_old_logs(days=2)
+    line = "[%d] %s\n" % (int(time.time()), message)
+    with FLASH_LOCK:
+        _ensure_dirs()
+        with open("%s/%s.log" % (LOG_DIR, day), "a", encoding="utf-8") as handle:
+            handle.write(line)
+        if day != _last_pruned_day:
+            _last_pruned_day = day
+            prune_old_logs(days=2)
 
 
 def prune_old_logs(days: int = 2) -> None:
@@ -194,14 +219,15 @@ def prune_old_logs(days: int = 2) -> None:
 
 
 def write_crashdump(error: Exception, context: str = "runtime") -> str:
-    _ensure_dirs()
     stamp = int(time.time())
     sys.print_exception(error)
     path = "%s/%s-%d.txt" % (CRASH_DIR, context, stamp)
-    with open(path, "w", encoding="utf-8") as handle:
-        handle.write("timestamp=%d\n" % stamp)
-        handle.write("context=%s\n" % context)
-        handle.write("error=%s\n" % str(error))
+    with FLASH_LOCK:
+        _ensure_dirs()
+        with open(path, "w", encoding="utf-8") as handle:
+            handle.write("timestamp=%d\n" % stamp)
+            handle.write("context=%s\n" % context)
+            handle.write("error=%s\n" % str(error))
     return path
 
 
