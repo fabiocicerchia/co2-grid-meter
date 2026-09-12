@@ -84,6 +84,11 @@ from Conventional Commit messages — don't edit by hand, see [CONTRIBUTING.md](
 
 ### Fixed
 
+- Pico froze outright after a few minutes, holding the last frame on the
+  e-ink: the fetcher thread and the main loop wrote flash from the two cores at
+  once, which hangs the RP2. Every flash write now goes through one lock.
+- Log lines no longer list and stat the whole log directory on every message;
+  pruning runs once a day.
 - Pico stuck on "Waiting for data": the background fetcher's thread ran on
   MicroPython's default stack, too small for a TLS request plus a JSON parse,
   so every fetch failed with "maximum recursion depth exceeded".
