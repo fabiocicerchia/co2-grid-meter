@@ -218,10 +218,18 @@ def get_window(lat, lon, city, cc, start_epoch, end_epoch):
     global _fresh_data, _last_window_stamp
     key = ("window", round(lat, 4), round(lon, 4), city, cc, start_epoch, end_epoch)
 
-    # Starting here rather than in main(): app.py is imported lazily, start()
-    # is idempotent, and a device whose thread cannot start still serves — the
-    # fetcher falls back to fetching inline.
-    _fetcher.start()
+    # The fetcher's worker thread is deliberately never started. MicroPython's
+    # RP2 port reports `sys.implementation._thread == 'unsafe'`: there is no
+    # GIL, so a worker on the second core runs Python bytecode genuinely in
+    # parallel with this one over a single shared GC heap. FLASH_LOCK
+    # serialises the flash writes; nothing serialises allocation, and
+    # `free_mem()` collects on this core while the worker is allocating inside
+    # a JSON parse on the other. That corrupts the heap: the device stops with
+    # no exception and no crash dump, and takes the filesystem with it. See
+    # docs/firmware.md.
+    #
+    # get_or_set falls through to _drain_if_no_worker() when no thread is
+    # running, which fetches inline — the fallback that was already here.
     data = _fetcher.get_or_set(key, lambda: _fetch_window(lat, lon, city, cc, start_epoch, end_epoch))
     if data is None:
         # Nothing has ever been fetched for this window and the first attempt

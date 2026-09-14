@@ -84,6 +84,16 @@ from Conventional Commit messages — don't edit by hand, see [CONTRIBUTING.md](
 
 ### Fixed
 
+- Pico stopped dead after hours to days, holding the last frame on the e-ink,
+  with the HTTP server and the USB REPL gone too: MicroPython's RP2 port has no
+  GIL, so the fetcher thread and the main loop shared one GC heap with no
+  synchronisation, and a `gc.collect()` on one core during an allocation on the
+  other corrupted it — and the filesystem with it. The worker thread is no
+  longer started; fetching runs inline, on the path that was already the
+  fallback.
+- The e-ink refresh no longer logs "Wait..." on every pass of the 1 Hz serve
+  loop. That was ~80,000 flash appends a day, on a 2 MB filesystem, to record
+  that nothing had happened.
 - Pico froze outright after a few minutes, holding the last frame on the
   e-ink: the fetcher thread and the main loop wrote flash from the two cores at
   once, which hangs the RP2. Every flash write now goes through one lock.
