@@ -1,0 +1,24 @@
+# Backstage catalog entry, read by paved's scorecard plugin.
+#
+# Every check paved scores is derived from this file alone — no cluster
+# access, no CI credentials. What is absent here is absent from the score.
+apiVersion: backstage.io/v1alpha1
+kind: Component
+metadata:
+  name: co2-grid-meter
+  description: >-
+      Local-first grid carbon-intensity tracker for Pico W + e-ink display — fetches real-time grid data
+      to recommend the best time to run energy-hungry appliances, with a mock server and web dashboard for
+      hardware-free development.
+  annotations:
+    github.com/project-slug: fabiocicerchia/co2-grid-meter
+    backstage.io/source-location: url:https://github.com/fabiocicerchia/co2-grid-meter/
+    backstage.io/techdocs-ref: dir:.
+  links:
+    - url: https://github.com/fabiocicerchia/co2-grid-meter
+      title: Source
+spec:
+  type: library
+  lifecycle: production
+  owner: group:default/kodebeat
+  system: oss-tools
