@@ -3,8 +3,6 @@
 Open items only. Completed work is dropped from here — the CHANGELOG
 is the record of what shipped.
 
-- [ ] Add/complete tests for currently flagged firmware behavior, starting with
-      `EPD_2in13_B_V4_Portrait`, which has never run against hardware.
 - [ ] Apply the DST rule on the WiFi reconnect path in `pico/http.py`: it sets a
       fixed +1 (Italy's winter offset) where the boot path computes the shift.
 - [ ] `fw_providers._select` picks the provider by name; it should ask each one
