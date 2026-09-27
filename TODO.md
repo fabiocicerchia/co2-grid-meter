@@ -3,8 +3,6 @@
 Open items only. Completed work is dropped from here — the CHANGELOG
 is the record of what shipped.
 
-- [ ] Apply the DST rule on the WiFi reconnect path in `pico/http.py`: it sets a
-      fixed +1 (Italy's winter offset) where the boot path computes the shift.
 - [ ] `fw_providers._select` picks the provider by name; it should ask each one
       `is_enabled` instead.
 - [ ] Move `providers.ukci_enabled` under a `ukci` block, like every other
