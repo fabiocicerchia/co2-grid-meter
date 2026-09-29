@@ -390,51 +390,61 @@ trusted LAN and everything it serves is public grid data plus its own uptime.
 Do not expose it to the internet; if you must, put it behind something that does
 authenticate.
 
-## Fetching happens on the second core
+## Fetching is stale-while-revalidate, on one core
 
-Provider fetches, the e-ink render and the HTTP server used to share one loop.
-A provider that took twenty seconds to answer took the display and `/` with it:
-the device looked hung, and the one number it exists to show was the thing that
-had stopped updating.
+> **The second core is no longer used, and must not be.** MicroPython's RP2 port
+> has no GIL — the device reports `sys.implementation._thread == 'unsafe'`. A
+> worker started with `_thread` runs Python bytecode genuinely in parallel with
+> the main loop over a single shared GC heap. `FLASH_LOCK` serialises the flash
+> writes, but nothing serialises allocation, and `free_mem()` calls
+> `gc.collect()` on the main core while the worker allocates inside a JSON
+> parse on the other. That corrupts the heap: the device stops dead with no
+> exception, no crash dump and no final log line, and the corruption reaches
+> the filesystem — duplicate directory entries, filename fragments in the wrong
+> directory. `app.py` therefore never calls `_fetcher.start()`.
+>
+> The trade it was bought for does not pay. A provider fetch takes about two
+> seconds; a tri-colour e-ink refresh blocks for about twenty-five. Moving the
+> two-second stall off a loop that already halts for twenty-five is not worth a
+> heap race.
 
-`pico/fetcher.py` moves provider I/O onto MicroPython's `_thread`, on the
-RP2040's second core. The shape is **stale-while-revalidate**, not a thread
-pool:
+Provider fetches, the e-ink render and the HTTP server share one loop.
+
+`pico/fetcher.py` keeps the **stale-while-revalidate** shape — the value of the
+design was never the thread, it was never blocking a request on a fetch that a
+previous one already paid for:
 
 ```text
 GET /em/window ─► published value? ─ yes, fresh ─► return it
                         │
                         ├─ yes, stale ──────────► return it, ask for a refresh
                         │
-                        └─ no (cold boot) ──────► ask, wait up to 20s, else 503
+                        └─ no (cold boot) ──────► fetch inline, up to 40s
 ```
 
-The request path performs no I/O at all. The worker is the only code that
-touches the network, and it publishes a reading with a single rebind under a
-lock — so a fetch that fails leaves the previous reading exactly as it was,
-rather than half-writing over it.
+A fetch publishes a reading with a single rebind under a lock, so a fetch that
+fails leaves the previous reading exactly as it was rather than half-writing
+over it. With no worker running, `get_or_set` falls through to
+`_drain_if_no_worker()` and fetches inline.
 
 Three consequences worth knowing:
 
-- **A stuck provider no longer stalls anything.** `/` and the e-ink refresh keep
-  serving the last good reading. `/status` grows a `fetcher` block —
+- **A stale reading is served immediately, and refreshed after.** A provider
+  that has gone down costs one fetch timeout per TTL expiry, not one per
+  request. `/status` carries a `fetcher` block —
   `{running, busy, published, fetches, failures, last_error}` — because a device
   that keeps serving a stale number is exactly the one where you fail to notice
-  the provider has been down for a day.
-- **The first request after a cold boot still waits**, for up to 20 seconds. A
+  the provider has been down for a day. `running` is now always false.
+- **The first request after a cold boot still waits**, for up to 40 seconds. A
   device that answers "no data" for the whole of its first fetch reads as
   broken; one that pauses once and is instant afterwards reads as starting up.
-- **A device that cannot start the second thread still works.** `start()`
-  returning false falls back to fetching inline — the old behaviour, kept as the
-  fallback rather than as the design.
+- **`BackgroundFetcher.start()` still exists and is still tested**, so the
+  threading can be revived if MicroPython's RP2 port ever grows a GIL. Until
+  then, calling it is the bug — see the warning above.
 
 Only eight published readings are kept. The window key carries a time range, so
 a new one appears every hour and nothing ever asks for the old one again; the
 same unbounded-growth trap `TtlCache` had to grow a sweep for.
-
-**Not measured on hardware.** The issue asks for the memory footprint before and
-after, and a second stack is not free on a Pico. That number has to come from a
-device — `gc.mem_free()` either side of `_fetcher.start()` is the measurement.
 
 ## Updating over the air
 

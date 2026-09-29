@@ -84,7 +84,11 @@ def _display_tick():
     global _last_display_tick
     now = int(time.time())
     if now - _last_display_tick < CONFIG.display.render_min_interval_sec:
-        log("Wait...")
+        # Silent on purpose. serve_forever polls at 1 Hz against a 60s render
+        # interval, so logging here wrote ~80,000 lines a day — and every line
+        # is a flash append (utils.log -> config.append_log_line), which is an
+        # erase/program cycle on a 2 MB filesystem, to record that nothing
+        # happened. It filled the log partition and drowned the real errors.
         return
     _last_display_tick = now
 
@@ -166,7 +170,7 @@ def render_screen(status_json, window_json, overlay_json):
     global _epd, _last_render
     now = int(time.time())
     if now - _last_render < CONFIG.display.render_min_interval_sec:
-        log("Wait...")
+        # Silent for the same reason as the one in _display_tick above.
         return
     _epd = get_epd()
 

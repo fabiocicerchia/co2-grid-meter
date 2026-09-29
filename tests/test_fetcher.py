@@ -219,3 +219,20 @@ def test_start_is_idempotent():
         assert f.start() is False, "a second worker would double the RAM cost"
     finally:
         f.stop()
+
+
+def test_the_firmware_never_starts_the_worker():
+    """MicroPython's RP2 port has no GIL (`sys.implementation._thread` is
+    'unsafe'), so a worker on the second core shares the GC heap with the main
+    loop unsynchronised. That corrupted the heap and the filesystem, and killed
+    two devices. `start()` stays for the tests above and for the day the port
+    grows a GIL; the firmware must not call it.
+
+    Asserted against the source because app.py imports ujson and urequests and
+    cannot be imported under CPython — see the module docstring.
+    """
+    source = (PICO / "app.py").read_text(encoding="utf-8")
+    assert "_fetcher.start()" not in source, (
+        "app.py must not start the fetcher thread — see docs/firmware.md. "
+        "get_or_set() already fetches inline via _drain_if_no_worker()."
+    )
