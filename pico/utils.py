@@ -22,6 +22,13 @@ __all__ = ["_quote", "_to_str", "iso_z_to_epoch", "urlencode_simple"]
 # The only status this firmware treats as an answer.
 _HTTP_OK = 200
 
+# Every outbound request gets one. Fetches run inline on the serving loop (the
+# worker thread is never started, see app.get_window), and urequests without a
+# timeout waits forever on a stalled TLS read — the e-ink then holds the last
+# clock it drew and the device never recovers. Long enough for a slow provider
+# on a weak signal; tune here if one legitimately needs more.
+HTTP_TIMEOUT_SECONDS = 15
+
 
 def free_mem():
     log("Memory before free: %d KB" % int(gc.mem_free() / 1024))
@@ -64,7 +71,7 @@ def close_response(response):
 
 
 def http_get(url, error_label, headers=None, auth=None):
-    response = urequests.get(url, headers=headers, auth=auth)
+    response = urequests.get(url, headers=headers, auth=auth, timeout=HTTP_TIMEOUT_SECONDS)
     if response.status_code != _HTTP_OK:
         close_response(response)
         raise ProviderError("%s HTTP %d" % (error_label, response.status_code))

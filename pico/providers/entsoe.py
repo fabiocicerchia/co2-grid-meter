@@ -2,6 +2,7 @@ import time
 
 import urequests
 from utils import (
+    HTTP_TIMEOUT_SECONDS,
     ProviderError,
     _resolution_to_seconds,
     _to_str,
@@ -236,7 +237,7 @@ class EntsoeProvider(EmissionsProvider):
         response = None
         try:
             log("Making request")
-            response = urequests.get(self._history_url(mapped_country, start, end))
+            response = urequests.get(self._history_url(mapped_country, start, end), timeout=HTTP_TIMEOUT_SECONDS)
             log("Provider request made")
 
             if response.status_code != _HTTP_OK:

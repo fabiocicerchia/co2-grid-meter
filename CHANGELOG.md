@@ -98,6 +98,12 @@ from Conventional Commit messages — don't edit by hand, see [CONTRIBUTING.md](
 
 ### Fixed
 
+- Pico stopped for good with a stale clock on the e-ink: no outbound request
+  had a timeout, and fetches run on the serving loop, so one stalled provider
+  read blocked the device forever. Requests now time out after 15 s. An
+  accepted client that never sends a request line (a browser preconnect) also
+  blocked it; client sockets now time out after 5 s, are closed, and no longer
+  take the listening socket down with them.
 - Pico froze outright after a few minutes, holding the last frame on the
   e-ink: the fetcher thread and the main loop wrote flash from the two cores at
   once, which hangs the RP2. Every flash write now goes through one lock.
