@@ -4,6 +4,7 @@ import time
 import ubinascii
 import urequests
 from utils import (
+    HTTP_TIMEOUT_SECONDS,
     ProviderError,
     close_response,
     epoch_to_iso_z,
@@ -204,6 +205,7 @@ class WattTimeProvider(EmissionsProvider):
             response = urequests.get(
                 url,
                 headers={"Authorization": "Bearer " + token},
+                timeout=HTTP_TIMEOUT_SECONDS,
             )
             if response.status_code == _HTTP_FORBIDDEN:
                 self._disable_for_a_day()

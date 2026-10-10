@@ -41,6 +41,9 @@ NTP_EPOCH_OFFSET_SEC = 2208988800
 # accept() on a socket with a timeout: "nobody connected in the last second".
 _IDLE_ACCEPT_ERRNOS = (errno.ETIMEDOUT, errno.EAGAIN)
 
+# How long an accepted client may take to send its request.
+_CLIENT_TIMEOUT_SECONDS = 5
+
 
 def _readline(conn):
     # Collected then joined once: `line += ch` rebuilt the whole bytes object
@@ -159,8 +162,17 @@ def handle_http_request(conn, logger):
     if conn is None:
         return
 
-    request = parse_request(conn)
+    try:
+        request = parse_request(conn)
+    except OSError as error:
+        # A client that connected and went quiet: the read timeout fired. Not
+        # worth more than a line, and it must not reach serve_forever, whose
+        # handler closes the listening socket and nothing reopens it.
+        logger.info("Request read failed: %s" % error)
+        request = None
     if not request:
+        with contextlib.suppress(Exception):
+            conn.close()
         return
 
     method, path_qs, if_none_match = request
@@ -312,6 +324,10 @@ def get_connection(logger):
         if not error.args or error.args[0] not in _IDLE_ACCEPT_ERRNOS:
             logger.exception("OSError %s" % error)
         return None
+    # The listening socket's timeout is not the client's. Without one, a
+    # browser's speculative preconnect — a TCP connection that never sends a
+    # request line — blocks _readline forever, and the e-ink stops with it.
+    conn.settimeout(_CLIENT_TIMEOUT_SECONDS)
     return conn
 
 
