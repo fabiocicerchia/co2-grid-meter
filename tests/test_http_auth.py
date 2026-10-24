@@ -146,6 +146,19 @@ def test_the_scheme_is_case_insensitive(server):
     assert _request(server, "/status", "bearer " + TOKEN).status == 200
 
 
+def test_whitespace_around_the_configured_token_is_ignored(server):
+    server.web.api_token = " " + TOKEN + "\n"
+
+    assert _request(server, "/status", "Bearer " + TOKEN).status == 200
+    assert _request(server, "/status").status == 401
+
+
+def test_a_whitespace_only_token_is_no_token(server):
+    server.web.api_token = "   "
+
+    assert _request(server, "/status").status == 200
+
+
 def test_unknown_paths_are_refused_before_they_are_looked_up(server):
     server.web.api_token = TOKEN
 

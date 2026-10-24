@@ -116,7 +116,13 @@ def authorized(authorization, token):
     after an upgrade. With one, the request must carry `Authorization: Bearer
     <token>`; anything else is refused the same way, so a 401 never says which
     part was wrong.
+
+    The configured token is stripped like the presented one: a trailing space
+    pasted into settings.json would otherwise refuse every client, the
+    device's own pages included. Whitespace alone is no token, as in
+    `settings.require`.
     """
+    token = (token or "").strip()
     if not token:
         return True
     scheme, _, presented = authorization.partition(" ")
