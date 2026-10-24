@@ -175,7 +175,9 @@ class EPD_2in13_B_V4_Base:
         self.TurnOnDisplay()
 
 
-# Untested against hardware — see TODO.md.
+# Only the mode byte and the FrameBuffer geometry differ from landscape;
+# tests/test_epd_driver.py pins both. No portrait render on a panel has been
+# recorded in docs/firmware.md yet.
 class EPD_2in13_B_V4_Portrait(EPD_2in13_B_V4_Base):
     def __init__(self):
         super().__init__()
