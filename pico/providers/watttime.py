@@ -79,7 +79,8 @@ class WattTimeProvider(EmissionsProvider):
     _disabled_until = 0
 
     def is_enabled(self, country_code: str) -> bool:
-        return CONFIG.providers.watttime.enabled
+        settings = CONFIG.providers.watttime
+        return bool(settings.enabled and settings.username and settings.password)
 
     def _allowed_now(self):
         return time.time() >= self._disabled_until

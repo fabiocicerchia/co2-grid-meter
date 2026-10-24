@@ -34,7 +34,8 @@ class Co2SignalProvider(SampledProvider):
     _next_collect_after = 0
 
     def is_enabled(self, country_code: str) -> bool:
-        return CONFIG.providers.co2signal.enabled
+        settings = CONFIG.providers.co2signal
+        return bool(settings.enabled and settings.token)
 
     def _extract_intensity(self, payload):
         data = payload.get("data") if isinstance(payload, dict) else None

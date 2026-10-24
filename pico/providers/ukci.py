@@ -13,7 +13,7 @@ class UkciProvider(EmissionsProvider):
 
     def is_enabled(self, country_code: str) -> bool:
         # Flat key, unlike the other providers' nested blocks — see TODO.md.
-        return CONFIG.providers.ukci_enabled
+        return bool(CONFIG.providers.ukci_enabled)
 
     def format_timestamp(self, epoch_value):
         return _format_timestamp(time.gmtime(epoch_value), include_seconds=False) + "Z"
