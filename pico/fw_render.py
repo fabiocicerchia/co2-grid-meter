@@ -64,15 +64,44 @@ _DETAIL_MAX_LINES = 3
 _DETAIL_LINE_HEIGHT = 10
 
 
-def make_next_line(recommendation):
+# The recommendation line is drawn bold at x=10 inside the current panel, whose
+# filled interior ends at screen_w - 7 (display.draw_current_panel: panel_x 5,
+# panel_w screen_w - 10, one pixel of border). Each 8x8 glyph is 8px and the
+# bold copy sits 1px to the right, so n characters end at 10 + 8n. These
+# restate display.py's literals; tests/test_fw_render.py draws the real panel
+# so the two cannot drift apart unnoticed.
+_NEXT_LINE_X = 10
+_NEXT_LINE_RIGHT_INSET = 7
+_GLYPH_PX = 8
+_BOLD_OFFSET_PX = 1
+
+
+def next_line_chars(screen_w):
+    """Characters of the recommendation line that fit a panel `screen_w` wide.
+
+    29 in landscape (250px), 13 in portrait (128px).
+    """
+    usable = screen_w - _NEXT_LINE_RIGHT_INSET - _NEXT_LINE_X - _BOLD_OFFSET_PX
+    return max(0, usable // _GLYPH_PX)
+
+
+def make_next_line(recommendation, max_chars):
+    """The line under the verdict, cut to `max_chars` between words.
+
+    Both branches obey the same limit: a wait line in portrait is as long as a
+    reason, and framebuf clips silently mid-glyph rather than saying so.
+    """
     wait_hours = recommendation.get("wait_hours")
     if isinstance(wait_hours, int) and wait_hours > 0:
-        return t(
+        line = t(
             "label.wait_hours",
             wait_hours,
             fmt_hhmm_local(int(time.time()) + wait_hours * 3600),
         )
-    return (recommendation.get("reason") or "").strip()[:22]
+    else:
+        line = recommendation.get("reason") or ""
+    fitted = wrap_lines(line, max_chars, 1)
+    return fitted[0] if fitted else ""
 
 
 # ---- Periodic e-ink refresh (decoupled from HTTP polling) ----
@@ -187,11 +216,12 @@ def render_screen(status_json, window_json, overlay_json):
         intensity_zone_from_percentile(percentile_value),
         led_level_from_percentile(percentile_value),
     )
+    screen_w, _ = panel_dimensions(_epd)
     draw_current_panel(
         _epd,
         current_intensity,
         recommendation.get("verdict") or "—",
-        make_next_line(recommendation),
+        make_next_line(recommendation, next_line_chars(screen_w)),
     )
     draw_graph(_epd, current_line, week_line)
     draw_top_bar(_epd)
