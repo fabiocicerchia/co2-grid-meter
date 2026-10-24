@@ -225,6 +225,19 @@ class TestTemplate:
         assert apply(C, {"providers": {"ukci": {"enabled": True}}}) == ["providers.ukci.enabled"]
         assert C.providers.ukci.enabled is True
 
+    def test_a_block_set_to_a_single_value_fails_startup_by_name(self):
+        """`"ukci": true` is the natural misreading of the new key. It must stop
+        at boot, not replace the block and crash on the first provider read."""
+
+        class C:
+            class providers:
+                class ukci:
+                    enabled = False
+
+        with pytest.raises(SettingsError, match=r"block of settings to a single value: providers\.ukci$"):
+            apply(C, {"providers": {"ukci": True}})
+        assert isinstance(C.providers.ukci, type)
+
     def test_the_template_carries_no_real_credential(self):
         text = TEMPLATE.read_text()
         for suspicious in ("ghp_", "sk-", "AKIA", "-----BEGIN"):

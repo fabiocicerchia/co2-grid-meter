@@ -228,6 +228,9 @@ the old flat key does not boot after the upgrade: it stops with
 "providers": { "ukci": { "enabled": true } }
 ```
 
+Writing `"ukci": true` instead stops startup too, with
+`settings.json sets a block of settings to a single value: providers.ukci`.
+
 The desktop side is unchanged: `config/settings.py` still reads environment
 variables, and remains the source of truth there.
 
