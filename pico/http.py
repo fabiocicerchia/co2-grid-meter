@@ -96,7 +96,7 @@ def _header_value(raw):
         return ""
 
 
-def _same(a, b):
+def _constant_time_equal(a, b):
     """Equal strings, compared without stopping at the first difference.
 
     MicroPython has no hmac.compare_digest. An early return would let a client
@@ -131,7 +131,7 @@ def authorized(authorization, token):
     if not token:
         return True
     scheme, _, presented = authorization.partition(" ")
-    return scheme.lower() == "bearer" and _same(presented.strip(), token)
+    return scheme.lower() == "bearer" and _constant_time_equal(presented.strip(), token)
 
 
 def split_path_qs(path_qs):
