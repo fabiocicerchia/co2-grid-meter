@@ -91,3 +91,51 @@ def test_api_status_handles_provider_http_error():
     finally:
         server.shutdown()
         server.server_close()
+
+
+class RecordingSession(FakeSession):
+    def __init__(self, response):
+        super().__init__(response)
+        self.calls = []
+
+    def get(self, url, **kwargs):
+        self.calls.append((url, kwargs.get("headers") or {}))
+        return self.response
+
+
+def _status_through_dashboard(token, query=""):
+    config = _config()
+    config.upstream.pico_api_token = token
+    session = RecordingSession(FakeResponse({"carbonIntensity": 120}))
+    handler_cls = web_handler.create_handler(
+        config=config,
+        logger=type("L", (), {"warning": lambda *a, **k: None})(),
+        http_session=session,
+    )
+    server, base_url = _serve(handler_cls)
+    try:
+        status_code, _ = _fetch(f"{base_url}/api/status{query}")
+    finally:
+        server.shutdown()
+        server.server_close()
+    assert status_code == 200
+    return session.calls
+
+
+def test_the_device_token_is_sent_to_the_configured_device():
+    calls = _status_through_dashboard("s3cret")
+    assert calls[0][1] == {"Authorization": "Bearer s3cret"}
+
+
+def test_no_token_configured_sends_no_header():
+    calls = _status_through_dashboard("")
+    assert calls[0][1] == {}
+
+
+def test_the_token_never_goes_to_a_pico_override():
+    # `?pico=` is caller-controlled. A prefix of the configured host is not the
+    # configured host: example.test must not match example.test.evil.
+    for override in ("http://attacker.test", "http://example.test.evil"):
+        calls = _status_through_dashboard("s3cret", f"?pico={override}")
+        assert calls[0][0].startswith(override)
+        assert calls[0][1] == {}

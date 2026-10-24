@@ -74,13 +74,28 @@ class PicoProxyHandler(BaseHTTPRequestHandler):
         payload = {"error": error, "details": details}
         return json.dumps(payload), 502
 
+    def _pico_headers(self, url: str) -> dict[str, str]:
+        """The device token, for the configured device only.
+
+        `?pico=` lets any caller choose the upstream, so the token goes only to
+        a URL under pico_base_url — with the trailing slash, or
+        http://10.0.0.5 would also match http://10.0.0.50.
+        """
+        token = getattr(self.config.upstream, "pico_api_token", "")
+        base = self.config.upstream.pico_base_url.rstrip("/") + "/"
+        if token and url.startswith(base):
+            return {"Authorization": f"Bearer {token}"}
+        return {}
+
     def _request_with_retry(self, url: str, params: dict) -> requests.Response:
         last_error: Exception | None = None
+        headers = self._pico_headers(url)
         for attempt in range(self.config.upstream.max_retries):
             try:
                 return self.http_session.get(
                     url,
                     params=params,
+                    headers=headers,
                     timeout=self.config.upstream.request_timeout_seconds,
                 )
             except RequestException as error:

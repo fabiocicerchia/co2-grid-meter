@@ -67,10 +67,11 @@ def parse_request(conn):
     if len(parts) < _HEADER_PARTS:
         return None
     method, path_qs = parts[0], parts[1]
-    # Only If-None-Match is kept: it is the one header this server acts on, and
-    # holding a whole header dict per request costs heap the device needs for
-    # the response.
+    # Only If-None-Match and Authorization are kept: they are the two headers
+    # this server acts on, and holding a whole header dict per request costs
+    # heap the device needs for the response.
     if_none_match = ""
+    authorization = ""
     while True:
         h = _readline(conn)
         if not h or h == b"\r\n":
@@ -79,12 +80,47 @@ def parse_request(conn):
         # allocates a string per header per request, which is the heap this
         # was trying to save. Only the value that is actually kept is decoded,
         # and a header that is not valid UTF-8 is not one this server acts on.
-        if h[:14].lower() == b"if-none-match:":
-            try:
-                if_none_match = h[14:].decode().strip()
-            except Exception:
-                if_none_match = ""
-    return method, path_qs, if_none_match
+        name = h[:14].lower()
+        if name == b"if-none-match:":
+            if_none_match = _header_value(h[14:])
+        elif name == b"authorization:":
+            authorization = _header_value(h[14:])
+    return method, path_qs, if_none_match, authorization
+
+
+def _header_value(raw):
+    try:
+        return raw.decode().strip()
+    except Exception:
+        return ""
+
+
+def _same(a, b):
+    """Equal strings, compared without stopping at the first difference.
+
+    MicroPython has no hmac.compare_digest. An early return would let a client
+    on the LAN learn the token a character at a time from response timing.
+    """
+    if len(a) != len(b):
+        return False
+    diff = 0
+    for i in range(len(a)):
+        diff |= ord(a[i]) ^ ord(b[i])
+    return diff == 0
+
+
+def authorized(authorization, token):
+    """Whether a request may be answered.
+
+    No token configured means open, so an existing LAN install behaves the same
+    after an upgrade. With one, the request must carry `Authorization: Bearer
+    <token>`; anything else is refused the same way, so a 401 never says which
+    part was wrong.
+    """
+    if not token:
+        return True
+    scheme, _, presented = authorization.partition(" ")
+    return scheme.lower() == "bearer" and _same(presented.strip(), token)
 
 
 def split_path_qs(path_qs):
@@ -175,12 +211,12 @@ def handle_http_request(conn, logger):
             conn.close()
         return
 
-    method, path_qs, if_none_match = request
+    method, path_qs, if_none_match, authorization = request
     path, params = split_path_qs(path_qs)
     logger.info("%s %s" % (method, path))
 
     try:
-        process_http_request(conn, method, path, params, if_none_match)
+        process_http_request(conn, method, path, params, if_none_match, authorization)
     except Exception as error:
         crash_path = write_crashdump(error, context="http")
         logger.exception("ERROR %s %s" % (error, crash_path))
@@ -217,7 +253,15 @@ PAGE_ROUTES = {
 }
 
 
-def process_http_request(conn, method, path, params, if_none_match=""):
+def process_http_request(conn, method, path, params, if_none_match="", authorization=""):
+    # Before anything else, every route included: /system-info hands out the
+    # device's network details, and a static file is still a disclosure.
+    if not authorized(authorization, getattr(CONFIG.web, "api_token", "")):
+        return send_json(conn, 401, {"error": "Unauthorized"})
+    return _dispatch(conn, method, path, params, if_none_match)
+
+
+def _dispatch(conn, method, path, params, if_none_match):
     if method != "GET":
         return send_json(conn, 405, {"error": "Only GET supported"})
 
