@@ -3,8 +3,9 @@
 `EPD_2in13_B_V4_Portrait` was the one display class nothing had ever
 constructed. It shares everything with the landscape class except the RAM
 data-entry mode and the shape of the two FrameBuffers drawn into, so those are
-what this pins: the mode byte the panel receives, and that each FrameBuffer's
-width, height and bit order describe exactly the bytes behind it. A geometry
+what this pins: the mode byte the panel receives, that each FrameBuffer's
+width, height and bit order describe exactly the bytes behind it, and that
+`display()` sends those bytes in the order that layout stores them. A geometry
 that over- or under-runs the buffer is a garbled or clipped frame on the panel.
 
 `framebuf` and `machine` do not exist under CPython; `tests/conftest.py` stubs
@@ -75,3 +76,50 @@ def test_init_sequences_differ_only_in_the_data_entry_mode(epd):
     assert len(portrait) == len(landscape)
     differing = [i for i, (a, b) in enumerate(zip(portrait, landscape, strict=True)) if a != b]
     assert differing == [portrait.index(bytes([DATA_ENTRY_MODE])) + 1]
+
+
+class _PlaneRecorder:
+    """Stands in for the send_* methods: the bytes sent after each command."""
+
+    def __init__(self):
+        self.planes = {}
+        self._command = None
+
+    def command(self, code):
+        self._command = code
+        self.planes[code] = bytearray()
+
+    def data(self, value):
+        self.planes[self._command].append(value)
+
+    def data_block(self, buf):
+        self.planes[self._command].extend(buf)
+
+
+def _planes_sent(panel):
+    recorder = _PlaneRecorder()
+    panel.send_command = recorder.command
+    panel.send_data = recorder.data
+    panel.send_data1 = recorder.data_block
+    panel.TurnOnDisplay = lambda: None
+    panel.display()
+    return recorder.planes
+
+
+def _column_bands(panel, buf):
+    # MONO_VLSB: one band of 8 rows per `height` bytes, sent last band first.
+    bands, height = panel.width // 8, panel.height
+    return bytes(buf[i + j * height] for j in range(bands - 1, -1, -1) for i in range(height))
+
+
+@pytest.mark.parametrize("cls", ["EPD_2in13_B_V4_Portrait", "EPD_2in13_B_V4_Landscape"])
+def test_display_sends_each_plane_in_its_layouts_order(epd, cls):
+    panel = getattr(epd, cls)()
+    for i in range(len(panel.buffer_black)):
+        panel.buffer_black[i] = i % 251
+        panel.buffer_red[i] = (i * 7) % 251
+    planes = _planes_sent(panel)
+
+    for command, buf in ((0x24, panel.buffer_black), (0x26, panel.buffer_red)):
+        expected = bytes(buf) if cls.endswith("Portrait") else _column_bands(panel, buf)
+        assert planes[command] == expected

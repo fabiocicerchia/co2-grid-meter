@@ -175,9 +175,9 @@ class EPD_2in13_B_V4_Base:
         self.TurnOnDisplay()
 
 
-# Only the mode byte and the FrameBuffer geometry differ from landscape;
-# tests/test_epd_driver.py pins both. No portrait render on a panel has been
-# recorded in docs/firmware.md yet.
+# Differs from landscape in the mode byte, the FrameBuffer geometry and the
+# order the planes go out; tests/test_epd_driver.py pins all three. No portrait
+# render on a panel has been recorded in docs/firmware.md yet.
 class EPD_2in13_B_V4_Portrait(EPD_2in13_B_V4_Base):
     def __init__(self):
         super().__init__()
@@ -187,6 +187,18 @@ class EPD_2in13_B_V4_Portrait(EPD_2in13_B_V4_Base):
         self.imageblack = framebuf.FrameBuffer(self.buffer_black, self.width, self.height, framebuf.MONO_HLSB)
         self.imagered = framebuf.FrameBuffer(self.buffer_red, self.width, self.height, framebuf.MONO_HLSB)
         self.init()
+
+    def display(self):
+        # MONO_HLSB is row-major and mode 0x03 fills the panel row by row, so
+        # the buffers go out as they are. The base class's column-band order
+        # is the landscape (MONO_VLSB) layout and would scramble this one.
+        self.send_command(0x24)
+        self.send_data1(self.buffer_black)
+
+        self.send_command(0x26)
+        self.send_data1(self.buffer_red)
+
+        self.TurnOnDisplay()
 
 
 class EPD_2in13_B_V4_Landscape(EPD_2in13_B_V4_Base):
