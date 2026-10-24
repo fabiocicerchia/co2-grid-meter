@@ -57,9 +57,9 @@ def _forced_provider(name, cc):
 def _select(country_code):
     """The one configured provider, as (name, instance)."""
     cc = (country_code or "XX").upper()
-    name = forced()
-    if name:
-        return _forced_provider(name, cc)
+    wanted = forced()
+    if wanted:
+        return _forced_provider(wanted, cc)
     enabled = []
     for name, cls in _PROVIDERS:
         provider = cls()
