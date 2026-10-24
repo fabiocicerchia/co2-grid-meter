@@ -2,10 +2,11 @@
 
 `EPD_2in13_B_V4_Portrait` was the one display class nothing had ever
 constructed. It shares everything with the landscape class except the RAM
-data-entry mode and the shape of the two FrameBuffers drawn into, so those are
-what this pins: the mode byte the panel receives, that each FrameBuffer's
-width, height and bit order describe exactly the bytes behind it, and that
-`display()` sends those bytes in the order that layout stores them. A geometry
+data-entry mode, the shape of the two FrameBuffers drawn into and the order
+`display()` sends them in, so those are what this pins: the mode byte the panel
+receives, that each FrameBuffer's width, height and bit order describe exactly
+the bytes behind it, and that `display()` sends those bytes in the order that
+layout stores them. A geometry
 that over- or under-runs the buffer is a garbled or clipped frame on the panel.
 
 `framebuf` and `machine` do not exist under CPython; `tests/conftest.py` stubs
@@ -79,7 +80,8 @@ def test_init_sequences_differ_only_in_the_data_entry_mode(epd):
 
 
 class _PlaneRecorder:
-    """Stands in for the send_* methods: the bytes sent after each command."""
+    """Stands in for the send_* methods and TurnOnDisplay: the bytes sent after
+    each command, and the order of the commands and the refresh."""
 
     def __init__(self):
         self.planes = {}
@@ -101,7 +103,7 @@ class _PlaneRecorder:
         self.planes[self._command].extend(buf)
 
 
-def _planes_sent(panel):
+def _record_display(panel):
     recorder = _PlaneRecorder()
     panel.send_command = recorder.command
     panel.send_data = recorder.data
@@ -123,7 +125,7 @@ def test_display_sends_each_plane_in_its_layouts_order(epd, cls):
     for i in range(len(panel.buffer_black)):
         panel.buffer_black[i] = i % 251
         panel.buffer_red[i] = (i * 7) % 251
-    sent = _planes_sent(panel)
+    sent = _record_display(panel)
 
     for command, buf in ((0x24, panel.buffer_black), (0x26, panel.buffer_red)):
         expected = bytes(buf) if cls.endswith("Portrait") else _column_bands(panel, buf)
