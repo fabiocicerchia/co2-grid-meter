@@ -5,6 +5,7 @@ from providers.electricity_maps import ElectricityMapsProvider
 from providers.entsoe import EntsoeProvider
 from providers.ukci import UkciProvider
 from providers.watttime import WattTimeProvider
+from settings import forced_name
 from utils import ProviderError
 
 from config import CONFIG
@@ -30,17 +31,8 @@ FORCE_DUMMY = "dummy"
 
 
 def forced():
-    """The provider name `providers.force` asks for, or "" when it is unset.
-
-    settings.json does not type-check, and `"force": true` is the natural
-    leftover of `force_dummy`. Read as text, so a non-string is an unknown
-    name that `_forced_provider` reports instead of a crash on every request.
-    `false` reads as unset.
-    """
-    value = CONFIG.providers.force
-    if value is None or value is False:
-        return ""
-    return str(value).strip().lower()
+    """The provider name `providers.force` asks for, or "" when it is unset."""
+    return forced_name(CONFIG.providers.force)
 
 
 def _forced_provider(name, cc):

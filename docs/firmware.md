@@ -242,11 +242,18 @@ touching the enabled flags:
 - **The city comes in the same act.** While a provider is forced, the location
   in `defaults` wins over the one IP geolocation finds, so the edit above is the
   whole of "show me London's grid from Rome". `?lat`/`?lon`/`?city`/`?cc` on a
-  request still override both.
-- **A forced provider without its credentials fails by name** —
-  `providers.force is em, which needs providers.electricity_maps.token` — rather
-  than falling through to another provider, which would show readings from a
-  provider nobody asked for. An unknown name lists the valid ones.
+  request still override both. A provider's own location setting still wins
+  over `defaults`: forcing `entsoe` asks for `providers.entsoe.area_override`
+  (`IT-CSOUTH` unless changed), so clear or change it to follow the city.
+- **Only the forced provider's credentials are required.** The other
+  providers' enabled flags and credentials are not checked at startup while
+  one is forced, since none of them will be asked. A forced provider without
+  its own fails startup by name, as an enabled one does
+  (`settings.json is missing required value(s): providers.electricity_maps.token`),
+  rather than falling through to another provider, which would show readings
+  from a provider nobody asked for. An ENTSO-E area with no mapping fails at the
+  first fetch with `providers.force is entsoe, which needs …`, and an unknown
+  name lists the valid ones.
 - **Left set, it stays forced.** The device keeps using that provider and that
   location across reboots, and auto-geolocation stays off, until the key is
   removed or emptied. The "Enable only one provider at a time" error only fires
