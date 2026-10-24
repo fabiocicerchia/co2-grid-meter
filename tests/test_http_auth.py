@@ -164,7 +164,7 @@ def test_a_non_string_token_is_enforced_as_its_text(server, configured):
     server.web.api_token = configured
 
     assert _request(server, "/status").status == 401
-    assert _request(server, "/status", "Bearer %s" % configured).status == 200
+    assert _request(server, "/status", f"Bearer {configured}").status == 200
 
 
 def test_unknown_paths_are_refused_before_they_are_looked_up(server):
