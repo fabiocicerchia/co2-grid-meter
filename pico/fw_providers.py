@@ -33,17 +33,17 @@ def forced():
     """The provider name `providers.force` asks for, or "" when it is unset.
 
     settings.json does not type-check, and `"force": true` is the natural
-    leftover of `force_dummy`. Calling `.strip()` on it raised in resolve_geo,
-    so every data request was a 500 with a crash dump on flash; as text it is
-    an unknown name, which `_forced` reports. `false` reads as unset.
+    leftover of `force_dummy`. Read as text, so a non-string is an unknown
+    name that `_forced_provider` reports instead of a crash on every request.
+    `false` reads as unset.
     """
-    value = getattr(CONFIG.providers, "force", "")
+    value = CONFIG.providers.force
     if value is None or value is False:
         return ""
     return str(value).strip().lower()
 
 
-def _forced(name, cc):
+def _forced_provider(name, cc):
     """The provider `providers.force` names, whatever its `enabled` flag says.
 
     Testing aid: point the device at a grid it is not in without editing the
@@ -67,7 +67,7 @@ def _select(country_code):
     cc = (country_code or "XX").upper()
     name = forced()
     if name:
-        return _forced(name, cc)
+        return _forced_provider(name, cc)
     enabled = []
     for name, cls in _PROVIDERS:
         provider = cls()
