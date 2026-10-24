@@ -30,8 +30,17 @@ FORCE_DUMMY = "dummy"
 
 
 def forced():
-    """The provider name `providers.force` asks for, or "" when it is unset."""
-    return (getattr(CONFIG.providers, "force", "") or "").strip().lower()
+    """The provider name `providers.force` asks for, or "" when it is unset.
+
+    settings.json does not type-check, and `"force": true` is the natural
+    leftover of `force_dummy`. Calling `.strip()` on it raised in resolve_geo,
+    so every data request was a 500 with a crash dump on flash; as text it is
+    an unknown name, which `_forced` reports. `false` reads as unset.
+    """
+    value = getattr(CONFIG.providers, "force", "")
+    if value is None or value is False:
+        return ""
+    return str(value).strip().lower()
 
 
 def _forced(name, cc):

@@ -237,7 +237,8 @@ touching the enabled flags:
 - **The value names one provider** as `/status` reports it: `uk`, `ci_api`,
   `em`, `co2signal`, `watttime`, `entsoe` — or `dummy` for the simulated series
   (this replaces the old `providers.force_dummy`). Case and surrounding spaces
-  are ignored.
+  are ignored. `""`, `null` and `false` all mean unset; `true` is not a
+  provider name and fails as an unknown one.
 - **The city comes in the same act.** While a provider is forced, the location
   in `defaults` wins over the one IP geolocation finds, so the edit above is the
   whole of "show me London's grid from Rome". `?lat`/`?lon`/`?city`/`?cc` on a

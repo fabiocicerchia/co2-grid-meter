@@ -252,6 +252,25 @@ def test_force_is_trimmed_and_case_insensitive(selection):
     assert module._select("IT")[0] == "ci_api"
 
 
+@pytest.mark.parametrize("value", [None, False])
+def test_a_null_or_false_force_is_unset(selection, value):
+    module, providers = selection
+    _enable(providers, "ci_api")
+    providers.force = value
+
+    assert module.forced() == ""
+    assert module._select("IT")[0] == "ci_api"
+
+
+def test_a_non_string_force_is_an_unknown_name_not_a_crash(selection):
+    module, providers = selection
+    providers.force = True
+
+    assert module.forced() == "true"
+    with pytest.raises(ProviderError, match="names no provider: true"):
+        module._select("IT")
+
+
 def test_misconfiguration_still_errors_when_nothing_is_forced(selection):
     module, providers = selection
     _enable(providers, "ci_api")
