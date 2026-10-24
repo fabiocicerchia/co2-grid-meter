@@ -80,6 +80,7 @@ def parse_request(conn):
         # allocates a string per header per request, which is the heap this
         # was trying to save. Only the value that is actually kept is decoded,
         # and a header that is not valid UTF-8 is not one this server acts on.
+        # Both names are 14 bytes with the colon, so one slice serves both.
         name = h[:14].lower()
         if name == b"if-none-match:":
             if_none_match = _header_value(h[14:])
@@ -266,7 +267,7 @@ PAGE_ROUTES = {
 def process_http_request(conn, method, path, params, if_none_match="", authorization=""):
     # Before anything else, every route included: /system-info hands out the
     # device's network details, and a static file is still a disclosure.
-    if not authorized(authorization, getattr(CONFIG.web, "api_token", "")):
+    if not authorized(authorization, CONFIG.web.api_token):
         return send_json(conn, 401, {"error": "Unauthorized"})
     return _dispatch(conn, method, path, params, if_none_match)
 

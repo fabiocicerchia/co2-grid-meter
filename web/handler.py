@@ -81,7 +81,7 @@ class PicoProxyHandler(BaseHTTPRequestHandler):
         a URL under pico_base_url — with the trailing slash, or
         http://10.0.0.5 would also match http://10.0.0.50.
         """
-        token = getattr(self.config.upstream, "pico_api_token", "")
+        token = self.config.upstream.pico_api_token
         base = self.config.upstream.pico_base_url.rstrip("/") + "/"
         if token and url.startswith(base):
             return {"Authorization": f"Bearer {token}"}

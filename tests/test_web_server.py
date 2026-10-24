@@ -53,6 +53,7 @@ def _config():
                     "pico_base_url": "http://example.test",
                     "request_timeout_seconds": 1,
                     "max_retries": 1,
+                    "pico_api_token": "",
                 },
             )()
         },
