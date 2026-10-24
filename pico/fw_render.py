@@ -77,8 +77,7 @@ _BOLD_OFFSET_PX = 1
 def next_line_chars(screen_w):
     """Characters of the recommendation line that fit a panel `screen_w` wide.
 
-    29 in landscape (250px), 13 in portrait (128px). The old fixed 22 cut seven
-    characters that had room in landscape and overran the panel in portrait.
+    29 in landscape (250px), 13 in portrait (128px).
     """
     usable = screen_w - _NEXT_LINE_RIGHT_INSET - _NEXT_LINE_X - _BOLD_OFFSET_PX
     return max(0, usable // _GLYPH_PX)
