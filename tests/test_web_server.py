@@ -134,9 +134,10 @@ def test_no_token_configured_sends_no_header():
 
 
 def test_the_token_never_goes_to_a_pico_override():
-    # `?pico=` is caller-controlled. A prefix of the configured host is not the
-    # configured host: example.test must not match example.test.evil.
-    for override in ("http://attacker.test", "http://example.test.evil"):
+    # `?pico=` is caller-controlled, whatever it points at: another host, one
+    # the configured host is a prefix of, or the configured host itself with
+    # the route pushed into the query string.
+    for override in ("http://attacker.test", "http://example.test.evil", "http://example.test/system-info?"):
         calls = _status_through_dashboard("s3cret", f"?pico={override}")
         assert calls[0][0].startswith(override)
         assert calls[0][1] == {}
