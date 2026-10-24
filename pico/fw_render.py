@@ -67,7 +67,9 @@ _DETAIL_LINE_HEIGHT = 10
 # The recommendation line is drawn bold at x=10 inside the current panel, whose
 # filled interior ends at screen_w - 7 (display.draw_current_panel: panel_x 5,
 # panel_w screen_w - 10, one pixel of border). Each 8x8 glyph is 8px and the
-# bold copy sits 1px to the right, so n characters end at 10 + 8n.
+# bold copy sits 1px to the right, so n characters end at 10 + 8n. These
+# restate display.py's literals; tests/test_fw_render.py draws the real panel
+# so the two cannot drift apart unnoticed.
 _NEXT_LINE_X = 10
 _NEXT_LINE_RIGHT_INSET = 7
 _GLYPH_PX = 8

@@ -50,11 +50,6 @@ def fw_render():
     return _load("pico_fw_render", "fw_render.py", stubs)
 
 
-def test_the_limit_is_derived_from_the_panel_width(fw_render):
-    assert fw_render.next_line_chars(LANDSCAPE_W) == 29
-    assert fw_render.next_line_chars(PORTRAIT_W) == 13
-
-
 class _Frame:
     """Records the panel's filled rectangles and the text drawn on it."""
 
@@ -81,6 +76,11 @@ def display():
         "i18n": i18n,
     }
     return _load("pico_display", "display.py", stubs)
+
+
+def test_the_limit_is_derived_from_the_panel_width(fw_render):
+    assert fw_render.next_line_chars(LANDSCAPE_W) == 29
+    assert fw_render.next_line_chars(PORTRAIT_W) == 13
 
 
 @pytest.mark.parametrize("screen_w", [LANDSCAPE_W, PORTRAIT_W])
