@@ -55,12 +55,48 @@ def test_the_limit_is_derived_from_the_panel_width(fw_render):
     assert fw_render.next_line_chars(PORTRAIT_W) == 13
 
 
+class _Frame:
+    """Records the panel's filled rectangles and the text drawn on it."""
+
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+        self.rects = []
+        self.texts = []
+
+    def fill_rect(self, x, y, w, h, _color):
+        self.rects.append((x, y, w, h))
+
+    def text(self, text, x, y, _color):
+        self.texts.append((text, x, y))
+
+
+@pytest.fixture
+def display():
+    i18n = _load("i18n", "i18n.py")
+    stubs = {
+        "epd_driver": mock.MagicMock(),
+        "utils": mock.MagicMock(),
+        "config": mock.MagicMock(),
+        "i18n": i18n,
+    }
+    return _load("pico_display", "display.py", stubs)
+
+
 @pytest.mark.parametrize("screen_w", [LANDSCAPE_W, PORTRAIT_W])
-def test_the_line_ends_inside_the_panel_interior(fw_render, screen_w):
-    # n bold glyphs drawn from x=10 end at 10 + 8n; the filled interior of the
-    # panel ends at screen_w - 7. One more character would cross it.
+def test_the_line_ends_inside_the_panel_interior(fw_render, display, screen_w):
+    # Measured against display.draw_current_panel itself, so a change to the
+    # panel's geometry there fails here instead of clipping on the device.
     n = fw_render.next_line_chars(screen_w)
-    assert 10 + 8 * n <= screen_w - 7 < 10 + 8 * (n + 1)
+    epd = mock.Mock(black_frame=_Frame(screen_w, 122), red_frame=_Frame(screen_w, 122))
+
+    display.draw_current_panel(epd, 300, "WAIT", "x" * n)
+
+    interior_x, _, interior_w, _ = epd.red_frame.rects[-1]
+    drawn = [(x, len(text)) for text, x, _ in epd.red_frame.texts if text == "x" * n]
+    right_edge = max(x + 8 * length for x, length in drawn)  # 8px glyphs
+    assert right_edge <= interior_x + interior_w
+    assert right_edge + 8 > interior_x + interior_w  # one more would not fit
 
 
 @pytest.mark.parametrize(
