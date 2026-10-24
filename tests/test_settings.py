@@ -199,6 +199,33 @@ class TestTemplate:
         for dotted in flatten(data):
             assert dotted in known, f"{dotted} is in the template but not in CONFIG"
 
+    def test_the_template_has_a_block_for_every_provider(self):
+        """Every provider block in CONFIG appears in the file people copy, so no
+        provider has to be remembered separately — ukci was the one missing."""
+        import ast
+
+        source = (pathlib.Path(__file__).resolve().parents[1] / "pico" / "config.py").read_text()
+        config_cls = next(n for n in ast.parse(source).body if isinstance(n, ast.ClassDef) and n.name == "CONFIG")
+        providers_cls = next(n for n in config_cls.body if isinstance(n, ast.ClassDef) and n.name == "providers")
+        blocks = {n.name for n in providers_cls.body if isinstance(n, ast.ClassDef)}
+
+        template = json.loads(TEMPLATE.read_text())["providers"]
+        assert set(template) == blocks
+
+    def test_the_old_flat_ukci_key_fails_startup_by_name(self):
+        """providers.ukci_enabled became providers.ukci.enabled. A device still
+        setting the old key must stop and say so, not boot with UKCI off."""
+
+        class C:
+            class providers:
+                class ukci:
+                    enabled = False
+
+        with pytest.raises(SettingsError, match=r"providers\.ukci_enabled"):
+            apply(C, {"providers": {"ukci_enabled": True}})
+        assert apply(C, {"providers": {"ukci": {"enabled": True}}}) == ["providers.ukci.enabled"]
+        assert C.providers.ukci.enabled is True
+
     def test_the_template_carries_no_real_credential(self):
         text = TEMPLATE.read_text()
         for suspicious in ("ghp_", "sk-", "AKIA", "-----BEGIN"):

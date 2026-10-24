@@ -27,7 +27,7 @@ def _select(country_code):
     providers = CONFIG.providers
 
     candidates = (
-        ("uk", (providers.ukci_enabled,), UkciProvider),
+        ("uk", (providers.ukci.enabled,), UkciProvider),
         # No token to check: the API is keyless.
         ("ci_api", (providers.ci_api.enabled,), CiApiProvider),
         (
