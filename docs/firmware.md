@@ -221,6 +221,41 @@ worst of the available outcomes.
 The desktop side is unchanged: `config/settings.py` still reads environment
 variables, and remains the source of truth there.
 
+## Forcing a provider and a city (testing aid)
+
+The providers disagree most about grids you are not in, which is exactly when
+you cannot check them. `providers.force` points the device at one without
+touching the enabled flags:
+
+```json
+{
+  "defaults": { "latitude": 51.5072, "longitude": -0.1276, "city": "London", "country": "GB" },
+  "providers": { "force": "uk" }
+}
+```
+
+- **The value names one provider** as `/status` reports it: `uk`, `ci_api`,
+  `em`, `co2signal`, `watttime`, `entsoe` — or `dummy` for the simulated series
+  (this replaces the old `providers.force_dummy`). Case and surrounding spaces
+  are ignored.
+- **The city comes in the same act.** While a provider is forced, the location
+  in `defaults` wins over the one IP geolocation finds, so the edit above is the
+  whole of "show me London's grid from Rome". `?lat`/`?lon`/`?city`/`?cc` on a
+  request still override both.
+- **A forced provider without its credentials fails by name** —
+  `providers.force is em, which needs providers.electricity_maps.token` — rather
+  than falling through to another provider, which would show readings from a
+  provider nobody asked for. An unknown name lists the valid ones.
+- **Left set, it stays forced.** The device keeps using that provider and that
+  location across reboots, and auto-geolocation stays off, until the key is
+  removed or emptied. The "Enable only one provider at a time" error only fires
+  when nothing is forced, so a forced device with two enabled flags still runs.
+
+**Upgrading: `providers.force_dummy` is gone.** Unknown settings fail startup by
+name, so a `settings.json` that still sets it stops at boot with
+`settings.json sets unknown option(s): providers.force_dummy`. Replace
+`"force_dummy": true` with `"force": "dummy"`, and delete `"force_dummy": false`.
+
 ## Boot diagnostics
 
 Startup used to log the IP and nothing else, which is the least useful subset:

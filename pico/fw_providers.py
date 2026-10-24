@@ -7,6 +7,8 @@ from providers.ukci import UkciProvider
 from providers.watttime import WattTimeProvider
 from utils import ProviderError
 
+from config import CONFIG
+
 # The documented order (docs/architecture.md), and the name each provider is
 # reported under in /status and the window payload. Whether a provider is the
 # configured one is its own `is_enabled` answer: the enabled switch plus
@@ -22,9 +24,41 @@ _PROVIDERS = (
 )
 
 
+# `providers.force = "dummy"` is the simulated series app.py generates; it
+# never reaches _select.
+FORCE_DUMMY = "dummy"
+
+
+def forced():
+    """The provider name `providers.force` asks for, or "" when it is unset."""
+    return (getattr(CONFIG.providers, "force", "") or "").strip().lower()
+
+
+def _forced(name, cc):
+    """The provider `providers.force` names, whatever its `enabled` flag says.
+
+    Testing aid: point the device at a grid it is not in without editing the
+    enabled flags. A forced provider without its credentials fails by name
+    rather than falling through to another one, which would show readings from
+    a provider nobody asked for.
+    """
+    for candidate, cls in _PROVIDERS:
+        if candidate == name:
+            provider = cls()
+            missing = provider.missing(cc)
+            if missing:
+                raise ProviderError("providers.force is %s, which needs %s" % (name, ", ".join(missing)))
+            return name, provider
+    known = [candidate for candidate, _ in _PROVIDERS] + [FORCE_DUMMY]
+    raise ProviderError("providers.force names no provider: %s (one of %s)" % (name, ", ".join(known)))
+
+
 def _select(country_code):
     """The one configured provider, as (name, instance)."""
     cc = (country_code or "XX").upper()
+    name = forced()
+    if name:
+        return _forced(name, cc)
     enabled = []
     for name, cls in _PROVIDERS:
         provider = cls()
