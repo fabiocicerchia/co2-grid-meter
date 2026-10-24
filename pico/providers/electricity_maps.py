@@ -10,7 +10,8 @@ class ElectricityMapsProvider(EmissionsProvider):
     provider_name = "electricity-maps"
 
     def is_enabled(self, country_code: str) -> bool:
-        return CONFIG.providers.electricity_maps.enabled
+        settings = CONFIG.providers.electricity_maps
+        return bool(settings.enabled and settings.token)
 
     def parse_payload(self, payload):
         return parse_provider_history(

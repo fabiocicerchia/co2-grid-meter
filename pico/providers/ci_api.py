@@ -77,7 +77,8 @@ class CiApiProvider(EmissionsProvider):
     _next_request_after = 0
 
     def is_enabled(self, country_code: str) -> bool:
-        return CONFIG.providers.ci_api.enabled
+        # Keyless: there is no token to check.
+        return bool(CONFIG.providers.ci_api.enabled)
 
     def fetch_history(self, latitude, longitude, country_code, start, end):
         del latitude, longitude
