@@ -83,11 +83,16 @@ class _PlaneRecorder:
 
     def __init__(self):
         self.planes = {}
+        self.events = []
         self._command = None
 
     def command(self, code):
         self._command = code
         self.planes[code] = bytearray()
+        self.events.append(code)
+
+    def turn_on(self):
+        self.events.append("refresh")
 
     def data(self, value):
         self.planes[self._command].append(value)
@@ -101,9 +106,9 @@ def _planes_sent(panel):
     panel.send_command = recorder.command
     panel.send_data = recorder.data
     panel.send_data1 = recorder.data_block
-    panel.TurnOnDisplay = lambda: None
+    panel.TurnOnDisplay = recorder.turn_on
     panel.display()
-    return recorder.planes
+    return recorder
 
 
 def _column_bands(panel, buf):
@@ -118,8 +123,10 @@ def test_display_sends_each_plane_in_its_layouts_order(epd, cls):
     for i in range(len(panel.buffer_black)):
         panel.buffer_black[i] = i % 251
         panel.buffer_red[i] = (i * 7) % 251
-    planes = _planes_sent(panel)
+    sent = _planes_sent(panel)
 
     for command, buf in ((0x24, panel.buffer_black), (0x26, panel.buffer_red)):
         expected = bytes(buf) if cls.endswith("Portrait") else _column_bands(panel, buf)
-        assert planes[command] == expected
+        assert sent.planes[command] == expected
+    # Without the refresh after both planes the panel keeps showing the old frame.
+    assert sent.events == [0x24, 0x26, "refresh"]
