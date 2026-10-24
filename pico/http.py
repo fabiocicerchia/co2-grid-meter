@@ -121,8 +121,12 @@ def authorized(authorization, token):
     pasted into settings.json would otherwise refuse every client, the
     device's own pages included. Whitespace alone is no token, as in
     `settings.require`.
+
+    settings.json does not type-check, so a number or a boolean can arrive
+    here. It is compared as its text: a `.strip()` on it would raise on every
+    request, answering each with a 500 and a crash dump on flash.
     """
-    token = (token or "").strip()
+    token = ("" if token is None else str(token)).strip()
     if not token:
         return True
     scheme, _, presented = authorization.partition(" ")
