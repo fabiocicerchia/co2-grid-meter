@@ -9,8 +9,11 @@ from providers.base import EmissionsProvider, parse_provider_history
 class ElectricityMapsProvider(EmissionsProvider):
     provider_name = "electricity-maps"
 
+    def missing(self, country_code: str) -> list:
+        return [] if CONFIG.providers.electricity_maps.token else ["providers.electricity_maps.token"]
+
     def is_enabled(self, country_code: str) -> bool:
-        return CONFIG.providers.electricity_maps.enabled
+        return bool(CONFIG.providers.electricity_maps.enabled) and not self.missing(country_code)
 
     def parse_payload(self, payload):
         return parse_provider_history(
@@ -20,8 +23,9 @@ class ElectricityMapsProvider(EmissionsProvider):
         )
 
     def fetch_history(self, latitude, longitude, country_code, start, end):
-        if not (CONFIG.providers.electricity_maps.enabled and CONFIG.providers.electricity_maps.token):
-            raise ProviderError("Electricity Maps disabled/missing token")
+        missing = self.missing(country_code)
+        if missing:
+            raise ProviderError("Electricity Maps needs %s" % ", ".join(missing))
 
         query = "lat=%s&lon=%s&start=%s&end=%s&temporalGranularity=hourly" % (
             str(latitude),

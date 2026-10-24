@@ -2,65 +2,69 @@
 from providers.ci_api import CiApiProvider
 from providers.co2signal import Co2SignalProvider
 from providers.electricity_maps import ElectricityMapsProvider
-from providers.entsoe import ENTSOE_DOMAIN, EntsoeProvider
+from providers.entsoe import EntsoeProvider
 from providers.ukci import UkciProvider
 from providers.watttime import WattTimeProvider
+from settings import forced_name
 from utils import ProviderError
 
 from config import CONFIG
 
+# The documented order (docs/architecture.md), and the name each provider is
+# reported under in /status and the window payload. Whether a provider is the
+# configured one is its own `is_enabled` answer: the enabled switch plus
+# whatever credentials or mapping it needs lives next to the code that uses
+# them, so adding a provider is a line here and nothing else.
+_PROVIDERS = (
+    ("uk", UkciProvider),
+    ("ci_api", CiApiProvider),
+    ("em", ElectricityMapsProvider),
+    ("co2signal", Co2SignalProvider),
+    ("watttime", WattTimeProvider),
+    ("entsoe", EntsoeProvider),
+)
+
+
+# `providers.force = "dummy"` is the simulated series app.py generates; it
+# never reaches _select.
+FORCE_DUMMY = "dummy"
+
+
+def forced():
+    """The provider name `providers.force` asks for, or "" when it is unset."""
+    return forced_name(CONFIG.providers.force)
+
+
+def _forced_provider(name, cc):
+    """The provider `providers.force` names, whatever its `enabled` flag says.
+
+    Testing aid: point the device at a grid it is not in without editing the
+    enabled flags. A forced provider without its credentials fails by name
+    rather than falling through to another one, which would show readings from
+    a provider nobody asked for.
+    """
+    cls = dict(_PROVIDERS).get(name)
+    if cls is None:
+        known = [candidate for candidate, _ in _PROVIDERS] + [FORCE_DUMMY]
+        raise ProviderError("providers.force names no provider: %s (one of %s)" % (name, ", ".join(known)))
+    provider = cls()
+    missing = provider.missing(cc)
+    if missing:
+        raise ProviderError("providers.force is %s, which needs %s" % (name, ", ".join(missing)))
+    return name, provider
+
 
 def _select(country_code):
-    """The one configured provider, as (name, class).
-
-    One table rather than one `if` per provider in two places: the name and the
-    class it dispatches to were listed separately, so adding a provider meant
-    editing both lists and forgetting one meant a silent "Unknown provider".
-    Order is the documented fallback order (docs/architecture.md).
-
-    The middle column is everything that has to be true for that provider to be
-    the configured one — the enabled switch and whatever credentials it needs.
-    `all` over the tuple is what the chained `and`s used to say.
-    """
+    """The one configured provider, as (name, instance)."""
     cc = (country_code or "XX").upper()
-    entsoe_cc = (CONFIG.providers.entsoe.area_override or cc).upper()
-    providers = CONFIG.providers
-
-    candidates = (
-        ("uk", (providers.ukci_enabled,), UkciProvider),
-        # No token to check: the API is keyless.
-        ("ci_api", (providers.ci_api.enabled,), CiApiProvider),
-        (
-            "em",
-            (providers.electricity_maps.enabled, providers.electricity_maps.token),
-            ElectricityMapsProvider,
-        ),
-        (
-            "co2signal",
-            (providers.co2signal.enabled, providers.co2signal.token),
-            Co2SignalProvider,
-        ),
-        (
-            "watttime",
-            (
-                providers.watttime.enabled,
-                providers.watttime.username,
-                providers.watttime.password,
-            ),
-            WattTimeProvider,
-        ),
-        (
-            "entsoe",
-            (
-                providers.entsoe.enabled,
-                providers.entsoe.token,
-                entsoe_cc in ENTSOE_DOMAIN,
-            ),
-            EntsoeProvider,
-        ),
-    )
-
-    enabled = [(name, cls) for name, required, cls in candidates if all(required)]
+    wanted = forced()
+    if wanted:
+        return _forced_provider(wanted, cc)
+    enabled = []
+    for name, cls in _PROVIDERS:
+        provider = cls()
+        if provider.is_enabled(cc):
+            enabled.append((name, provider))
     if len(enabled) > 1:
         raise ProviderError("Enable only one provider at a time: %s" % ",".join(name for name, _ in enabled))
     if not enabled:
@@ -74,6 +78,6 @@ def selected_provider(country_code):
 
 def fetch_window_any(lat, lon, city, country_code, start_epoch, end_epoch):
     del city
-    provider, provider_class = _select(country_code)
-    history = provider_class().fetch_history(lat, lon, country_code, start_epoch, end_epoch)
-    return history, provider
+    name, provider = _select(country_code)
+    history = provider.fetch_history(lat, lon, country_code, start_epoch, end_epoch)
+    return history, name

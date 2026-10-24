@@ -108,7 +108,11 @@ class CONFIG:
             area_override = "IT-CSOUTH"
 
         watttime_cooldown_sec = 24 * 3600
-        force_dummy = False
+        # Testing aid: name one provider (uk, ci_api, em, co2signal, watttime,
+        # entsoe, or dummy for the simulated series) to use it whatever the
+        # enabled flags say, at the location in `defaults` rather than the one
+        # IP geolocation finds. Empty in normal use. See docs/firmware.md.
+        force = ""
 
     class timeline:
         back_hours_default = 48

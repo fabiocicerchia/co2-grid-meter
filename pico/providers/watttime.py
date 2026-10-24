@@ -78,8 +78,12 @@ class WattTimeProvider(EmissionsProvider):
 
     _disabled_until = 0
 
+    def missing(self, country_code: str) -> list:
+        settings = CONFIG.providers.watttime
+        return ["providers.watttime.%s" % field for field in ("username", "password") if not getattr(settings, field)]
+
     def is_enabled(self, country_code: str) -> bool:
-        return CONFIG.providers.watttime.enabled
+        return bool(CONFIG.providers.watttime.enabled) and not self.missing(country_code)
 
     def _allowed_now(self):
         return time.time() >= self._disabled_until
@@ -176,12 +180,9 @@ class WattTimeProvider(EmissionsProvider):
 
     def fetch_history(self, latitude, longitude, country_code, start, end):
         global CONFIG
-        if not (
-            CONFIG.providers.watttime.enabled
-            and CONFIG.providers.watttime.username
-            and CONFIG.providers.watttime.password
-        ):
-            raise ProviderError("WattTime disabled/missing credentials")
+        missing = self.missing(country_code)
+        if missing:
+            raise ProviderError("WattTime needs %s" % ", ".join(missing))
         if not self._allowed_now():
             raise ProviderError("WattTime temporarily disabled")
 
