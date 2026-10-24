@@ -98,3 +98,21 @@ def test_the_wait_line_obeys_the_same_limit(fw_render, screen_w, expected):
 def test_a_short_reason_is_untouched_and_a_missing_one_is_empty(fw_render):
     assert fw_render.make_next_line({"reason": "  Cleaner  "}, 13) == "Cleaner"
     assert fw_render.make_next_line({}, 13) == ""
+
+
+@pytest.mark.parametrize(
+    ("screen_w", "expected"),
+    [
+        (LANDSCAPE_W, "Grid is much dirtier than"),
+        (PORTRAIT_W, "Grid is much"),
+    ],
+    ids=["landscape", "portrait"],
+)
+def test_render_screen_fits_the_line_to_the_panel_it_draws_on(fw_render, screen_w, expected):
+    fw_render.CONFIG.display.render_min_interval_sec = 0
+    fw_render.panel_dimensions.return_value = (screen_w, None)  # height is unused here
+    fw_render.aligned_lines = lambda *_args: ([], [], [])
+
+    fw_render.render_screen({"recommendation": {"verdict": "WAIT", "reason": LONG_REASON}}, {}, {})
+
+    assert fw_render.draw_current_panel.call_args.args[3] == expected
