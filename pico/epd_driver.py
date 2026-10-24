@@ -161,19 +161,6 @@ class EPD_2in13_B_V4_Base:
         self.delay_ms(2000)
         self.module_exit()
 
-    def display(self):
-        self.send_command(0x24)
-        for j in range(int(self.width / 8) - 1, -1, -1):
-            for i in range(self.height):
-                self.send_data(self.buffer_black[i + j * self.height])
-
-        self.send_command(0x26)
-        for j in range(int(self.width / 8) - 1, -1, -1):
-            for i in range(self.height):
-                self.send_data(self.buffer_red[i + j * self.height])
-
-        self.TurnOnDisplay()
-
 
 # Differs from landscape in the mode byte, the FrameBuffer geometry and the
 # order the planes go out; tests/test_epd_driver.py pins all three. No portrait
@@ -190,8 +177,7 @@ class EPD_2in13_B_V4_Portrait(EPD_2in13_B_V4_Base):
 
     def display(self):
         # MONO_HLSB is row-major and mode 0x03 fills the panel row by row, so
-        # the buffers go out as they are. The base class's column-band order
-        # is the landscape (MONO_VLSB) layout and would scramble this one.
+        # the buffers go out as they are.
         self.send_command(0x24)
         self.send_data1(self.buffer_black)
 
@@ -210,3 +196,18 @@ class EPD_2in13_B_V4_Landscape(EPD_2in13_B_V4_Base):
         self.imageblack = framebuf.FrameBuffer(self.buffer_black, self.height, self.width, framebuf.MONO_VLSB)
         self.imagered = framebuf.FrameBuffer(self.buffer_red, self.height, self.width, framebuf.MONO_VLSB)
         self.init()
+
+    def display(self):
+        # MONO_VLSB stores bands of 8 rows, `height` bytes each; they go out
+        # last band first.
+        self.send_command(0x24)
+        for j in range(int(self.width / 8) - 1, -1, -1):
+            for i in range(self.height):
+                self.send_data(self.buffer_black[i + j * self.height])
+
+        self.send_command(0x26)
+        for j in range(int(self.width / 8) - 1, -1, -1):
+            for i in range(self.height):
+                self.send_data(self.buffer_red[i + j * self.height])
+
+        self.TurnOnDisplay()
