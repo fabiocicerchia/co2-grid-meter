@@ -218,6 +218,19 @@ demanding one would be a fallback of a different kind.
 device that ignores half its configuration without saying which half is the
 worst of the available outcomes.
 
+**Upgrading: `providers.ukci_enabled` is now `providers.ukci.enabled`.** The UK
+Carbon Intensity switch was the one provider key outside a block of its own.
+Because unknown settings fail startup by name, a `settings.json` that still sets
+the old flat key does not boot after the upgrade: it stops with
+`settings.json sets unknown option(s): providers.ukci_enabled`. Move it:
+
+```json
+"providers": { "ukci": { "enabled": true } }
+```
+
+Writing `"ukci": true` instead stops startup too, with
+`settings.json sets a block of settings to a single value: providers.ukci`.
+
 The desktop side is unchanged: `config/settings.py` still reads environment
 variables, and remains the source of truth there.
 
