@@ -155,6 +155,12 @@ about 20 characters at the built-in font, and an overflowing translation is
 clipped silently — so the test renders each string with its placeholders filled
 and asserts it fits.
 
+**The line under the verdict is cut to the panel, between words.** It is drawn
+bold inside the current-reading box, so what fits is derived from the panel
+width (`fw_render.next_line_chars`): 29 characters in landscape, 13 in
+portrait. The recommendation reason and the `WAIT` line obey the same limit,
+and both break at the last space that fits rather than mid-word.
+
 ## Serving the dashboard from the device
 
 For an offline install the Pico can serve the dashboard itself, instead of
