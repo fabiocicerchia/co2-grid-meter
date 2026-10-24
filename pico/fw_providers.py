@@ -42,15 +42,15 @@ def _forced(name, cc):
     rather than falling through to another one, which would show readings from
     a provider nobody asked for.
     """
-    for candidate, cls in _PROVIDERS:
-        if candidate == name:
-            provider = cls()
-            missing = provider.missing(cc)
-            if missing:
-                raise ProviderError("providers.force is %s, which needs %s" % (name, ", ".join(missing)))
-            return name, provider
-    known = [candidate for candidate, _ in _PROVIDERS] + [FORCE_DUMMY]
-    raise ProviderError("providers.force names no provider: %s (one of %s)" % (name, ", ".join(known)))
+    cls = dict(_PROVIDERS).get(name)
+    if cls is None:
+        known = [candidate for candidate, _ in _PROVIDERS] + [FORCE_DUMMY]
+        raise ProviderError("providers.force names no provider: %s (one of %s)" % (name, ", ".join(known)))
+    provider = cls()
+    missing = provider.missing(cc)
+    if missing:
+        raise ProviderError("providers.force is %s, which needs %s" % (name, ", ".join(missing)))
+    return name, provider
 
 
 def _select(country_code):
