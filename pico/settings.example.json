@@ -15,6 +15,10 @@
     "observes_eu_dst": true
   },
 
+  "web": {
+    "api_token": ""
+  },
+
   "providers": {
     "ukci": { "enabled": false },
     "ci_api": {

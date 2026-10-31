@@ -74,6 +74,9 @@ class WebUpstreamSettings:
     pico_base_url: str = field(default="http://127.0.0.1:8080", metadata={"env": "PICO_BASE_URL"})
     request_timeout_seconds: int = field(default=15, metadata={"env": "PICO_REQUEST_TIMEOUT_SEC"})
     max_retries: int = field(default=3, metadata={"env": "PICO_REQUEST_RETRIES"})
+    # The device's web.api_token, when one is set there. Sent only to
+    # pico_base_url, never to a `?pico=` override.
+    pico_api_token: str = field(default="", metadata={"env": "PICO_API_TOKEN"})
 
 
 @dataclass(frozen=True)

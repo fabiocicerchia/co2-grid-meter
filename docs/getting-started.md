@@ -43,6 +43,8 @@ pytest -q
 ## Environment highlights
 
 - `PICO_BASE_URL` (dashboard upstream target)
+- `PICO_API_TOKEN` (the device's `web.api_token`, when it has one; sent only to
+  `PICO_BASE_URL`)
 - `PICO_CACHE_REFRESH_SECONDS` (mock + firmware cache TTL)
 - `DEFAULT_COUNTRY`, `DEFAULT_CITY`, `DEFAULT_LAT`, `DEFAULT_LON`
 - Provider auth vars (`ENTSOE_TOKEN`, `WATTTIME_*`, `ELECTRICITYMAPS_TOKEN`)

@@ -63,6 +63,10 @@ class CONFIG:
         serve_static = False
         # Where those files live on the Pico's filesystem.
         static_root = "static"
+        # Empty: every endpoint is open, as on a trusted home LAN. Set it (in
+        # settings.json, never here) and every request must send
+        # `Authorization: Bearer <token>` or get a 401.
+        api_token = ""
 
     class providers:
         # Great Britain only (api.carbonintensity.org.uk); keyless.
