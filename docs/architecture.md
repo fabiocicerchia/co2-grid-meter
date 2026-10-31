@@ -95,7 +95,7 @@ export PICO_CACHE_REFRESH_SECONDS=900  # refresh every 15 minutes
 configured one — its own `is_enabled`, which checks the enabled switch and
 whatever that provider needs to make a request:
 
-1. UK Carbon Intensity (`providers.ukci_enabled`)
+1. UK Carbon Intensity (`providers.ukci.enabled`)
 1. Carbon Intensity API (if enabled — keyless, so there is no token to check)
 1. Electricity Maps (if enabled + token)
 1. CO2 Signal (if enabled + token)
