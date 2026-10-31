@@ -91,14 +91,26 @@ export PICO_CACHE_REFRESH_SECONDS=900  # refresh every 15 minutes
 
 ## Provider selection order
 
-Provider fallback order remains:
+`pico/fw_providers.py` asks each provider, in this order, whether it is the
+configured one — its own `is_enabled`, which checks the enabled switch and
+whatever that provider needs to make a request:
 
-1. UK Carbon Intensity (`GB/UK`)
+1. UK Carbon Intensity (`providers.ukci_enabled`)
 1. Carbon Intensity API (if enabled — keyless, so there is no token to check)
-1. WattTime (if enabled + credentials)
-1. ENTSO-E (if token + mapped region)
 1. Electricity Maps (if enabled + token)
-1. Simulated fallback (`PICO_ALLOW_SIM_FALLBACK=1`)
+1. CO2 Signal (if enabled + token)
+1. WattTime (if enabled + username + password)
+1. ENTSO-E (if enabled + token + a mapped area — `area_override` when set,
+   otherwise the device's country)
+
+Exactly one may answer yes. More than one is the error
+`Enable only one provider at a time: <names>`, in the order above; none is
+`No providers available`. A provider is added by implementing `is_enabled` and
+adding one line to `_PROVIDERS`.
+
+The simulated provider is not part of this selection: on the device,
+`providers.force_dummy` bypasses it; on the mock, `PICO_ALLOW_SIM_FALLBACK=1`
+allows the simulated fallback.
 
 ### Carbon Intensity API
 
