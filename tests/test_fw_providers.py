@@ -30,7 +30,7 @@ class ProviderError(RuntimeError):
 def _config():
     ns = types.SimpleNamespace
     return ns(
-        ukci_enabled=False,
+        ukci=ns(enabled=False),
         ci_api=ns(enabled=False),
         electricity_maps=ns(enabled=False, token=""),
         co2signal=ns(enabled=False, token=""),
@@ -69,7 +69,7 @@ def selection():
 
 def _enable(providers, name):
     if name == "uk":
-        providers.ukci_enabled = True
+        providers.ukci.enabled = True
     elif name == "ci_api":
         providers.ci_api.enabled = True
     elif name == "em":
