@@ -207,12 +207,18 @@ def _document_stream(response):
 class EntsoeProvider(EmissionsProvider):
     provider_name = "entsoe"
 
-    def is_enabled(self, country_code: str) -> bool:
+    def missing(self, country_code: str) -> list:
         settings = CONFIG.providers.entsoe
+        out = [] if settings.token else ["providers.entsoe.token"]
         # area_override wins over the device's country: a bidding zone such as
         # IT-CSOUTH is what the API is asked for, so it is what must be mapped.
         area = (settings.area_override or country_code or "XX").upper()
-        return bool(settings.enabled and settings.token and area in ENTSOE_DOMAIN)
+        if area not in ENTSOE_DOMAIN:
+            out.append("providers.entsoe.area_override (%s is not an ENTSO-E area)" % area)
+        return out
+
+    def is_enabled(self, country_code: str) -> bool:
+        return bool(CONFIG.providers.entsoe.enabled) and not self.missing(country_code)
 
     def period_timestamp(self, epoch_value):
         year, month, day, hour, minute, *_ = time.gmtime(epoch_value)

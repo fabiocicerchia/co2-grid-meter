@@ -130,24 +130,45 @@ def require(root, names, path=DEFAULT_PATH):
         )
 
 
+def forced_name(value):
+    """`providers.force` as the provider name it asks for, "" when unset.
+
+    settings.json does not type-check, and `"force": true` is the natural
+    leftover of `force_dummy`. Read as text, so a non-string is an unknown
+    name reported by the provider selection instead of a crash on every
+    request. `false` reads as unset.
+    """
+    if value is None or value is False:
+        return ""
+    return str(value).strip().lower()
+
+
 def required_names(root):
-    """What must be set, given which providers are enabled.
+    """What must be set, given which providers will be asked.
 
     Wi-Fi is always required. A provider's credentials are required only when
     that provider is switched on, so a device using the keyless ci-api needs no
     token at all — demanding one would be a fallback of a different kind.
+
+    While `providers.force` names a provider, that one is used whatever the
+    enabled flags say, so only its credentials are required: an enabled
+    provider that will not be asked must not stop the device booting.
     """
     names = ["wifi.ssid", "wifi.password"]
     providers = getattr(root, "providers", None)
     if providers is None:
         return names
-    for attr, needed in (
-        ("electricity_maps", ("token",)),
-        ("co2signal", ("token",)),
-        ("watttime", ("username", "password")),
-        ("entsoe", ("token",)),
+    forced = forced_name(getattr(providers, "force", ""))
+    for name, attr, needed in (
+        ("em", "electricity_maps", ("token",)),
+        ("co2signal", "co2signal", ("token",)),
+        ("watttime", "watttime", ("username", "password")),
+        ("entsoe", "entsoe", ("token",)),
     ):
         block = getattr(providers, attr, None)
-        if block is not None and getattr(block, "enabled", False):
+        if block is None:
+            continue
+        asked = forced == name if forced else getattr(block, "enabled", False)
+        if asked:
             names.extend("providers.%s.%s" % (attr, field) for field in needed)
     return names

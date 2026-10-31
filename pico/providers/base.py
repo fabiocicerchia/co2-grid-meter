@@ -155,6 +155,16 @@ class EmissionsProvider(ABC):
     def is_enabled(self, country_code: str) -> bool:
         raise NotImplementedError
 
+    def missing(self, country_code: str) -> list:
+        """The settings this provider still needs before it can make a request,
+        by dotted name. Empty means ready.
+
+        Separate from `is_enabled` because `providers.force` selects a provider
+        whatever its `enabled` flag says, and must still fail by name when the
+        credentials are not there.
+        """
+        return []
+
     @abstractmethod
     def fetch_history(
         self,

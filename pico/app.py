@@ -3,7 +3,7 @@ import time
 from diagnostics import boot_lines, format_location, geo_summary
 from export import summary_from_window, window_csv
 from fetcher import BackgroundFetcher
-from fw_providers import fetch_window_any
+from fw_providers import FORCE_DUMMY, fetch_window_any, forced
 from recommendation import recommend_from_week
 from timeutil import WEEK_SECONDS
 from ttl_cache import TtlCache
@@ -118,7 +118,9 @@ def resolve_geo(params):
     city = url_decode(params.get("city")) if params else None
     cc = url_decode(params.get("cc")) if params else None
 
-    auto_geo = _auto_geo_defaults() or {
+    # A forced provider is a test of a grid the device is not in, so the
+    # configured location wins over the one the device's IP resolves to.
+    auto_geo = (None if forced() else _auto_geo_defaults()) or {
         "lat": CONFIG.defaults.latitude,
         "lon": CONFIG.defaults.longitude,
         "city": CONFIG.defaults.city,
@@ -201,7 +203,7 @@ def _fetch_window(lat, lon, city, cc, start_epoch, end_epoch):
     """
     global _last_provider_used
     log("Fetching data...")
-    if CONFIG.providers.force_dummy:
+    if forced() == FORCE_DUMMY:
         data, provider_used = dummy_fetch_window_any(lat, lon, city, cc, start_epoch, end_epoch)
     else:
         data, provider_used = fetch_window_any(lat, lon, city, cc, start_epoch, end_epoch)

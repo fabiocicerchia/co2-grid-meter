@@ -185,6 +185,27 @@ class TestRequire:
             require(cfg, required_names(cfg))
         assert "providers.watttime.password" in str(err.value)
 
+    def test_a_forced_provider_needs_only_its_own_credentials(self):
+        # Forcing uses one provider whatever the flags say, so an enabled
+        # provider that will not be asked must not stop the device booting.
+        cfg = fake_config()
+        cfg.wifi.ssid, cfg.wifi.password = "home", "pw"
+        cfg.providers.entsoe.enabled = True
+        cfg.providers.force = " UK "
+        require(cfg, required_names(cfg))  # must not raise
+
+        cfg.providers.force = "em"
+        with pytest.raises(SettingsError) as err:
+            require(cfg, required_names(cfg))
+        assert "providers.electricity_maps.token" in str(err.value)
+        assert "providers.entsoe.token" not in str(err.value)
+
+    def test_force_false_is_unset(self):
+        cfg = fake_config()
+        cfg.providers.entsoe.enabled = True
+        cfg.providers.force = False
+        assert "providers.entsoe.token" in required_names(cfg)
+
 
 class TestTemplate:
     def test_the_committed_template_parses(self):

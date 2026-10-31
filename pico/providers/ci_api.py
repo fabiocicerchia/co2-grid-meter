@@ -83,9 +83,6 @@ class CiApiProvider(EmissionsProvider):
     def fetch_history(self, latitude, longitude, country_code, start, end):
         del latitude, longitude
 
-        if not CONFIG.providers.ci_api.enabled:
-            raise ProviderError("Carbon Intensity API disabled")
-
         code = (CONFIG.providers.ci_api.country_override or country_code or "").upper()
         zone = (CONFIG.providers.ci_api.zone or "").upper()
         if not code:
