@@ -30,7 +30,7 @@ class ProviderError(RuntimeError):
 def _config():
     ns = types.SimpleNamespace
     return ns(
-        ukci_enabled=False,
+        ukci=ns(enabled=False),
         ci_api=ns(enabled=False, country_override="", zone="", base_url="https://ci.test"),
         electricity_maps=ns(enabled=False, token="", base_url="https://em.test"),
         co2signal=ns(enabled=False, token=""),
@@ -82,7 +82,7 @@ def _credentials(providers, name):
 
 def _enable(providers, name):
     if name == "uk":
-        providers.ukci_enabled = True
+        providers.ukci.enabled = True
     elif name == "ci_api":
         providers.ci_api.enabled = True
     elif name == "em":

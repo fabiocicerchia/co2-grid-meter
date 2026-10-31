@@ -88,16 +88,26 @@ def apply(root, data, path=DEFAULT_PATH):
     almost always a typo, and the alternative is a device that ignores half its
     configuration without saying which half.
     """
-    applied, unknown = [], []
+    applied, unknown, blocks = [], [], []
     for dotted, value in sorted(flatten(data).items()):
         owner, attr = _resolve(root, dotted)
         if owner is None or not hasattr(owner, attr):
             unknown.append(dotted)
             continue
+        if isinstance(getattr(owner, attr), type):
+            # `"ukci": true` would replace the whole block with a bool, and the
+            # first read of providers.ukci.enabled would crash long after boot.
+            blocks.append(dotted)
+            continue
         setattr(owner, attr, value)
         applied.append(dotted)
+    problems = []
     if unknown:
-        raise SettingsError("%s sets unknown option(s): %s" % (path, ", ".join(unknown)))
+        problems.append("sets unknown option(s): %s" % ", ".join(unknown))
+    if blocks:
+        problems.append("sets a block of settings to a single value: %s" % ", ".join(blocks))
+    if problems:
+        raise SettingsError("%s %s" % (path, "; ".join(problems)))
     return applied
 
 

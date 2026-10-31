@@ -20,6 +20,7 @@
   },
 
   "providers": {
+    "ukci": { "enabled": false },
     "ci_api": {
       "enabled": true,
       "country_override": "",

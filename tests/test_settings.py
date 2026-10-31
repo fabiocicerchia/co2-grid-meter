@@ -4,6 +4,7 @@ Loaded by path, NOT by putting pico/ on sys.path: pico/http.py would shadow the
 standard library's `http` package and break every other test in the run.
 """
 
+import ast
 import importlib.util
 import io
 import json
@@ -26,6 +27,28 @@ required_names = _settings.required_names
 flatten = _settings.flatten
 
 TEMPLATE = pathlib.Path(__file__).resolve().parents[1] / "pico" / "settings.example.json"
+
+
+def _real_config():
+    """pico/config.py's CONFIG class, read with ast: importing it would need
+    pico/ on sys.path, which pico/http.py makes unsafe."""
+    source = (pathlib.Path(__file__).resolve().parents[1] / "pico" / "config.py").read_text()
+    return next(n for n in ast.parse(source).body if isinstance(n, ast.ClassDef) and n.name == "CONFIG")
+
+
+def _config_names(node, prefix=""):
+    """Every dotted setting name under a class node, blocks included."""
+    out = set()
+    for item in node.body:
+        if isinstance(item, ast.ClassDef):
+            inner = f"{prefix}{item.name}."
+            out.add(inner.rstrip("."))
+            out |= _config_names(item, inner)
+        elif isinstance(item, ast.Assign):
+            for target in item.targets:
+                if isinstance(target, ast.Name):
+                    out.add(prefix + target.id)
+    return out
 
 
 def fake_config():
@@ -189,36 +212,52 @@ class TestTemplate:
         json.loads(TEMPLATE.read_text())
 
     def test_every_template_key_exists_in_the_real_config(self):
-        """The file people copy must not fail the unknown-setting check.
-
-        Checked against pico/config.py itself, read with ast — importing it
-        would need pico/ on sys.path, which pico/http.py makes unsafe.
-        """
-        import ast
-
-        source = (pathlib.Path(__file__).resolve().parents[1] / "pico" / "config.py").read_text()
-        tree = ast.parse(source)
-
-        def names_of(node, prefix=""):
-            out = set()
-            for item in node.body:
-                if isinstance(item, ast.ClassDef):
-                    inner = f"{prefix}{item.name}."
-                    out.add(inner.rstrip("."))
-                    out |= names_of(item, inner)
-                elif isinstance(item, ast.Assign):
-                    for target in item.targets:
-                        if isinstance(target, ast.Name):
-                            out.add(prefix + target.id)
-            return out
-
-        config_cls = next(n for n in tree.body if isinstance(n, ast.ClassDef) and n.name == "CONFIG")
-        known = names_of(config_cls)
+        """The file people copy must not fail the unknown-setting check."""
+        known = _config_names(_real_config())
 
         data = json.loads(TEMPLATE.read_text())
         data.pop("_comment", None)
         for dotted in flatten(data):
             assert dotted in known, f"{dotted} is in the template but not in CONFIG"
+
+    def test_the_template_has_a_block_for_every_provider(self):
+        """Every provider block in CONFIG appears in the file people copy, so no
+        provider has to be remembered separately — ukci was the one missing."""
+        providers_cls = next(n for n in _real_config().body if isinstance(n, ast.ClassDef) and n.name == "providers")
+        blocks = {n.name for n in providers_cls.body if isinstance(n, ast.ClassDef)}
+
+        template = json.loads(TEMPLATE.read_text())["providers"]
+        assert set(template) == blocks
+
+    def test_the_old_flat_ukci_key_fails_startup_by_name(self):
+        """providers.ukci_enabled became providers.ukci.enabled. A device still
+        setting the old key must stop and say so, not boot with UKCI off."""
+        known = _config_names(_real_config())
+        assert "providers.ukci.enabled" in known
+        assert "providers.ukci_enabled" not in known
+
+        class C:
+            class providers:
+                class ukci:
+                    enabled = False
+
+        with pytest.raises(SettingsError, match=r"providers\.ukci_enabled"):
+            apply(C, {"providers": {"ukci_enabled": True}})
+        assert apply(C, {"providers": {"ukci": {"enabled": True}}}) == ["providers.ukci.enabled"]
+        assert C.providers.ukci.enabled is True
+
+    def test_a_block_set_to_a_single_value_fails_startup_by_name(self):
+        """`"ukci": true` is the natural misreading of the new key. It must stop
+        at boot, not replace the block and crash on the first provider read."""
+
+        class C:
+            class providers:
+                class ukci:
+                    enabled = False
+
+        with pytest.raises(SettingsError, match=r"block of settings to a single value: providers\.ukci$"):
+            apply(C, {"providers": {"ukci": True}})
+        assert isinstance(C.providers.ukci, type)
 
     def test_the_template_carries_no_real_credential(self):
         text = TEMPLATE.read_text()

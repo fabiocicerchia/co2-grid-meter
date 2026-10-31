@@ -69,7 +69,9 @@ class CONFIG:
         api_token = ""
 
     class providers:
-        ukci_enabled = False
+        # Great Britain only (api.carbonintensity.org.uk); keyless.
+        class ukci:
+            enabled = False
 
         # Keyless, every country, plus bidding zones where the operator
         # publishes them. Last hour only, so the timeline fills in as the
