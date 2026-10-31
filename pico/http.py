@@ -302,9 +302,9 @@ def ensure_connected(ip):
         raise OSError("WiFi reconnect failed")
 
     try:
-        # Fixed +1: Italy's winter offset. See TODO.md — the reconnect path
-        # does not yet apply the DST rule the boot path does.
-        set_time(2)
+        # No argument, exactly as main.py does at boot: set_time derives the
+        # offset from CONFIG and EU summer time, so there is one rule, not two.
+        set_time()
     except Exception as error:
         log("set_time after reconnect failed: %s" % error)
 
