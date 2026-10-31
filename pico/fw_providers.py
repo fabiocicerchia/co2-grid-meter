@@ -5,7 +5,10 @@ from providers.electricity_maps import ElectricityMapsProvider
 from providers.entsoe import EntsoeProvider
 from providers.ukci import UkciProvider
 from providers.watttime import WattTimeProvider
+from settings import forced_name
 from utils import ProviderError
+
+from config import CONFIG
 
 # The documented order (docs/architecture.md), and the name each provider is
 # reported under in /status and the window payload. Whether a provider is the
@@ -22,9 +25,41 @@ _PROVIDERS = (
 )
 
 
+# `providers.force = "dummy"` is the simulated series app.py generates; it
+# never reaches _select.
+FORCE_DUMMY = "dummy"
+
+
+def forced():
+    """The provider name `providers.force` asks for, or "" when it is unset."""
+    return forced_name(CONFIG.providers.force)
+
+
+def _forced_provider(name, cc):
+    """The provider `providers.force` names, whatever its `enabled` flag says.
+
+    Testing aid: point the device at a grid it is not in without editing the
+    enabled flags. A forced provider without its credentials fails by name
+    rather than falling through to another one, which would show readings from
+    a provider nobody asked for.
+    """
+    cls = dict(_PROVIDERS).get(name)
+    if cls is None:
+        known = [candidate for candidate, _ in _PROVIDERS] + [FORCE_DUMMY]
+        raise ProviderError("providers.force names no provider: %s (one of %s)" % (name, ", ".join(known)))
+    provider = cls()
+    missing = provider.missing(cc)
+    if missing:
+        raise ProviderError("providers.force is %s, which needs %s" % (name, ", ".join(missing)))
+    return name, provider
+
+
 def _select(country_code):
     """The one configured provider, as (name, instance)."""
     cc = (country_code or "XX").upper()
+    wanted = forced()
+    if wanted:
+        return _forced_provider(wanted, cc)
     enabled = []
     for name, cls in _PROVIDERS:
         provider = cls()

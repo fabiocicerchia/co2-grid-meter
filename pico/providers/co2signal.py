@@ -33,9 +33,11 @@ class Co2SignalProvider(SampledProvider):
 
     _next_collect_after = 0
 
+    def missing(self, country_code: str) -> list:
+        return [] if CONFIG.providers.co2signal.token else ["providers.co2signal.token"]
+
     def is_enabled(self, country_code: str) -> bool:
-        settings = CONFIG.providers.co2signal
-        return bool(settings.enabled and settings.token)
+        return bool(CONFIG.providers.co2signal.enabled) and not self.missing(country_code)
 
     def _extract_intensity(self, payload):
         data = payload.get("data") if isinstance(payload, dict) else None
@@ -52,8 +54,9 @@ class Co2SignalProvider(SampledProvider):
         )
 
     def fetch_current(self, latitude, longitude, country_code):
-        if not (CONFIG.providers.co2signal.enabled and CONFIG.providers.co2signal.token):
-            raise ProviderError("CO2Signal disabled/missing token")
+        missing = self.missing(country_code)
+        if missing:
+            raise ProviderError("CO2Signal needs %s" % ", ".join(missing))
 
         params = {"lat": str(latitude), "lon": str(longitude)}
         if country_code:

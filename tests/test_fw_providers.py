@@ -30,13 +30,13 @@ class ProviderError(RuntimeError):
 def _config():
     ns = types.SimpleNamespace
     return ns(
-        ukci_enabled=False,
-        ci_api=ns(enabled=False),
-        electricity_maps=ns(enabled=False, token=""),
+        ukci=ns(enabled=False),
+        ci_api=ns(enabled=False, country_override="", zone="", base_url="https://ci.test"),
+        electricity_maps=ns(enabled=False, token="", base_url="https://em.test"),
         co2signal=ns(enabled=False, token=""),
         watttime=ns(enabled=False, username="", password=""),
         entsoe=ns(enabled=False, token="", area_override=""),
-        force_dummy=False,
+        force="",
     )
 
 
@@ -67,9 +67,22 @@ def selection():
     return module, providers
 
 
+def _credentials(providers, name):
+    """What each provider needs to make a request, without switching it on."""
+    if name == "em":
+        providers.electricity_maps.token = "t"
+    elif name == "co2signal":
+        providers.co2signal.token = "t"
+    elif name == "watttime":
+        providers.watttime.username = "u"
+        providers.watttime.password = "p"
+    elif name == "entsoe":
+        providers.entsoe.token = "t"
+
+
 def _enable(providers, name):
     if name == "uk":
-        providers.ukci_enabled = True
+        providers.ukci.enabled = True
     elif name == "ci_api":
         providers.ci_api.enabled = True
     elif name == "em":
@@ -166,3 +179,192 @@ def test_fetch_window_any_reports_the_selected_name(selection):
 
     assert (history, name) == ({"history": []}, "ci_api")
     fetch.assert_called_once_with(41.9, 12.5, "IT", 0, 3600)
+
+
+# ---- providers.force ----
+
+ALL = ["uk", "ci_api", "em", "co2signal", "watttime", "entsoe"]
+
+
+@pytest.mark.parametrize("name", ALL)
+def test_force_selects_a_provider_whose_enabled_flag_is_off(selection, name):
+    module, providers = selection
+    _credentials(providers, name)
+    providers.force = name
+
+    assert module._select("IT")[0] == name
+
+
+@pytest.mark.parametrize("name", ALL)
+def test_force_wins_over_another_enabled_provider(selection, name):
+    module, providers = selection
+    _credentials(providers, name)
+    other = "ci_api" if name != "ci_api" else "uk"
+    _enable(providers, other)
+    providers.force = name
+
+    assert module._select("IT")[0] == name
+
+
+@pytest.mark.parametrize(
+    ("name", "named"),
+    [
+        ("em", "providers.electricity_maps.token"),
+        ("co2signal", "providers.co2signal.token"),
+        ("watttime", "providers.watttime.username, providers.watttime.password"),
+        ("entsoe", "providers.entsoe.token"),
+    ],
+)
+def test_forcing_a_provider_without_credentials_fails_by_name(selection, name, named):
+    module, providers = selection
+    # Another provider is fully configured: a forced one must not fall through.
+    _enable(providers, "ci_api")
+    providers.force = name
+
+    with pytest.raises(ProviderError) as error:
+        module._select("IT")
+
+    assert str(error.value) == f"providers.force is {name}, which needs {named}"
+
+
+def test_forcing_entsoe_for_an_unmapped_area_fails_by_name(selection):
+    module, providers = selection
+    _credentials(providers, "entsoe")
+    providers.force = "entsoe"
+
+    with pytest.raises(ProviderError, match=r"ZZ is not an ENTSO-E area"):
+        module._select("ZZ")
+
+
+def test_forcing_an_unknown_name_lists_the_known_ones(selection):
+    module, providers = selection
+    providers.force = "nope"
+
+    with pytest.raises(ProviderError, match=r"names no provider: nope \(one of uk, ci_api, em, .*dummy\)"):
+        module._select("IT")
+
+
+def test_force_is_trimmed_and_case_insensitive(selection):
+    module, providers = selection
+    providers.force = "  CI_API "
+
+    assert module.forced() == "ci_api"
+    assert module._select("IT")[0] == "ci_api"
+
+
+@pytest.mark.parametrize("value", [None, False])
+def test_a_null_or_false_force_is_unset(selection, value):
+    module, providers = selection
+    _enable(providers, "ci_api")
+    providers.force = value
+
+    assert module.forced() == ""
+    assert module._select("IT")[0] == "ci_api"
+
+
+def test_a_non_string_force_is_an_unknown_name_not_a_crash(selection):
+    module, providers = selection
+    providers.force = True
+
+    assert module.forced() == "true"
+    with pytest.raises(ProviderError, match="names no provider: true"):
+        module._select("IT")
+
+
+def test_misconfiguration_still_errors_when_nothing_is_forced(selection):
+    module, providers = selection
+    _enable(providers, "ci_api")
+    _enable(providers, "uk")
+
+    with pytest.raises(ProviderError, match="Enable only one provider at a time: uk,ci_api"):
+        module._select("IT")
+
+
+class PastTheGuardError(Exception):
+    pass
+
+
+@pytest.mark.parametrize(
+    ("cls", "first_call"),
+    [("ElectricityMapsProvider", "http_get_json"), ("CiApiProvider", "utc_offset_now")],
+)
+def test_the_request_time_guard_checks_credentials_not_the_enabled_flag(selection, cls, first_call):
+    # A forced provider has its enabled flag off; the fetch must not refuse it
+    # for that. Reaching the first network-side call proves the guard passed.
+    module, providers = selection
+    _credentials(providers, "em")
+    provider_cls = getattr(module, cls)
+    provider_cls.fetch_history.__globals__[first_call] = mock.MagicMock(side_effect=PastTheGuardError)
+
+    with pytest.raises(PastTheGuardError):
+        provider_cls().fetch_history(41.9, 12.5, "IT", 0, 3600)
+
+
+def test_the_request_time_guard_still_names_missing_credentials(selection):
+    module, _ = selection
+
+    with pytest.raises(ProviderError, match=r"Electricity Maps needs providers\.electricity_maps\.token"):
+        module.ElectricityMapsProvider().fetch_history(41.9, 12.5, "IT", 0, 3600)
+
+
+@pytest.fixture
+def app(selection):
+    module, providers = selection
+    config = types.SimpleNamespace(
+        CONFIG=types.SimpleNamespace(
+            providers=providers,
+            defaults=types.SimpleNamespace(latitude=41.9, longitude=12.5, city="Rome", country="IT"),
+            cache_refresh_seconds=3600,
+        ),
+    )
+    stubs = {
+        name: mock.MagicMock()
+        for name in (
+            "diagnostics",
+            "export",
+            "fetcher",
+            "recommendation",
+            "timeutil",
+            "ttl_cache",
+            "uptime",
+            "utils",
+        )
+    }
+    stubs.update({"config": config, "fw_providers": module})
+    with mock.patch.dict(sys.modules, stubs):
+        spec = importlib.util.spec_from_file_location("pico_app_under_test", PICO / "app.py")
+        app_module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(app_module)
+    london = {"lat": 51.5, "lon": -0.13, "city": "London", "cc": "GB"}
+    app_module._auto_geo_defaults = lambda: london
+    return app_module, providers
+
+
+def test_forcing_a_provider_forces_the_configured_city(app):
+    module, providers = app
+
+    assert module.resolve_geo({}) == (51.5, -0.13, "London", "GB")
+
+    providers.force = "ci_api"
+    assert module.resolve_geo({}) == (41.9, 12.5, "Rome", "IT")
+
+
+def test_force_dummy_is_the_simulated_series(app):
+    module, providers = app
+    providers.force = "dummy"
+    module.dummy_fetch_window_any = mock.MagicMock(return_value=({"history": []}, "dummy"))
+    module.fetch_window_any = mock.MagicMock()
+
+    data = module._fetch_window(41.9, 12.5, "Rome", "IT", 0, 3600)
+
+    assert data["_provider"] == "dummy"
+    module.fetch_window_any.assert_not_called()
+
+
+def test_no_force_fetches_from_the_selected_provider(app):
+    module, _ = app
+    module.dummy_fetch_window_any = mock.MagicMock()
+    module.fetch_window_any = mock.MagicMock(return_value=({"history": []}, "ci_api"))
+
+    assert module._fetch_window(41.9, 12.5, "Rome", "IT", 0, 3600)["_provider"] == "ci_api"
+    module.dummy_fetch_window_any.assert_not_called()

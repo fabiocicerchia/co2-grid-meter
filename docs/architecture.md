@@ -95,7 +95,7 @@ export PICO_CACHE_REFRESH_SECONDS=900  # refresh every 15 minutes
 configured one — its own `is_enabled`, which checks the enabled switch and
 whatever that provider needs to make a request:
 
-1. UK Carbon Intensity (`providers.ukci_enabled`)
+1. UK Carbon Intensity (`providers.ukci.enabled`)
 1. Carbon Intensity API (if enabled — keyless, so there is no token to check)
 1. Electricity Maps (if enabled + token)
 1. CO2 Signal (if enabled + token)
@@ -108,9 +108,10 @@ Exactly one may answer yes. More than one is the error
 `No providers available`. A provider is added by implementing `is_enabled` and
 adding one line to `_PROVIDERS`.
 
-The simulated provider is not part of this selection: on the device,
-`providers.force_dummy` bypasses it; on the mock, `PICO_ALLOW_SIM_FALLBACK=1`
-allows the simulated fallback.
+`providers.force` (a testing aid, see `docs/firmware.md`) skips the enabled
+flags and picks the provider it names; `providers.force = "dummy"` is the
+simulated series. On the mock, `PICO_ALLOW_SIM_FALLBACK=1` allows the simulated
+fallback.
 
 ### Carbon Intensity API
 
