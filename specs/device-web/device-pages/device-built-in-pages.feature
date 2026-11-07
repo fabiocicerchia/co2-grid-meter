@@ -8,11 +8,11 @@ Feature: Viewing the device's built-in pages
   @id:device-web.device-pages.001 @rule:device-web.pages.status-page-shows-current-reading @inferred @source:pico/pages.py#build_index_html
   Scenario: The status page shows the current reading and recommendation
     Given the device's current status reports city "Berlin", country "DE", 312 gCO₂/kWh from provider "electricitymaps"
-    And the recommendation is "WAIT" with reason "Above recent average", 3 wait hours and next best "15:00"
+    And the recommendation is "WAIT" with reason "Above recent average", 3 wait hours and next best "in 3h (15:00)"
     When a visitor opens /html
     Then the heading reads "Berlin grid CO₂ status"
     And the page shows carbon intensity "312 gCO₂/kWh" and provider "electricitymaps"
-    And the page shows recommendation "WAIT", reason "Above recent average", wait hours "3" and next best "15:00"
+    And the page shows recommendation "WAIT", reason "Above recent average", wait hours "3" and next best "in 3h (15:00)"
     And the line under the heading shows the country, the reading time and the latitude and longitude
     And any value the status does not report is shown as "--"
 
@@ -27,7 +27,7 @@ Feature: Viewing the device's built-in pages
       | verdict | colour |
       | GO      | green  |
       | WAIT    | red    |
-      | --      | amber  |
+      | RUN NOW | amber  |
 
   @id:device-web.device-pages.003 @rule:device-web.pages.status-page-refresh @inferred @source:pico/pages.py#build_index_html
   Scenario: The status page refreshes itself and reports when it cannot load
@@ -48,7 +48,7 @@ Feature: Viewing the device's built-in pages
   Scenario Outline: The graph page plots the last 48 hours of intensity
     Given the device holds <history> for the last 48 hours
     When a visitor opens /html/graph
-    Then the page is titled "Last 48h CO₂ (gCO₂/kWh)"
+    Then the page is headed "Last 48h CO₂ (gCO₂/kWh)"
     And the chart shows <shown>
 
     Examples:

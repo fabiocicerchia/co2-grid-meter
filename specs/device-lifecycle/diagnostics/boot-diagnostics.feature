@@ -18,7 +18,7 @@ Feature: Boot diagnostics without leaking location or secrets
     Examples:
       | service    | city   | region | country  | cc | isp     | location              |
       | ipwho.is   | Berlin | Berlin | Germany  | DE | Telekom | Berlin, Germany (DE)  |
-      | ip-api.com | Lisbon | Lisbon | Portugal | PT | MEO     | Lisbon, Portugal (PT) |
+      | ipwho.is   | Lisbon | Lisbon | Portugal | PT | MEO     | Lisbon, Portugal (PT) |
 
   @id:device-lifecycle.diagnostics.005 @rule:device.diagnostics.coarse-location-only @inferred @source:pico/diagnostics.py#geo_summary @questionable
   Scenario Outline: Precise coordinates never appear in the diagnostics
@@ -29,7 +29,7 @@ Feature: Boot diagnostics without leaking location or secrets
 
     Examples:
       | surface                        |
-      | boot log                       |
+      | boot diagnostics log lines     |
       | diagnostics section of /status |
 
   @id:device-lifecycle.diagnostics.006 @rule:device.diagnostics.no-credentials @inferred @source:pico/app.py#diagnostics_summary
@@ -48,15 +48,15 @@ Feature: Boot diagnostics without leaking location or secrets
     Examples:
       | city   | region | country | cc | location             |
       | Berlin | Berlin | Germany | DE | Berlin, Germany (DE) |
-      | Oslo   |        |         |    | Oslo                 |
-      |        |        |         | FR | FR                   |
+      | Oslo   |        |         | NO | Oslo (NO)            |
+      |        | Bavaria |        | DE | Bavaria (DE)         |
       |        |        |         |    | unknown              |
 
   @id:device-lifecycle.diagnostics.008 @rule:device.diagnostics.missing-details-placeholders @inferred @source:pico/diagnostics.py#boot_lines
   Scenario: Missing network details and an unknown ISP do not break the boot log
     Given the network interface reports no details
-    And geolocation found the city Oslo but no ISP
+    And geolocation found the city Oslo in country code NO but no ISP
     When the device boots
     Then the log shows "Network: ip ? netmask ? gateway ? dns ?"
-    And the log shows "Location: Oslo"
+    And the log shows "Location: Oslo (NO)"
     And no ISP line is logged

@@ -56,4 +56,4 @@ Feature: Serving simulated device data to the dashboard
       | condition                               | path                          |
       | the mock device cannot geolocate its IP | GET /status                   |
       | the mock device cannot geolocate its IP | GET /em/window                |
-      | the mock device is reachable online     | GET /em/window?back_hours=abc |
+      | the mock device can geolocate its IP    | GET /em/window?back_hours=abc |

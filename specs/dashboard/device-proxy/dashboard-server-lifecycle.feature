@@ -1,6 +1,6 @@
 @domain:dashboard @area:device-proxy @from:web/server
 Feature: Running the dashboard server
-  Lets an operator run the desktop dashboard on their own machine, on a port they choose, and stop it with an ordinary interrupt or terminate signal.
+  Lets an operator run the desktop dashboard on their own machine, on a port they choose, and signal it to shut down with an ordinary interrupt or terminate signal.
 
   Background:
     Given the dashboard server is installed on the operator's machine
@@ -19,12 +19,13 @@ Feature: Running the dashboard server
       | 8123            | 8123        |
 
   @id:dashboard.device-proxy.002 @rule:dashboard.server.stops-on-signal @inferred @source:web/server.py#_shutdown @questionable
-  Scenario Outline: The dashboard stops cleanly when interrupted or told to terminate
+  Scenario Outline: Interrupting or terminating the dashboard logs a shutdown but leaves it hung instead of exiting
     Given the dashboard server is running
     When the operator sends the <signal> signal to the dashboard server
     Then the log says "Shutting down dashboard server"
-    And the dashboard stops accepting connections
-    And the process exits with status 0
+    And the dashboard stops answering requests
+    And the process stays running and does not exit
+    And the port stays occupied
 
     Examples:
       | signal          |

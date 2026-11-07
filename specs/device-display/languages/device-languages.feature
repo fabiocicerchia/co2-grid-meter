@@ -8,10 +8,10 @@ Feature: Showing device text in the configured language
   @id:device-display.languages.001 @rule:device-display.languages.configured-language-shown @verified @source:pico/i18n.py#t @test:tests/test_i18n.py#test_english_by_default @test:tests/test_i18n.py#test_a_shipped_locale @test:tests/test_i18n.py#test_formatting_arguments
   Scenario Outline: The panel speaks the configured language
     Given the device language is set to "<language>"
-    And the grid is cleaner than its recent average
+    And the current reading is in the cleanest quarter of last week's readings
     When the device refreshes its panel
     Then the verdict reads "<verdict>"
-    And the reason reads "<reason>"
+    And the reason given with the verdict reads "<reason>"
     And the reading line reads "<co2_line>"
 
     Examples:
@@ -31,7 +31,7 @@ Feature: Showing device text in the configured language
       | kli        | English | reads "Unknown language 'kli', using en"        |
       | (empty)    | English | reads "Unknown language '', using en"           |
       | it         | Italian | has no language warning                         |
-      |  IT        | Italian | still reads "Unknown language ' IT ', using it" |
+      | IT         | Italian | still reads "Unknown language 'IT', using it"   |
 
   @id:device-display.languages.003 @rule:device-display.languages.never-blank-line @verified @source:pico/i18n.py#t @test:tests/test_i18n.py#test_a_missing_key_renders_the_english_default @test:tests/test_i18n.py#test_an_unknown_key_renders_the_key_not_a_blank
   Scenario Outline: A missing translation shows English text instead of a blank line
@@ -68,7 +68,7 @@ Feature: Showing device text in the configured language
   @id:device-display.languages.006 @rule:device-display.languages.baseline-text-untranslated @inferred @source:pico/recommendation.py#compute_recommendation @questionable
   Scenario: While collecting a baseline, the reason line stays in English on a non-English device
     Given the device language is set to "it"
-    And the device has less than a day of readings
+    And the device has fewer than 24 hourly readings from last week
     When the device refreshes its panel
     Then the verdict reads "OK"
-    And the line under the verdict reads "Collecting baseline"
+    And the recommendation's reason is the English "Collecting baseline", which the panel does not draw because the verdict is not a warning

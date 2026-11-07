@@ -6,7 +6,7 @@ Feature: Browsing the documentation site privately and on-brand
     Given the documentation site is published with the project theme
 
   @id:dashboard.docs-site.001 @rule:docs.site.no-third-party-assets @inferred @source:docs/stylesheets/extra.css#:root
-  Scenario: Documentation pages render with system fonts and fetch nothing from third parties
+  Scenario: Documentation pages render with system fonts and fetch no web fonts, CDN or analytics assets
     Given a reader whose browser blocks every host except the documentation site
     When the reader opens a documentation page
     Then body text is shown in the device's own system sans-serif font

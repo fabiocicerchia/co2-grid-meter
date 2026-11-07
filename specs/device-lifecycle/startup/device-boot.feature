@@ -52,7 +52,7 @@ Feature: Booting the device
 
   @id:device-lifecycle.startup.006 @rule:device.startup.crash-leaves-dump @inferred @source:pico/main.py
   Scenario: An unexpected crash leaves a crash dump the operator can find from the log
-    Given the device hits an unexpected error while booting or serving
+    Given the device hits an unexpected error while booting, before its request loop is running
     When the firmware stops
     Then a crash dump file named after the "http" context and the time is written, recording the timestamp, context and error message
     And the device log shows "ERROR" followed by the crash dump's path

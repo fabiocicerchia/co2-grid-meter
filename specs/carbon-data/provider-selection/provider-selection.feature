@@ -72,7 +72,7 @@ Feature: Choosing the one provider that serves grid readings
       | force    | missing setup                                            | needs                                                      |
       | em       | Electricity Maps has no token                            | providers.electricity_maps.token                           |
       | watttime | WattTime has no username or password                     | providers.watttime.username, providers.watttime.password   |
-      | entsoe   | ENTSO-E has a token but "IT" is replaced by country "ZZ" | providers.entsoe.area_override (ZZ is not an ENTSO-E area) |
+      | entsoe   | ENTSO-E has a token, no area override, and the country is "ZZ" | providers.entsoe.area_override (ZZ is not an ENTSO-E area) |
 
   @id:carbon-data.provider-selection.006 @rule:carbon-data.provider-selection.unknown-forced-name-lists-choices @verified @source:pico/fw_providers.py#_forced_provider @test:tests/test_fw_providers.py#test_forcing_an_unknown_name_lists_the_known_ones @test:tests/test_fw_providers.py#test_a_non_string_force_is_an_unknown_name_not_a_crash
   Scenario Outline: Forcing an unknown provider name is refused with the list of valid names

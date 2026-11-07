@@ -36,7 +36,7 @@ Feature: Showing the current reading and advice on the e-ink panel
       | 0         | CO2: 0 g/kWh   |
 
   @id:device-display.screen-layout.003 @rule:display.led-bar.level-tracks-week-percentile @inferred @source:pico/display.py#led_level_from_percentile @questionable
-  Scenario Outline: The LED bar lights one segment per eighth of the week's range the current hour sits at
+  Scenario Outline: The LED bar lights the current hour's percentile of the past week, rounded to the nearest eighth
     Given the current hour sits at the <percentile> percentile of the past week
     When the device refreshes the panel
     Then <lit> of the 8 LED segments are filled and the rest are outlined

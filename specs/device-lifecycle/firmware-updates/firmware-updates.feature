@@ -63,12 +63,12 @@ Feature: Updating firmware over the air
     Given <situation>
     When the device boots
     Then the device boots firmware version 1 without counting an update attempt
-    And the update stage reads "idle"
+    And the update stage reads "<stage>"
 
     Examples:
-      | situation                                                     |
-      | an update was started and partly received but never activated |
-      | the saved update state was cut short by a power loss          |
+      | situation                                                     | stage   |
+      | an update was started and partly received but never activated | staging |
+      | the saved update state was cut short by a power loss          | idle    |
 
   @id:device-lifecycle.firmware-updates.010 @rule:firmware.ota.outcome-visible-to-operator @verified @source:pico/ota.py#status @test:tests/test_ota.py#test_status_reports_what_an_update_did @questionable
   Scenario: The device reports what its last update did

@@ -40,7 +40,7 @@ Feature: Exporting grid readings for home automation and spreadsheets
     Given the window holds a reading of 430 at 10:00
     And the window holds a reading of "<value>" at 11:00
     When a Home Assistant sensor polls <endpoint>
-    Then no export body is produced
+    Then the device answers with an internal error instead of the export
     And the reading of 430 is not delivered either
 
     Examples:
@@ -73,10 +73,10 @@ Feature: Exporting grid readings for home automation and spreadsheets
   Scenario: The summary is one flat object with the current reading, the verdict and the window's range
     Given the device is in Lisbon, PT, served by electricity_maps
     And the window holds readings of 430, 412.5 and 380
-    And the current reading is 380 and the recommendation is GOOD, "below the weekly median"
+    And the current reading is 380 and the recommendation is OK, "below the weekly median"
     When a Home Assistant sensor polls /em/summary
     Then carbon_intensity is 380 and unit is "gCO2eq/kWh"
-    And verdict is "GOOD", reason is "below the weekly median", wait_hours is null
+    And verdict is "OK", reason is "below the weekly median", wait_hours is null
     And window_points is 3, window_min is 380, window_max is 430
     And city is "Lisbon", cc is "PT", provider is "electricity_maps"
     And the object has no history field

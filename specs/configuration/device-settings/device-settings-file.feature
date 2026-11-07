@@ -3,7 +3,7 @@ Feature: Configuring a device through its settings file
   Lets the person setting up a Pico give it Wi-Fi credentials, provider tokens and preferences in an on-device settings.json, and stops the device at startup, naming the setting at fault, when that file can't be used.
 
   Background:
-    Given Given the device reads settings.json from its own filesystem when it starts
+    Given the device reads settings.json from its own filesystem when it starts
 
   @id:configuration.device-settings.005 @rule:configuration.device-settings.file-overrides-defaults @verified @source:pico/settings.py#apply @test:tests/test_settings.py#test_nested_values_reach_the_config_tree @test:tests/test_settings.py#test_omitted_values_keep_their_defaults
   Scenario: Values in the settings file replace the built-in defaults and omitted values keep them
@@ -39,7 +39,7 @@ Feature: Configuring a device through its settings file
       | "providers": {"ukci": true}         | sets a block of settings to a single value | providers.ukci         |
 
   @id:configuration.device-settings.008 @rule:configuration.device-settings.example-file-accepted @inferred @source:pico/settings.py#apply @questionable
-  Scenario: A copy of the example settings file with Wi-Fi filled in starts the device
+  Scenario: A copy of the example settings file with Wi-Fi filled in is refused because of its comment entry
     Given settings.json is a copy of settings.example.json, including its "_comment" entry
     And the copy has wifi.ssid and wifi.password filled in
     When the device starts up

@@ -13,7 +13,7 @@ Feature: Reading hourly grid intensity from the Carbon Intensity API
 
     Examples:
       | place                    | figures present                          | figure used           |
-      | the country IT           | consumption_lifecycle, lifecycle, direct | consumption_lifecycle |
+      | the country IT           | consumption lifecycle, lifecycle, direct | consumption lifecycle |
       | the bidding zone IT/SICI | lifecycle, direct                        | lifecycle             |
       | the country IT           | direct only                              | direct                |
 

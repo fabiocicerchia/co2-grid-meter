@@ -49,7 +49,7 @@ Feature: Starting a device from its settings
       | serving the dashboard from the device | off                                                               |
       | the device language                   | en                                                                |
       | the green / yellow bands              | up to the 25th / 50th percentile                                  |
-      | the timeline                          | 36 hours back and 12 hours ahead                                  |
+      | the timeline                          | 48 hours back and 12 hours ahead                                  |
       | locating by public IP                 | on, rechecked every 24 hours, retried after 15 minutes on failure |
 
   @id:configuration.device-settings.004 @rule:device.settings.api-open-without-token @inferred @source:pico/config.py#CONFIG

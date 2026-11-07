@@ -1,6 +1,6 @@
 @domain:device-web @area:offline-dashboard @from:pico/staticfiles
 Feature: Hosting the dashboard from the device
-  Lets an operator open the dashboard straight from the Pico with no desktop server, without the device ever handing out its settings file or other files on its flash.
+  Lets an operator open the dashboard straight from the Pico with no desktop server, without the device handing out its settings file or other files on its flash unless the dashboard folder is set to the filesystem root.
 
   Background:
     Given the dashboard files are copied to the device's static folder "static"
@@ -18,7 +18,7 @@ Feature: Hosting the dashboard from the device
     Given the operator has enabled static file serving
     And the device's settings file holds the Wi-Fi password and provider tokens
     When a client requests "<path>" from the device
-    Then the device answers 404 with {"error": "Not found"}
+    Then the device answers 404 with {"error": "Not found", "path": "<path>"}
     And no file content from outside the static folder is sent
 
     Examples:
@@ -51,7 +51,7 @@ Feature: Hosting the dashboard from the device
     Given the operator has enabled static file serving
     And the file "<file>" exists in the static folder
     When a client requests "/<file>" from the device
-    Then the device answers 404 with {"error": "Not found"}
+    Then the device answers 404 with {"error": "Not found", "path": "/<file>"}
 
     Examples:
       | file        |

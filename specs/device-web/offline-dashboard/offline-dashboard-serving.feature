@@ -24,7 +24,7 @@ Feature: Serving the dashboard from the device
       | path        | content type                   |
       | /           | text/html; charset=utf-8       |
       | /index.html | text/html; charset=utf-8       |
-      | /app.js     | text/javascript; charset=utf-8 |
+      | /script.js  | text/javascript; charset=utf-8 |
       | /style.css  | text/css; charset=utf-8        |
 
   @id:device-web.offline-dashboard.003 @rule:device-web.static.missing-file-falls-through @inferred @source:pico/http.py#serve_static_file

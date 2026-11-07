@@ -30,7 +30,7 @@ Feature: Working out which grid the device reports on
       | auto     | lookup                 | shown_city | shown_cc |
       | enabled  | resolves to London, GB | London     | GB       |
       | enabled  | reports failure        | Rome       | IT       |
-      | enabled  | answers without a city | Rome       | IT       |
+      | enabled  | answers without a city or region | Rome       | IT       |
       | enabled  | is unreachable         | Rome       | IT       |
       | disabled | resolves to London, GB | Rome       | IT       |
 

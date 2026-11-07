@@ -1,6 +1,6 @@
 @domain:device-lifecycle @area:connectivity @from:pico/http
 Feature: Keeping the device online and reachable
-  Assures the operator that the device keeps its clock right and keeps answering on the network through Wi-Fi drops, idle clients and errors.
+  Assures the operator that the device keeps its clock right and keeps answering on the network through Wi-Fi drops and idle clients, and shows what happens after an unexpected error.
 
   Background:
     Given the device is running and serving on its configured port

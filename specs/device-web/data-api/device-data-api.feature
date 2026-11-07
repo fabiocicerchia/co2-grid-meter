@@ -3,7 +3,7 @@ Feature: Reading grid intensity from the device API
   Serves the dashboard, home-automation tools and operators with the device's current reading, recommendation, intensity windows and system state over its JSON API.
 
   Background:
-    Given the device reports on "Rome", "IT"
+    Given the device's configured location is "Rome", "IT"
     And the timeline shows 48 hours back and 12 hours ahead by default
 
   @id:device-web.data-api.001 @rule:device-web.data-api.window-covers-requested-hours @inferred @source:pico/app.py#handle_em_window
@@ -49,7 +49,7 @@ Feature: Reading grid intensity from the device API
       | the latest hour has no intensity value               | No carbonIntensity in last point           |
 
   @id:device-web.data-api.005 @rule:device-web.data-api.status-includes-resolved-coordinates @inferred @source:pico/app.py#build_status_bundle @questionable
-  Scenario: The status and system information carry the resolved coordinates
+  Scenario: The status carries the resolved coordinates
     Given the device's public IP resolves to latitude 51.5072 and longitude -0.1276
     When a client requests GET /status
     Then lat is 51.5072 and lon is -0.1276

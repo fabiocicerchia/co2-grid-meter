@@ -7,7 +7,7 @@ Feature: Reading grid carbon intensity from data providers
 
   @id:carbon-data.providers.007 @rule:carbon-data.providers.credentials-named-when-missing @verified @source:pico/providers/base.py#EmissionsProvider @test:tests/test_fw_providers.py#test_the_request_time_guard_still_names_missing_credentials @test:tests/test_fw_providers.py#test_forcing_a_provider_without_credentials_fails_by_name @test:tests/test_fw_providers.py#test_an_enabled_provider_without_its_credentials_is_not_selected
   Scenario Outline: A provider without its credentials refuses and names the missing settings
-    Given the <provider> provider is selected
+    Given the operator has forced the <provider> provider
     And <settings> is empty in the device settings
     When the device fetches the intensity window
     Then no reading is fetched
@@ -22,7 +22,7 @@ Feature: Reading grid carbon intensity from data providers
 
   @id:carbon-data.providers.008 @rule:carbon-data.providers.entsoe-area-must-be-mapped @verified @source:pico/providers/entsoe.py#EntsoeProvider @test:tests/test_fw_providers.py#test_entsoe_needs_a_mapped_area @test:tests/test_fw_providers.py#test_entsoe_area_override_wins_over_the_country @test:tests/test_fw_providers.py#test_forcing_entsoe_for_an_unmapped_area_fails_by_name
   Scenario Outline: ENTSO-E serves only a known bidding area, and the area override wins over the device's country
-    Given the ENTSO-E provider is selected with a token
+    Given the operator has forced the ENTSO-E provider and given it a token
     And the device's country is <country>
     And the ENTSO-E area override is <override>
     When the device fetches the intensity window

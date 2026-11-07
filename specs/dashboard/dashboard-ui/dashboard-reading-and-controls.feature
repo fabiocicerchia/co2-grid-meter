@@ -52,12 +52,10 @@ Feature: Watching grid carbon intensity on the desktop dashboard
   @id:dashboard.dashboard-ui.005 @rule:dashboard.chart.past-48h-with-last-week-overlay @inferred @source:web/static/script.js#drawChart
   Scenario: The chart shows the past 48 hours next to last week's curve, which extends 12 hours ahead
     Given the device has readings for the past 48 hours and for the same period a week earlier
-    And the device serves the city "Milan" using the provider "entsoe"
     When the dashboard refreshes
     Then the chart draws the past 48 hours of actual intensity as a solid line
     And the chart draws last week's intensity, moved forward one week and reaching 12 hours past now, as a dotted line
     And a "now" marker divides past from future
-    And the city reads "Milan" and the provider reads "entsoe"
 
   @id:dashboard.dashboard-ui.006 @rule:dashboard.auto-refresh.remembered @inferred @source:web/static/script.js#startAuto
   Scenario: Auto refresh and its interval are remembered between visits

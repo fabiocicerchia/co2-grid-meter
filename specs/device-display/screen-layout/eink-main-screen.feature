@@ -6,12 +6,12 @@ Feature: Showing the current reading and advice on the e-ink panel
     Given the device has a working e-ink panel
 
   @id:device-display.screen-layout.007 @rule:device-display.screen.advice-line-wait-or-reason @verified @source:pico/fw_render.py#make_next_line @test:tests/test_fw_render.py#test_the_wait_line_obeys_the_same_limit @test:tests/test_fw_render.py#test_a_short_reason_is_untouched_and_a_missing_one_is_empty
-  Scenario Outline: The line under the verdict shows how long to wait, otherwise the reason
+  Scenario Outline: The advice line shows how long to wait, otherwise the reason
     Given the latest recommendation has verdict "<verdict>", wait hours <wait_hours> and reason "<reason>"
     And the device clock reads 11:00 local time
     When the device redraws the screen
-    Then the verdict shown is "<shown_verdict>"
-    And the line under the verdict reads "<line>"
+    Then the verdict is taken as "<shown_verdict>", which is not "RUN NOW" or "OK", so the panel draws the advice line in its place
+    And the advice line reads "<line>"
 
     Examples:
       | verdict   | wait_hours | reason                          | shown_verdict | line            |
@@ -23,7 +23,7 @@ Feature: Showing the current reading and advice on the e-ink panel
   @id:device-display.screen-layout.008 @rule:device-display.screen.advice-line-fits-panel @verified @source:pico/fw_render.py#next_line_chars @test:tests/test_fw_render.py#test_the_limit_is_derived_from_the_panel_width @test:tests/test_fw_render.py#test_the_line_ends_inside_the_panel_interior @test:tests/test_fw_render.py#test_a_long_reason_is_cut_between_words_to_fit @test:tests/test_fw_render.py#test_the_wait_line_obeys_the_same_limit @test:tests/test_fw_render.py#test_render_screen_fits_the_line_to_the_panel_it_draws_on
   Scenario Outline: The advice line is cut between words to fit the panel width
     Given the device panel is in <orientation> orientation, <width> pixels wide
-    And the line under the verdict would read "<full_line>"
+    And the advice line would read "<full_line>"
     When the device redraws the screen
     Then at most <max_chars> characters are shown
     And the line reads "<shown>", ending on a whole word
@@ -66,7 +66,7 @@ Feature: Showing the current reading and advice on the e-ink panel
     Given the device has <hours> hours of readings from the same period last week
     When the device redraws the screen
     Then the LED bar <leds>
-    And the intensity zone shown is <zone>
+    And the intensity zone worked out is <zone>, although the panel does not draw the zone
 
     Examples:
       | hours | leds                                                                            | zone                          |

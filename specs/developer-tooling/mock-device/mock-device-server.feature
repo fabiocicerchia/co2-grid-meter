@@ -20,7 +20,7 @@ Feature: Running the mock Pico
       | 9090 | 0.0.0.0   |
 
   @id:developer-tooling.mock-device.008 @rule:tooling.mock-device.stops-cleanly-on-interrupt @inferred @source:mock/mock_pico.py#_shutdown @questionable
-  Scenario Outline: Interrupting the mock Pico stops it and frees its port
+  Scenario Outline: Interrupting the mock Pico logs a shutdown but leaves it hung with its port held
     Given the mock Pico is running
     When the developer sends <signal> to the mock Pico
     Then the log shows "Shutting down dashboard server"
