@@ -1,0 +1,3845 @@
+{
+ "excluded": {
+  "co2-grid-meter/common-config": [
+   {
+    "candidate": "Firmware section maps country/token/base URLs to DEFAULT_CC, EM_TOKEN, EM_BASE, WT_BASE instead of the documented DEFAULT_COUNTRY, ELECTRICITYMAPS_TOKEN, ELECTRICITYMAPS_BASE, WATTTIME_BASE",
+    "covered_by": "No desktop consumer reads UnifiedConfig.firmware (web uses .web, mock uses .mock; pico/ has its own config), so the divergence is not observable; worth a cleanup note against docs/getting-started.md:49-50",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "common_config.py#load_config"
+   },
+   {
+    "candidate": "Override lookup falls back to the bare field name before the field's own env metadata",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "common_config.py#_env_for_field"
+   },
+   {
+    "candidate": "Nested settings groups are built recursively from their own defaults",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "common_config.py#_build_dataclass"
+   },
+   {
+    "candidate": "A field with no default and no env var raises Missing required config field",
+    "covered_by": "Every leaf field in config/settings.py has a default, so this path cannot be reached",
+    "reason": "UNVERIFIABLE",
+    "source": "common_config.py#_default_for_field"
+   },
+   {
+    "candidate": "Configuration is loaded once at import time",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "common_config.py#CONFIG"
+   }
+  ],
+  "co2-grid-meter/dockerfile": [
+   {
+    "candidate": "The dashboard image installs only hash-pinned dependencies from requirements.lock",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Dockerfile#RUN pip install"
+   },
+   {
+    "candidate": "The image contains only the dashboard server (common_config.py, config/, web/); the mock Pico and firmware are not containerized",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Dockerfile#COPY"
+   },
+   {
+    "candidate": "The container runs as an unprivileged user (uid 10001)",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Dockerfile#USER app"
+   },
+   {
+    "candidate": "The container exposes port 5000 and starts the dashboard server (python3 -m web.server)",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Dockerfile#ENTRYPOINT"
+   },
+   {
+    "candidate": "The container health check reports unhealthy when /status does not answer 200 within 2 seconds",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Dockerfile#HEALTHCHECK"
+   },
+   {
+    "candidate": "Base image pinned by digest to python:3.14-slim",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Dockerfile#FROM"
+   }
+  ],
+  "co2-grid-meter/makefile": [
+   {
+    "candidate": "Running `make` with no target prints every target with its one-line description",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#help"
+   },
+   {
+    "candidate": "`make setup` creates the .venv, installs runtime and dev requirements into it, and installs the pre-commit hook",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#setup"
+   },
+   {
+    "candidate": "`make install` installs runtime requirements into the active interpreter",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#install"
+   },
+   {
+    "candidate": "`make build` builds the dashboard-only Docker image tagged IMAGE:VERSION, with VERSION read from version.txt",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#build"
+   },
+   {
+    "candidate": "`make run` delegates to ./start.sh to serve the dashboard and the mock Pico together (the behaviour itself belongs to start.sh)",
+    "covered_by": "",
+    "reason": "TECH_DEVTOOLING",
+    "source": "Makefile#run"
+   },
+   {
+    "candidate": "`make test` runs pytest",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#test"
+   },
+   {
+    "candidate": "`make lint` runs every pre-commit hook over all files",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#lint"
+   },
+   {
+    "candidate": "`make format` formats Python with ruff and everything else with a pinned biome 2.5.7",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#format"
+   },
+   {
+    "candidate": "`make analyze` refuses with an install hint and exit code 69 when trivy is missing; otherwise it scans for CRITICAL/HIGH vulnerabilities, misconfigurations and secrets",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "Makefile#analyze"
+   }
+  ],
+  "co2-grid-meter/start": [
+   {
+    "candidate": "The launch script starts the dashboard server in the background and the mock Pico in the foreground, so one command brings up both for local development",
+    "covered_by": "",
+    "reason": "TECH_DEVTOOLING",
+    "source": "start.sh#start.sh"
+   },
+   {
+    "candidate": "The launch script loads the local environment settings file next to the script when it exists, and runs without it otherwise",
+    "covered_by": "",
+    "reason": "TECH_DEVTOOLING",
+    "source": "start.sh#start.sh"
+   },
+   {
+    "candidate": "The launch script activates the project virtualenv through a path relative to the current directory rather than the script's directory, so it fails when run from outside the repo root (unlike the script-relative settings file lookup)",
+    "covered_by": "",
+    "reason": "TECH_DEVTOOLING",
+    "source": "start.sh#start.sh"
+   },
+   {
+    "candidate": "The launch script stops at the first failing command (set -euo pipefail), for example when the virtualenv is missing",
+    "covered_by": "",
+    "reason": "TECH_DEVTOOLING",
+    "source": "start.sh#start.sh"
+   }
+  ],
+  "config/config": [
+   {
+    "candidate": "The config package re-exports the settings types (UnifiedConfig, WebConfig, MockConfig, FirmwareConfig and their sections) from config.settings under one import path",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "config/__init__.py#__all__"
+   }
+  ],
+  "docs/stylesheets": [
+   {
+    "candidate": "Accent palette (cyan/teal) is the single source shared by the docs site and the docs/index.html splash",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "docs/stylesheets/extra.css#:root"
+   },
+   {
+    "candidate": "Header and link colours stay legible in light and dark (slate) schemes",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "docs/stylesheets/extra.css#[data-md-color-scheme=\"slate\"]"
+   },
+   {
+    "candidate": "Translucent blurred header, tab opacity, heading weights and letter spacing",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "docs/stylesheets/extra.css#.md-header"
+   },
+   {
+    "candidate": "Rounded bordered code blocks and card-style tables",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "docs/stylesheets/extra.css#.md-typeset table:not([class])"
+   },
+   {
+    "candidate": "Pill buttons with gradient primary and hover lift",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "docs/stylesheets/extra.css#.md-typeset .md-button"
+   },
+   {
+    "candidate": "Home hero gradient title and tagline layout",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "docs/stylesheets/extra.css#.md-typeset .hero"
+   },
+   {
+    "candidate": "Feature cards hover depth and accent-coloured icons",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "docs/stylesheets/extra.css#.md-typeset .grid.cards > ul > li"
+   },
+   {
+    "candidate": "Sidebar nav weights, footer styling, smooth scrolling",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "docs/stylesheets/extra.css#.md-footer-meta"
+   }
+  ],
+  "mock/handler": [
+   {
+    "candidate": "Geolocation via plain-HTTP ip-api.com with 4s timeout, looked up on every request",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "mock/handler.py#resolve_from_ip"
+   },
+   {
+    "candidate": "Handler class bound to config/logger/provider via create_handler",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "mock/handler.py#create_handler"
+   },
+   {
+    "candidate": "Responses use HTTP/1.1 and UTF-8 bodies",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "mock/handler.py#MockPicoHandler"
+   },
+   {
+    "candidate": "Unknown country code falls back to empty string and missing city to an em dash",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "mock/handler.py#resolve_from_ip"
+   },
+   {
+    "candidate": "Failures are logged with stack trace",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "mock/handler.py#MockPicoHandler"
+   }
+  ],
+  "mock/mock": [
+   {
+    "candidate": "mock package marker (empty mock/__init__.py)",
+    "covered_by": "",
+    "reason": "TECH_DEVTOOLING",
+    "source": "mock/__init__.py"
+   }
+  ],
+  "mock/mock-pico": [
+   {
+    "candidate": "Logging format and INFO level",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "mock/mock_pico.py#LOGGER"
+   },
+   {
+    "candidate": "Upstream HTTP session closed on shutdown",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "mock/mock_pico.py#_shutdown"
+   },
+   {
+    "candidate": "Backwards-compatible Handler name exported for imports",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "mock/mock_pico.py#Handler"
+   },
+   {
+    "candidate": "Endpoint shapes served by the mock (status, intensity, etc.)",
+    "covered_by": "they live in mock/handler, a separate module, and are not specified here",
+    "reason": "UNVERIFIABLE",
+    "source": "mock/handler.py#MockPicoHandler"
+   }
+  ],
+  "pico/app": [
+   {
+    "candidate": "/em/summary and /em/window.csv export shaping",
+    "covered_by": "wiring only; shaping lives in pico/export.py",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/app.py#handle_em_summary"
+   },
+   {
+    "candidate": "/status served from a time-limited store per location",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/app.py#handle_status"
+   },
+   {
+    "candidate": "Window fetched via background fetcher, worker thread never started on RP2",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/app.py#get_window"
+   },
+   {
+    "candidate": "Full e-ink clear only when a new reading was published",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/app.py#get_window"
+   },
+   {
+    "candidate": "IP lookup cached for refresh period and retried after failure cooldown",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/app.py#_auto_geo_defaults"
+   },
+   {
+    "candidate": "Boot log lists coarse location, ISP and interface",
+    "covered_by": "diagnostics module (pico/diagnostics.py boot_lines/geo_summary)",
+    "reason": "DUPLICATE_OF",
+    "source": "pico/app.py#log_boot_diagnostics"
+   },
+   {
+    "candidate": "Unforced fetch uses the selected provider",
+    "covered_by": "provider selection in pico/fw_providers.py",
+    "reason": "DUPLICATE_OF",
+    "source": "pico/app.py#_fetch_window"
+   },
+   {
+    "candidate": "series_values / series_points helpers",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/app.py#series_points"
+   },
+   {
+    "candidate": "Non-numeric back_hours fails the request",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "pico/app.py#handle_em_window"
+   }
+  ],
+  "pico/boot": [
+   {
+    "candidate": "A pending update is rolled back after more than MAX_BOOT_ATTEMPTS boots without reaching the serving loop",
+    "covered_by": "owned by pico/ota (firmware-updates rollback rule); boot.py only invokes it",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/ota.py#boot_check"
+   },
+   {
+    "candidate": "boot.py and ota.py are never replaced by an update (ota.PROTECTED)",
+    "covered_by": "enforced in pico/ota staging; specify there",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/ota.py#PROTECTED"
+   },
+   {
+    "candidate": "boot.py runs before main.py because MicroPython executes it first",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/boot.py"
+   }
+  ],
+  "pico/ci-api-parse": [
+   {
+    "candidate": "stale_error reports 'no measured hour in the window' for an empty window",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/ci_api_parse.py#stale_error"
+   },
+   {
+    "candidate": "history_path raises ValueError for missing country code or a date not 10 characters long",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "pico/ci_api_parse.py#history_path"
+   },
+   {
+    "candidate": "Boolean values in figure arrays are not treated as numbers",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "pico/ci_api_parse.py#hour_points"
+   },
+   {
+    "candidate": "hour_points returns nothing when start is unknown or values empty",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/ci_api_parse.py#hour_points"
+   },
+   {
+    "candidate": "Module kept free of MicroPython imports so it runs under CPython tests",
+    "covered_by": "",
+    "reason": "TECH_DEVTOOLING",
+    "source": "pico/ci_api_parse.py"
+   }
+  ],
+  "pico/config": [
+   {
+    "candidate": "All flash writes from both cores go through one lock",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/config.py#FLASH_LOCK"
+   },
+   {
+    "candidate": "Pruning runs once per day rather than once per log line",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/config.py#append_log_line"
+   },
+   {
+    "candidate": "Log and crash directories created on demand, errors suppressed",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/config.py#_ensure_dirs"
+   },
+   {
+    "candidate": "A failing log write is silently swallowed",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/config.py#_DailyFileLogHandler"
+   },
+   {
+    "candidate": "Firmware logger is built once, prints to console with timestamps and does not propagate",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/config.py#build_firmware_logger"
+   },
+   {
+    "candidate": "WattTime cooldown default of 24 hours",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/config.py#CONFIG"
+   },
+   {
+    "candidate": "Cache refresh interval and render minimum interval defaults",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/config.py#CONFIG"
+   },
+   {
+    "candidate": "Provider base URLs and per-provider defaults (ci_api zone, watttime region, force)",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "pico/config.py#CONFIG"
+   },
+   {
+    "candidate": "Bare-name import of settings to avoid an import cycle",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "pico/config.py"
+   }
+  ],
+  "pico/diagnostics": [
+   {
+    "candidate": "Uptime line in the boot log",
+    "covered_by": "log_boot_diagnostics never passes uptime_text, so no 'Uptime:' line is ever logged",
+    "reason": "UNVERIFIABLE",
+    "source": "pico/diagnostics.py#boot_lines"
+   },
+   {
+    "candidate": "Junk or non-dict geolocation payload yields empty fields instead of an error",
+    "covered_by": "observable result folded into device.diagnostics.location-text (unknown row)",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/diagnostics.py#geo_summary"
+   },
+   {
+    "candidate": "Accepting several key spellings and nested ISP lookup",
+    "covered_by": "device.diagnostics.boot-log-network-location-isp",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/diagnostics.py#_first"
+   },
+   {
+    "candidate": "A failed geolocation lookup or diagnostics error does not stop the device booting or serving",
+    "covered_by": "belongs to the startup module (pico/main.py, pico/app.py), not pico/diagnostics",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/app.py#log_boot_diagnostics"
+   },
+   {
+    "candidate": "Interface tuple mapped to ip/netmask/gateway/dns fields",
+    "covered_by": "device.diagnostics.boot-log-network-location-isp",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/diagnostics.py#network_summary"
+   }
+  ],
+  "pico/display": [
+   {
+    "candidate": "Low/mid/high intensity zone from percentile thresholds (unknown percentile = mid)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/display.py#intensity_zone_from_percentile"
+   },
+   {
+    "candidate": "Screen cleared to white before a fresh-data redraw, across driver variants",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/display.py#epd_clear_screen"
+   },
+   {
+    "candidate": "Framebuffer attribute names normalized across driver variants",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/display.py#epd_bind_frames"
+   },
+   {
+    "candidate": "Bold text by double drawing with a one-pixel offset; text, rect and line helpers",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "pico/display.py#draw_text_bold"
+   },
+   {
+    "candidate": "Next-step line cut to fit the verdict panel interior",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/display.py#draw_current_panel"
+   },
+   {
+    "candidate": "Panel dimensions fall back to 128x250 driver defaults",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/display.py#panel_dimensions"
+   }
+  ],
+  "pico/epd-driver": [
+   {
+    "candidate": "Panel init register sequence (SWRESET, driver output, border waveform, temperature sensor, update control)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/epd_driver.py#EPD_2in13_B_V4_Base"
+   },
+   {
+    "candidate": "SPI wiring pins and 4 MHz baud rate",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/epd_driver.py#EPD_2in13_B_V4_Base"
+   },
+   {
+    "candidate": "Hardware reset pulse timing and busy-wait polling",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/epd_driver.py#EPD_2in13_B_V4_Base"
+   },
+   {
+    "candidate": "RAM window and cursor addressing",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/epd_driver.py#EPD_2in13_B_V4_Base"
+   },
+   {
+    "candidate": "Clearing the panel to one colour per plane",
+    "covered_by": "Clear() has no callers in pico/; display.py clears by filling its frame buffers instead",
+    "reason": "UNVERIFIABLE",
+    "source": "pico/epd_driver.py#EPD_2in13_B_V4_Base"
+   },
+   {
+    "candidate": "Putting the panel into deep sleep after a refresh",
+    "covered_by": "sleep() has no callers in pico/",
+    "reason": "UNVERIFIABLE",
+    "source": "pico/epd_driver.py#EPD_2in13_B_V4_Base"
+   },
+   {
+    "candidate": "Landscape bands sent last band first",
+    "covered_by": "device-display.panel.orientation-fills-whole-panel",
+    "reason": "DUPLICATE_OF",
+    "source": "pico/epd_driver.py#EPD_2in13_B_V4_Landscape"
+   }
+  ],
+  "pico/export": [
+   {
+    "candidate": "Export shaping lives in a pure module so it can be tested under CPython",
+    "covered_by": "",
+    "reason": "TECH_DEVTOOLING",
+    "source": "pico/export.py"
+   },
+   {
+    "candidate": "CSV fields are not quoted because no field can contain a comma or quote",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/export.py#window_csv"
+   },
+   {
+    "candidate": "Mock device serves the same CSV and summary shapes",
+    "covered_by": "",
+    "reason": "TECH_DEVTOOLING",
+    "source": "mock/handler.py"
+   },
+   {
+    "candidate": "uptime_seconds and datetime passed through into the summary",
+    "covered_by": "device-web.export.summary-flat-verdict",
+    "reason": "TRIVIAL",
+    "source": "pico/export.py#summary_from_window"
+   },
+   {
+    "candidate": "Bearer-token protection of /em/* endpoints",
+    "covered_by": "enforced in pico/http.py, not this module",
+    "reason": "UNVERIFIABLE",
+    "source": "pico/http.py"
+   }
+  ],
+  "pico/fetcher": [
+   {
+    "candidate": "Requests for the same window coalesce onto one fetch",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/fetcher.py#BackgroundFetcher._request"
+   },
+   {
+    "candidate": "Only the 8 most recently published windows are kept",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/fetcher.py#BackgroundFetcher._sweep"
+   },
+   {
+    "candidate": "start() is idempotent and falls back to inline fetching if the thread cannot spawn",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/fetcher.py#BackgroundFetcher.start"
+   },
+   {
+    "candidate": "Firmware never starts the worker thread (no GIL on RP2)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/app.py#get_window"
+   },
+   {
+    "candidate": "A slow provider does not stall the request path when the worker runs",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/fetcher.py#BackgroundFetcher.get_or_set"
+   },
+   {
+    "candidate": "Cold request waits up to 40 seconds for the first reading",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/fetcher.py#COLD_WAIT_SECONDS"
+   },
+   {
+    "candidate": "Publish timestamp changes only when a reading lands (drives full e-ink clear)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/fetcher.py#BackgroundFetcher.published"
+   },
+   {
+    "candidate": "Worker thread stack size of 16 KB",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/fetcher.py#THREAD_STACK_BYTES"
+   },
+   {
+    "candidate": "age_of reports seconds since publish",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/fetcher.py#BackgroundFetcher.age_of"
+   },
+   {
+    "candidate": "A failed refresh keeps showing the last good reading",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "pico/fetcher.py#BackgroundFetcher.drain_once"
+   },
+   {
+    "candidate": "A reading younger than the refresh interval is reused without asking the provider",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "pico/fetcher.py#BackgroundFetcher.get_or_set"
+   },
+   {
+    "candidate": "The request that triggers a refresh still returns the previous reading; the new one appears on the next request",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "pico/fetcher.py#BackgroundFetcher.get_or_set"
+   },
+   {
+    "candidate": "The first request for a window fetches and shows its reading straight away",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "pico/fetcher.py#BackgroundFetcher.get_or_set"
+   },
+   {
+    "candidate": "With no reading ever obtained for a window, the device says there is no reading yet",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "pico/fetcher.py#BackgroundFetcher.get_or_set"
+   },
+   {
+    "candidate": "System info reports how many fetches failed and the last provider error",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "pico/fetcher.py#BackgroundFetcher.stats"
+   }
+  ],
+  "pico/fw-graph": [
+   {
+    "candidate": "Graph geometry: origin (5,60), tick band 9px, height capped at 90px, width = panel width - 10",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/fw_graph.py#GraphAxes"
+   },
+   {
+    "candidate": "Dash pattern of threshold lines (3px on, 5px off) and white-on-black/red-plane drawing",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/fw_graph.py#draw_dashed_hline"
+   },
+   {
+    "candidate": "Dotted line spacing of every second pixel",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/fw_graph.py#draw_series"
+   },
+   {
+    "candidate": "Values outside the scale are clamped to the plot box",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "pico/fw_graph.py#GraphAxes"
+   },
+   {
+    "candidate": "Percentile interpolation for empty and single-value lists",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/fw_graph.py#value_at_percentile"
+   },
+   {
+    "candidate": "Plotted points capped at back_hours + future_hours",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/fw_graph.py#GraphAxes"
+   },
+   {
+    "candidate": "Day tick labels kept inside the left edge of the graph",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "pico/fw_graph.py#draw_day_ticks"
+   }
+  ],
+  "pico/fw-network": [
+   {
+    "candidate": "Already-connected radio skips a new join attempt",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/fw_network.py#wifi_connect"
+   },
+   {
+    "candidate": "200 ms polling interval while joining",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/fw_network.py#wifi_connect"
+   },
+   {
+    "candidate": "Module-level WLAN handle shared by wifi_ok/interface_summary",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/fw_network.py#wifi_ok"
+   },
+   {
+    "candidate": "Off-Pico fallback to empty network dict in diagnostics",
+    "covered_by": "",
+    "reason": "TECH_DEVTOOLING",
+    "source": "pico/app.py#diagnostics_summary"
+   }
+  ],
+  "pico/fw-providers": [
+   {
+    "candidate": "Forcing a provider makes the configured city win over IP geolocation",
+    "covered_by": "carbon-data/location module (pico/app.py#resolve_geo)",
+    "reason": "DUPLICATE_OF",
+    "source": "pico/app.py#resolve_geo"
+   },
+   {
+    "candidate": "A fresh provider instance is built on every fetch",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/fw_providers.py#_select"
+   },
+   {
+    "candidate": "Missing country code is treated as XX and upper-cased before selection",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "pico/fw_providers.py#_select"
+   },
+   {
+    "candidate": "Adding a provider is one line in the provider table",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/fw_providers.py#_PROVIDERS"
+   },
+   {
+    "candidate": "The city argument is dropped before calling the provider",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/fw_providers.py#fetch_window_any"
+   },
+   {
+    "candidate": "A null or false providers.force counts as unset",
+    "covered_by": "carbon-data.provider-selection.force-overrides-enabled-flags",
+    "reason": "TRIVIAL",
+    "source": "pico/settings.py#forced_name"
+   }
+  ],
+  "pico/fw-render": [
+   {
+    "candidate": "Current and last-week series are aligned hour by hour onto a 48h-back/12h-forward timeline for the graph",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/fw_render.py#aligned_lines"
+   },
+   {
+    "candidate": "Screen is fully cleared only when fresh data arrived, otherwise drawn over",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/fw_render.py#render_screen"
+   },
+   {
+    "candidate": "Wi-Fi icon and clock drawn at fixed top-bar coordinates",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "pico/fw_render.py#draw_top_bar"
+   },
+   {
+    "candidate": "Placeholder title defaults to \"Status\"; non-error detail drawn in black",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "pico/fw_render.py#render_placeholder_screen"
+   },
+   {
+    "candidate": "Throttled refreshes are silent so the log does not fill the flash",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/fw_render.py#_display_tick"
+   },
+   {
+    "candidate": "Free memory reclaimed after each render",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/fw_render.py#render_screen"
+   },
+   {
+    "candidate": "A failure while drawing the error screen is logged and does not crash the serve loop",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/fw_render.py#_display_tick"
+   }
+  ],
+  "pico/http": [
+   {
+    "candidate": "Request line and header lines capped at 2048 bytes",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/http.py#_readline"
+   },
+   {
+    "candidate": "Only If-None-Match and Authorization headers are parsed",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/http.py#parse_request"
+   },
+   {
+    "candidate": "Malformed or empty request line closes the connection without reply",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/http.py#handle_http_request"
+   },
+   {
+    "candidate": "Query string parsing into parameters",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/http.py#split_path_qs"
+   },
+   {
+    "candidate": "Constant-time token comparison",
+    "covered_by": "device-web.access.uniform-refusal",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/http.py#_constant_time_equal"
+   },
+   {
+    "candidate": "Content-Length and Connection: close headers on every reply",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/http.py#_send_response"
+   },
+   {
+    "candidate": "Idle accept timeouts are not logged",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/http.py#get_connection"
+   },
+   {
+    "candidate": "Static files streamed in chunks",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/http.py#serve_static_file"
+   },
+   {
+    "candidate": "Listening socket setup (SO_REUSEADDR, backlog 2, 1 s timeout)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/http.py#open_socket"
+   },
+   {
+    "candidate": "Static path traversal and unserved extensions refused",
+    "covered_by": "pico/staticfiles module (enforces the rule; spec it there)",
+    "reason": "DUPLICATE_OF",
+    "source": "pico/staticfiles.py#resolve"
+   },
+   {
+    "candidate": "Boot placeholder screen 'BOOT / Waiting for data...'",
+    "covered_by": "fw_render module (render_placeholder_screen)",
+    "reason": "DUPLICATE_OF",
+    "source": "pico/http.py#serve_forever"
+   },
+   {
+    "candidate": "Content of /status, /em/*, /system-info bodies",
+    "covered_by": "app module handlers",
+    "reason": "DUPLICATE_OF",
+    "source": "pico/http.py#JSON_ROUTES"
+   }
+  ],
+  "pico/i18n": [
+   {
+    "candidate": "The whole string table stays under 4 KB and under 1 KB per locale",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/i18n.py#table_bytes"
+   },
+   {
+    "candidate": "Every locale has exactly the English keys with matching placeholders",
+    "covered_by": "",
+    "reason": "TECH_DEVTOOLING",
+    "source": "tests/test_i18n.py#test_every_locale_covers_every_english_key"
+   },
+   {
+    "candidate": "Translations fit the panel width (MAX_LABEL_CHARS; the test actually allows 28 rendered characters, not 20)",
+    "covered_by": "",
+    "reason": "TECH_DEVTOOLING",
+    "source": "tests/test_i18n.py#test_labels_fit_the_panel"
+   },
+   {
+    "candidate": "The dashboard ships the same set of locales as the firmware",
+    "covered_by": "",
+    "reason": "TECH_DEVTOOLING",
+    "source": "tests/test_i18n.py#test_the_dashboard_ships_the_same_locales"
+   },
+   {
+    "candidate": "Language codes are case- and whitespace-insensitive",
+    "covered_by": "device-display.languages.unknown-language-falls-back-to-english",
+    "reason": "DUPLICATE_OF",
+    "source": "pico/i18n.py#set_language"
+   },
+   {
+    "candidate": "Wait line \"WAIT 3h (14:00)\" rendered through the locale table",
+    "covered_by": "device-display.languages.configured-language-shown",
+    "reason": "DUPLICATE_OF",
+    "source": "pico/fw_render.py#make_next_line"
+   }
+  ],
+  "pico/ota": [
+   {
+    "candidate": "Staging is cleared at the start of each update, so leftover .part files are dropped",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/ota.py#begin"
+   },
+   {
+    "candidate": "The previous firmware's backup is deleted once the update is kept",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/ota.py#mark_healthy"
+   },
+   {
+    "candidate": "Rollback is safe to run twice",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/ota.py#rollback"
+   },
+   {
+    "candidate": "State is written atomically through a temp file and a rename",
+    "covered_by": "",
+    "reason": "TECH_PERSISTENCE",
+    "source": "pico/ota.py#write_state"
+   },
+   {
+    "candidate": "Files are hashed in 512-byte chunks",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/ota.py#digest_of"
+   },
+   {
+    "candidate": "The rename fallback for FAT filesystems",
+    "covered_by": "",
+    "reason": "TECH_PERSISTENCE",
+    "source": "pico/ota.py#_replace"
+   },
+   {
+    "candidate": "boot.py keeps booting when the OTA check itself fails",
+    "covered_by": "firmware.ota.unreadable-state-boots-current-firmware",
+    "reason": "DUPLICATE_OF",
+    "source": "pico/boot.py"
+   },
+   {
+    "candidate": "Staging a file the manifest does not list is refused",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "pico/ota.py#stage"
+   }
+  ],
+  "pico/pages": [
+   {
+    "candidate": "Page styling: card layout, colours, fonts, two-column grid",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/pages.py#build_index_html"
+   },
+   {
+    "candidate": "Status page fetches /status with no-store",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/pages.py#build_index_html"
+   },
+   {
+    "candidate": "Graph drops non-numeric intensity values and pads the canvas",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "pico/pages.py#GRAPH_HTML"
+   },
+   {
+    "candidate": "An invalid saved theme falls back to following the system",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "pico/pages.py#build_index_html"
+   },
+   {
+    "candidate": "Pages require the API token like every other route",
+    "covered_by": "enforced in pico/http module, not pico/pages; belongs to that module's scenarios",
+    "reason": "UNVERIFIABLE",
+    "source": "pico/http.py#process_http_request"
+   },
+   {
+    "candidate": "Page content types and building pages once at import",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/http.py#PAGE_ROUTES"
+   }
+  ],
+  "pico/pico": [
+   {
+    "candidate": "Garbage collection is enabled before networking",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/main.py#main"
+   },
+   {
+    "candidate": "Uptime line logged as a separate rule",
+    "covered_by": "device.startup.diagnostics-never-block-serving",
+    "reason": "DUPLICATE_OF",
+    "source": "pico/main.py#main"
+   },
+   {
+    "candidate": "Wi-Fi retry count and timeout",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/main.py#main"
+   },
+   {
+    "candidate": "Failure to clear the OTA boot marker is logged and serving continues",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "pico/main.py#main"
+   },
+   {
+    "candidate": "Logger writes to stdout and a daily log file",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/config.py#build_firmware_logger"
+   }
+  ],
+  "pico/providers": [
+   {
+    "candidate": "Provider stores are written atomically with .bak/.tmp fallbacks and never fail a page load",
+    "covered_by": "",
+    "reason": "TECH_PERSISTENCE",
+    "source": "pico/providers/base.py#save_json_store"
+   },
+   {
+    "candidate": "Store writes are serialised with the main core's log writes via FLASH_LOCK",
+    "covered_by": "",
+    "reason": "TECH_PERSISTENCE",
+    "source": "pico/providers/base.py#save_json_store"
+   },
+   {
+    "candidate": "Carbon Intensity API caches closed days once, re-reads only today, keeps 14 days",
+    "covered_by": "",
+    "reason": "TECH_PERSISTENCE",
+    "source": "pico/providers/ci_api.py#CiApiProvider"
+   },
+   {
+    "candidate": "Carbon Intensity API cache is discarded when the country or zone changes",
+    "covered_by": "",
+    "reason": "TECH_PERSISTENCE",
+    "source": "pico/providers/ci_api.py#CiApiProvider"
+   },
+   {
+    "candidate": "Carbon Intensity API requests spaced 11 s apart to respect the upstream rate limit",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/providers/ci_api.py#CiApiProvider"
+   },
+   {
+    "candidate": "Carbon Intensity API window converted between device local clock and UTC",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/providers/ci_api.py#CiApiProvider"
+   },
+   {
+    "candidate": "Carbon Intensity API prefers consumption_lifecycle, then lifecycle, then direct; refuses non-measured days",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/ci_api_parse.py#day_values"
+   },
+   {
+    "candidate": "Carbon Intensity API country_override and zone pick the area and label",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "pico/providers/ci_api.py#CiApiProvider"
+   },
+   {
+    "candidate": "Sampled providers poll every 5 minutes and retry after 60 s on failure",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/providers/base.py#SampledProvider"
+   },
+   {
+    "candidate": "CO2Signal accepts several historical payload key names",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/providers/co2signal.py#Co2SignalProvider"
+   },
+   {
+    "candidate": "ENTSO-E A75 document streamed and scanned for six tags in bounded memory",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/providers/entsoe_parse.py#iter_series"
+   },
+   {
+    "candidate": "ENTSO-E step-curve fill of sub-hourly points into hours; truncated documents yield a partial curve",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/providers/entsoe.py#_fold_period"
+   },
+   {
+    "candidate": "WattTime history scanned as bytes instead of parsed as JSON",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/providers/watttime.py#_iter_readings"
+   },
+   {
+    "candidate": "WattTime login falls back to an explicit Basic auth header",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/providers/watttime.py#WattTimeProvider"
+   },
+   {
+    "candidate": "Electricity Maps past-range history parsed and labelled with its zone",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "pico/providers/electricity_maps.py#ElectricityMapsProvider"
+   },
+   {
+    "candidate": "Per-provider _provider labels in the returned window (em, uk, entsoe...)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/providers/electricity_maps.py#ElectricityMapsProvider"
+   },
+   {
+    "candidate": "Simulated provider sine-wave series with a floor of 80 for the mock device",
+    "covered_by": "",
+    "reason": "TECH_DEVTOOLING",
+    "source": "pico/providers/simulated.py#SimulatedProvider"
+   },
+   {
+    "candidate": "Enabled flag plus credentials decide whether a provider is selectable",
+    "covered_by": "carbon-data.providers.credentials-named-when-missing",
+    "reason": "DUPLICATE_OF",
+    "source": "pico/providers/base.py#EmissionsProvider"
+   }
+  ],
+  "pico/recommendation": [
+   {
+    "candidate": "recommend_from_week floors the current time to the hour before computing",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/recommendation.py#recommend_from_week"
+   },
+   {
+    "candidate": "Readings without a timestamp or numeric intensity are skipped",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "pico/recommendation.py#_compute_next_best"
+   },
+   {
+    "candidate": "Ties between equally clean hours pick the earliest",
+    "covered_by": "recommendation.best-time.cleanest-hour-next-12h",
+    "reason": "TRIVIAL",
+    "source": "pico/recommendation.py#_compute_next_best"
+   },
+   {
+    "candidate": "Mock device computes the recommendation with the same function",
+    "covered_by": "recommendation.advice.verdict-by-weekly-percentile",
+    "reason": "DUPLICATE_OF",
+    "source": "mock/handler.py"
+   },
+   {
+    "candidate": "Verdict/reason shown in Italian when configured",
+    "covered_by": "device-display/languages",
+    "reason": "DUPLICATE_OF",
+    "source": "pico/i18n.py"
+   }
+  ],
+  "pico/settings": [
+   {
+    "candidate": "A missing or blank settings.json counts as empty and is not an error by itself",
+    "covered_by": "configuration.device-settings.missing-required-listed-at-once",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/settings.py#load"
+   },
+   {
+    "candidate": "Nested JSON is flattened into dotted setting names",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/settings.py#flatten"
+   },
+   {
+    "candidate": "Dotted setting names are resolved down the configuration tree",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/settings.py#_resolve"
+   },
+   {
+    "candidate": "providers.force is read as lower-case text, so a non-string is reported as an unknown provider instead of crashing",
+    "covered_by": "configuration.device-settings.credentials-only-for-used-providers",
+    "reason": "DUPLICATE_OF",
+    "source": "pico/settings.py#forced_name"
+   },
+   {
+    "candidate": "The template has a block for every provider and contains no real-looking credential",
+    "covered_by": "",
+    "reason": "TECH_DEVTOOLING",
+    "source": "tests/test_settings.py#test_the_template_has_a_block_for_every_provider"
+   },
+   {
+    "candidate": "The settings module imports nothing MicroPython-only, so it can be tested under CPython",
+    "covered_by": "",
+    "reason": "TECH_DEVTOOLING",
+    "source": "pico/settings.py"
+   }
+  ],
+  "pico/staticfiles": [
+   {
+    "candidate": "Files are sent in 1 KB chunks rather than read whole",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/staticfiles.py#chunks"
+   },
+   {
+    "candidate": "The ETag is built from size and mtime in hex, quoted, with no hashing",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/staticfiles.py#etag"
+   },
+   {
+    "candidate": "Extension matching ignores case (INDEX.HTML is typed text/html)",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "pico/staticfiles.py#content_type"
+   },
+   {
+    "candidate": "A request path that does not start with '/' is refused",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "pico/staticfiles.py#resolve"
+   },
+   {
+    "candidate": "Empty and '.' path segments are dropped",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/staticfiles.py#_safe_segments"
+   },
+   {
+    "candidate": "A refusal and a missing file give the same 404, so a prober cannot tell which files exist",
+    "covered_by": "device-web.offline-dashboard.confined-to-static-root",
+    "reason": "DUPLICATE_OF",
+    "source": "pico/staticfiles.py#resolve"
+   },
+   {
+    "candidate": "The shipped web/static assets total less than 200 KB",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "tests/test_staticfiles.py#test_the_shipped_assets_fit_a_pico"
+   },
+   {
+    "candidate": "Static files also need the API token when one is set",
+    "covered_by": "owned by the device API authorisation module, not this one",
+    "reason": "UNVERIFIABLE",
+    "source": "pico/http.py#process_http_request"
+   }
+  ],
+  "pico/textutil": [
+   {
+    "candidate": "Days-from-civil date arithmetic instead of mktime",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/textutil.py#_days_from_civil"
+   },
+   {
+    "candidate": "Bytes/None coerced to str, undecodable bytes don't raise",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/textutil.py#_to_str"
+   },
+   {
+    "candidate": "Query parameters keep mapping insertion order",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/textutil.py#urlencode_simple"
+   },
+   {
+    "candidate": "Empty mapping encodes to empty string",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "pico/textutil.py#urlencode_simple"
+   },
+   {
+    "candidate": "Empty or missing detail yields no lines",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "pico/textutil.py#wrap_lines"
+   },
+   {
+    "candidate": "Module kept free of MicroPython-only imports for CPython testing",
+    "covered_by": "",
+    "reason": "TECH_DEVTOOLING",
+    "source": "pico/textutil.py"
+   }
+  ],
+  "pico/timeutil": [
+   {
+    "candidate": "Day-of-week computed arithmetically (Sakamoto) so Pico and CPython agree",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/timeutil.py#_day_of_week"
+   },
+   {
+    "candidate": "Last Sunday of a month found by scanning days 31..25, raising if none",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/timeutil.py#_last_sunday"
+   },
+   {
+    "candidate": "WEEK_SECONDS shift used for the week-ago overlay and hour ranking",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/timeutil.py#WEEK_SECONDS"
+   },
+   {
+    "candidate": "Module has no MicroPython-only imports so it is testable under CPython",
+    "covered_by": "",
+    "reason": "TECH_DEVTOOLING",
+    "source": "pico/timeutil.py"
+   }
+  ],
+  "pico/ttl-cache": [
+   {
+    "candidate": "A cached value is returned until its time-to-live elapses, then treated as missing (expiry at exactly ttl counts as expired)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/ttl_cache.py#TtlCache"
+   },
+   {
+    "candidate": "Negative or fractional TTL is clamped to a non-negative integer number of seconds",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/ttl_cache.py#TtlCache"
+   },
+   {
+    "candidate": "Expired entries are swept on every write so device memory does not grow unbounded",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/ttl_cache.py#TtlCache"
+   },
+   {
+    "candidate": "get_or_set calls the provider factory only on a miss; a None result is never cached and is re-fetched on each call",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/ttl_cache.py#TtlCache"
+   },
+   {
+    "candidate": "Cache hit/miss log lines naming the key",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/ttl_cache.py#TtlCache"
+   },
+   {
+    "candidate": "Readings shown to the user are no older than the configured refresh interval (cache_refresh_seconds)",
+    "covered_by": "Freshness is configured and observed through pico/app.py (carbon-data/background-fetching), not in this module",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/ttl_cache.py#TtlCache"
+   }
+  ],
+  "pico/uptime": [
+   {
+    "candidate": "Tick source falls back to time.monotonic folded into the 2**30 period under CPython",
+    "covered_by": "",
+    "reason": "TECH_DEVTOOLING",
+    "source": "pico/uptime.py#_ticks_ms"
+   },
+   {
+    "candidate": "ticks_diff fallback reproduces MicroPython signed-wrap semantics",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/uptime.py#_ticks_diff"
+   },
+   {
+    "candidate": "Injectable ticks function for tests",
+    "covered_by": "",
+    "reason": "TECH_DEVTOOLING",
+    "source": "pico/uptime.py#Uptime"
+   },
+   {
+    "candidate": "Global UPTIME instance constructed at import, before the network comes up",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/uptime.py#UPTIME"
+   },
+   {
+    "candidate": "uptime_seconds forwarded into the /em/summary export",
+    "covered_by": "device.uptime.counts-from-boot-without-clock",
+    "reason": "DUPLICATE_OF",
+    "source": "pico/app.py#handle_em_summary"
+   }
+  ],
+  "pico/utils": [
+   {
+    "candidate": "Every outbound provider request gives up after 15 seconds so a stalled provider cannot freeze the device (HTTP_TIMEOUT_SECONDS)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/utils.py#http_get"
+   },
+   {
+    "candidate": "Any upstream HTTP status other than 200 is reported as a provider failure labelled '<provider> HTTP <status>'",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/utils.py#http_get"
+   },
+   {
+    "candidate": "An empty JSON body from a provider is treated as an empty object; the response is always closed",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/utils.py#http_get_json"
+   },
+   {
+    "candidate": "Current intensity is ranked as the share of recent readings strictly below it (feeds run/wait advice and zone/LED level)",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/utils.py#percentile"
+   },
+   {
+    "candidate": "Device clock offset from UTC approximated from configured standard offset plus EU summer time, used to compare provider timestamps",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/utils.py#utc_offset_now"
+   },
+   {
+    "candidate": "ENTSO-E resolution strings (PT15M, PT1H) converted to seconds, defaulting to one hour when missing or unparseable",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/utils.py#_resolution_to_seconds"
+   },
+   {
+    "candidate": "Local times rendered as HH:MM and timestamps formatted as YYYY-MM-DDTHH:MM[:SS] / ISO with Z suffix",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "pico/utils.py#fmt_hhmm_local"
+   },
+   {
+    "candidate": "Hour flooring, clamping, safe float parsing, %20 URL decoding, byte-stream decoding helpers",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "pico/utils.py#clamp"
+   },
+   {
+    "candidate": "Memory logging before/after garbage collection and logger rebuilt per log call",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/utils.py#free_mem"
+   },
+   {
+    "candidate": "Re-export of text helpers (_quote, _to_str, iso_z_to_epoch, urlencode_simple) from textutil",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "pico/utils.py#__all__"
+   }
+  ],
+  "web/handler": [
+   {
+    "candidate": "Failed device requests are retried with exponential backoff (0.5s, 1s, ...) up to max_retries",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "web/handler.py#PicoProxyHandler._request_with_retry"
+   },
+   {
+    "candidate": "Retry attempts are logged as warnings with url, attempt and backoff",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "web/handler.py#PicoProxyHandler._request_with_retry"
+   },
+   {
+    "candidate": "Error details are truncated to 800 characters of the device body",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "web/handler.py#PicoProxyHandler._pico_get_json"
+   },
+   {
+    "candidate": "/static/style.css and /static/script.js are served with CSS/JS content types",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "web/handler.py#STATIC_ROUTES"
+   },
+   {
+    "candidate": "/html/graph.html is an alias of /html/graph",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "web/handler.py#STATIC_ROUTES"
+   },
+   {
+    "candidate": "Handler dependencies are bound onto a subclass by create_handler",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "web/handler.py#create_handler"
+   },
+   {
+    "candidate": "Responses are sent as HTTP/1.1 and dict/list bodies are JSON-encoded",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "web/handler.py#PicoProxyHandler.do_GET"
+   },
+   {
+    "candidate": "Upstream request timeout taken from configuration",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "web/handler.py#PicoProxyHandler._request_with_retry"
+   },
+   {
+    "candidate": "Only the dashboard pages and the allow-listed device endpoints are answered",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "web/handler.py#PicoProxyHandler._respond_to"
+   },
+   {
+    "candidate": "Only the hours parameters a route accepts reach the device",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "web/handler.py#PicoProxyHandler._respond_to"
+   },
+   {
+    "candidate": "The device token is sent only to the configured Pico",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "web/handler.py#PicoProxyHandler._pico_headers"
+   },
+   {
+    "candidate": "A caller can point any allow-listed request at a different device",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "web/handler.py#PicoProxyHandler._pico_base_url"
+   },
+   {
+    "candidate": "A device failure is reported as a 502 with an explanation",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "web/handler.py#PicoProxyHandler._pico_get_json"
+   },
+   {
+    "candidate": "The CSV export through the dashboard matches the device's own CSV",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "web/handler.py#PicoProxyHandler._pico_get_text"
+   },
+   {
+    "candidate": "A failed CSV export returns an error, never an empty CSV",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "web/handler.py#PicoProxyHandler._pico_get_text"
+   },
+   {
+    "candidate": "A non-numeric hours value gets no response",
+    "covered_by": "",
+    "reason": "UNVERIFIABLE",
+    "source": "web/handler.py#PicoProxyHandler._respond_to"
+   }
+  ],
+  "web/server": [
+   {
+    "candidate": "Logging level and log line format come from configuration",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "web/server.py"
+   },
+   {
+    "candidate": "One shared upstream HTTP session is reused for proxied calls and closed on shutdown",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "web/server.py#_shutdown"
+   },
+   {
+    "candidate": "Module exports a backwards-compatible Handler name built by create_handler",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "web/server.py"
+   },
+   {
+    "candidate": "Signal handlers are registered inside run_server so they close over the server",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "web/server.py#run_server"
+   },
+   {
+    "candidate": "Request routing, static files and the allow-listed proxy to the Pico",
+    "covered_by": "web/handler module (dashboard/device-proxy)",
+    "reason": "DUPLICATE_OF",
+    "source": "web/handler.py#create_handler"
+   }
+  ],
+  "web/static": [
+   {
+    "candidate": "Device address field is saved in the browser with a 'Saved.' alert and sent along with every request",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "web/static/script.js#loadWindowFromServer"
+   },
+   {
+    "candidate": "Location override (geo_lat/geo_lon/geo_cc/geo_city) read from browser storage and forwarded; no UI sets it",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "web/static/script.js#geoQS"
+   },
+   {
+    "candidate": "Chart shows 'No data yet (or endpoint not available).' with fewer than 2 points",
+    "covered_by": "dashboard.chart.past-48h-with-last-week-overlay",
+    "reason": "DUPLICATE_OF",
+    "source": "web/static/script.js#drawChart"
+   },
+   {
+    "candidate": "Hour ticks every 2h, midnight lines with weekday and dd/mm labels, min/max axis labels",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "web/static/script.js#drawChart"
+   },
+   {
+    "candidate": "Chart redraws on window resize (debounced) and on theme change",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "web/static/script.js#debounce"
+   },
+   {
+    "candidate": "Refresh now button triggers a one-off refresh",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "web/static/script.js#refreshAllOnce"
+   },
+   {
+    "candidate": "Series parsing accepts history/data/array shapes, drops invalid points and sorts by time",
+    "covered_by": "",
+    "reason": "INTERNAL_MECHANISM",
+    "source": "web/static/script.js#extractSeries"
+   },
+   {
+    "candidate": "Responsive single-column layout below 980px, no page scrollbar, LED and toggle styling",
+    "covered_by": "",
+    "reason": "TRIVIAL",
+    "source": "web/static/style.css#.headerGrid"
+   },
+   {
+    "candidate": "Changing the interval while running restarts auto refresh with the new interval",
+    "covered_by": "dashboard.auto-refresh.remembered",
+    "reason": "DUPLICATE_OF",
+    "source": "web/static/script.js#startAuto"
+   }
+  ],
+  "web/web": [
+   {
+    "candidate": "web package marker (web/__init__.py is an empty file that makes web/ importable as a Python package)",
+    "covered_by": "",
+    "reason": "TECH_BUILD",
+    "source": "web/__init__.py"
+   }
+  ]
+ },
+ "lifted": {
+  "co2-grid-meter/common-config": [],
+  "co2-grid-meter/dockerfile": [],
+  "co2-grid-meter/makefile": [],
+  "co2-grid-meter/start": [],
+  "config/config": [],
+  "docs/stylesheets": [
+   {
+    "from_source": "mkdocs.yml#theme",
+    "rule": "docs.site.no-third-party-assets"
+   }
+  ],
+  "mock/handler": [],
+  "mock/mock": [],
+  "mock/mock-pico": [],
+  "pico/app": [],
+  "pico/boot": [],
+  "pico/ci-api-parse": [],
+  "pico/config": [
+   {
+    "from_source": "pico/settings.py#require",
+    "rule": "device.settings.boot-refused-until-required-values-set"
+   },
+   {
+    "from_source": "pico/settings.py#required_names",
+    "rule": "device.settings.keyless-providers-need-no-credentials"
+   }
+  ],
+  "pico/diagnostics": [
+   {
+    "from_source": "pico/app.py#diagnostics_summary",
+    "rule": "Credentials can never reach the diagnostics because they are built from the network interface and geolocation summary only, with no access to configuration"
+   }
+  ],
+  "pico/display": [],
+  "pico/epd-driver": [],
+  "pico/export": [],
+  "pico/fetcher": [],
+  "pico/fw-graph": [],
+  "pico/fw-network": [],
+  "pico/fw-providers": [],
+  "pico/fw-render": [],
+  "pico/http": [],
+  "pico/i18n": [],
+  "pico/ota": [
+   {
+    "from_source": "pico/ota.py#_replace",
+    "rule": "firmware.ota.power-loss-keeps-device-bootable"
+   },
+   {
+    "from_source": "pico/ota.py#read_state",
+    "rule": "firmware.ota.unreadable-state-boots-current-firmware"
+   }
+  ],
+  "pico/pages": [],
+  "pico/pico": [
+   {
+    "from_source": "pico/ota.py#mark_healthy",
+    "rule": "device.firmware-updates.kept-on-healthy-boot"
+   },
+   {
+    "from_source": "pico/config.py#SETTINGS_ERROR",
+    "rule": "device.startup.invalid-settings-stop-boot"
+   }
+  ],
+  "pico/providers": [
+   {
+    "from_source": "pico/providers/base.py#_upsert_sample",
+    "rule": "Readings collected on the device for history-less providers are kept for 14 days before the newest one, then dropped"
+   },
+   {
+    "from_source": "pico/providers/base.py#_upsert_sample",
+    "rule": "A second reading within the same hour replaces the first, so each hour has one value"
+   }
+  ],
+  "pico/recommendation": [],
+  "pico/settings": [],
+  "pico/staticfiles": [],
+  "pico/textutil": [],
+  "pico/timeutil": [],
+  "pico/ttl-cache": [],
+  "pico/uptime": [],
+  "pico/utils": [],
+  "web/handler": [],
+  "web/server": [],
+  "web/static": [],
+  "web/web": []
+ },
+ "retired": [
+  "configuration.device-settings.002",
+  "configuration.device-settings.004",
+  "device-lifecycle.connectivity.007",
+  "device-lifecycle.connectivity.002",
+  "device-display.screen-layout.006",
+  "device-display.languages.005",
+  "device-lifecycle.startup.002",
+  "device-web.offline-dashboard.001",
+  "device-web.offline-dashboard.002",
+  "device-web.offline-dashboard.004",
+  "device-web.offline-dashboard.011"
+ ],
+ "scenarios": {
+  "carbon-data.location.001": {
+   "file": "specs/carbon-data/location/device-location.feature",
+   "fingerprint": "303fcc4304fc",
+   "human": false,
+   "rule": "carbon-data.location.request-overrides-detected-location",
+   "source": "pico/app.py#resolve_geo",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "carbon-data.location.002": {
+   "file": "specs/carbon-data/location/device-location.feature",
+   "fingerprint": "91c795c29469",
+   "human": false,
+   "rule": "carbon-data.location.falls-back-to-configured-city",
+   "source": "pico/app.py#_auto_geo_defaults",
+   "status": "verified",
+   "test": "tests/test_fw_providers.py#test_forcing_a_provider_forces_the_configured_city",
+   "tests": [
+    "tests/test_fw_providers.py#test_forcing_a_provider_forces_the_configured_city"
+   ]
+  },
+  "carbon-data.location.003": {
+   "file": "specs/carbon-data/location/device-location.feature",
+   "fingerprint": "303fcc4304fc",
+   "human": false,
+   "rule": "carbon-data.location.forced-provider-uses-configured-city",
+   "source": "pico/app.py#resolve_geo",
+   "status": "verified",
+   "test": "tests/test_fw_providers.py#test_forcing_a_provider_forces_the_configured_city",
+   "tests": [
+    "tests/test_fw_providers.py#test_forcing_a_provider_forces_the_configured_city"
+   ]
+  },
+  "carbon-data.provider-selection.001": {
+   "file": "specs/carbon-data/provider-selection/provider-selection.feature",
+   "fingerprint": "4c25af55fc8a",
+   "human": false,
+   "rule": "carbon-data.provider-selection.single-enabled-provider-serves",
+   "source": "pico/fw_providers.py#_select",
+   "status": "verified",
+   "test": "tests/test_fw_providers.py#test_each_provider_is_selected_when_it_alone_is_configured",
+   "tests": [
+    "tests/test_fw_providers.py#test_each_provider_is_selected_when_it_alone_is_configured",
+    "tests/test_fw_providers.py#test_fetch_window_any_reports_the_selected_name"
+   ]
+  },
+  "carbon-data.provider-selection.002": {
+   "file": "specs/carbon-data/provider-selection/provider-selection.feature",
+   "fingerprint": "4c25af55fc8a",
+   "human": false,
+   "rule": "carbon-data.provider-selection.no-usable-provider-is-an-error",
+   "source": "pico/fw_providers.py#_select",
+   "status": "verified",
+   "test": "tests/test_fw_providers.py#test_no_provider_configured_is_an_error",
+   "tests": [
+    "tests/test_fw_providers.py#test_no_provider_configured_is_an_error",
+    "tests/test_fw_providers.py#test_an_enabled_provider_without_its_credentials_is_not_selected",
+    "tests/test_fw_providers.py#test_entsoe_needs_a_mapped_area"
+   ]
+  },
+  "carbon-data.provider-selection.003": {
+   "file": "specs/carbon-data/provider-selection/provider-selection.feature",
+   "fingerprint": "4c25af55fc8a",
+   "human": false,
+   "rule": "carbon-data.provider-selection.only-one-provider-enabled",
+   "source": "pico/fw_providers.py#_select",
+   "status": "verified",
+   "test": "tests/test_fw_providers.py#test_two_providers_configured_is_an_error_naming_both",
+   "tests": [
+    "tests/test_fw_providers.py#test_two_providers_configured_is_an_error_naming_both",
+    "tests/test_fw_providers.py#test_misconfiguration_still_errors_when_nothing_is_forced"
+   ]
+  },
+  "carbon-data.provider-selection.004": {
+   "file": "specs/carbon-data/provider-selection/provider-selection.feature",
+   "fingerprint": "f9360b69631b",
+   "human": false,
+   "rule": "carbon-data.provider-selection.force-overrides-enabled-flags",
+   "source": "pico/fw_providers.py#_forced_provider",
+   "status": "verified",
+   "test": "tests/test_fw_providers.py#test_force_selects_a_provider_whose_enabled_flag_is_off",
+   "tests": [
+    "tests/test_fw_providers.py#test_force_selects_a_provider_whose_enabled_flag_is_off",
+    "tests/test_fw_providers.py#test_force_wins_over_another_enabled_provider",
+    "tests/test_fw_providers.py#test_force_is_trimmed_and_case_insensitive"
+   ]
+  },
+  "carbon-data.provider-selection.005": {
+   "file": "specs/carbon-data/provider-selection/provider-selection.feature",
+   "fingerprint": "f9360b69631b",
+   "human": false,
+   "rule": "carbon-data.provider-selection.forced-provider-never-falls-back",
+   "source": "pico/fw_providers.py#_forced_provider",
+   "status": "verified",
+   "test": "tests/test_fw_providers.py#test_forcing_a_provider_without_credentials_fails_by_name",
+   "tests": [
+    "tests/test_fw_providers.py#test_forcing_a_provider_without_credentials_fails_by_name",
+    "tests/test_fw_providers.py#test_forcing_entsoe_for_an_unmapped_area_fails_by_name"
+   ]
+  },
+  "carbon-data.provider-selection.006": {
+   "file": "specs/carbon-data/provider-selection/provider-selection.feature",
+   "fingerprint": "f9360b69631b",
+   "human": false,
+   "rule": "carbon-data.provider-selection.unknown-forced-name-lists-choices",
+   "source": "pico/fw_providers.py#_forced_provider",
+   "status": "verified",
+   "test": "tests/test_fw_providers.py#test_forcing_an_unknown_name_lists_the_known_ones",
+   "tests": [
+    "tests/test_fw_providers.py#test_forcing_an_unknown_name_lists_the_known_ones",
+    "tests/test_fw_providers.py#test_a_non_string_force_is_an_unknown_name_not_a_crash"
+   ]
+  },
+  "carbon-data.provider-selection.007": {
+   "file": "specs/carbon-data/provider-selection/provider-selection.feature",
+   "fingerprint": "a1deea39e7ff",
+   "human": false,
+   "rule": "carbon-data.provider-selection.force-dummy-simulates",
+   "source": "pico/app.py#_fetch_window",
+   "status": "verified",
+   "test": "tests/test_fw_providers.py#test_force_dummy_is_the_simulated_series",
+   "tests": [
+    "tests/test_fw_providers.py#test_force_dummy_is_the_simulated_series"
+   ]
+  },
+  "carbon-data.providers.001": {
+   "file": "specs/carbon-data/providers/ci-api-hourly-readings.feature",
+   "fingerprint": "5b2040b427bc",
+   "human": false,
+   "rule": "carbon-data.ci-api.reports-most-complete-figure",
+   "source": "pico/ci_api_parse.py#day_values",
+   "status": "verified",
+   "test": "tests/test_ci_api_parse.py#test_reports_consumption_lifecycle_for_a_country",
+   "tests": [
+    "tests/test_ci_api_parse.py#test_reports_consumption_lifecycle_for_a_country",
+    "tests/test_ci_api_parse.py#test_falls_back_to_lifecycle_for_a_zone"
+   ]
+  },
+  "carbon-data.providers.002": {
+   "file": "specs/carbon-data/providers/ci-api-hourly-readings.feature",
+   "fingerprint": "5b2040b427bc",
+   "human": false,
+   "rule": "carbon-data.ci-api.unusable-day-ignored",
+   "source": "pico/ci_api_parse.py#day_values",
+   "status": "verified",
+   "test": "tests/test_ci_api_parse.py#test_annual_average_is_rejected",
+   "tests": [
+    "tests/test_ci_api_parse.py#test_annual_average_is_rejected",
+    "tests/test_ci_api_parse.py#test_an_unexpected_step_is_refused_not_guessed",
+    "tests/test_ci_api_parse.py#test_a_day_of_only_nulls_has_no_figure"
+   ]
+  },
+  "carbon-data.providers.003": {
+   "file": "specs/carbon-data/providers/ci-api-hourly-readings.feature",
+   "fingerprint": "f4fe26a47689",
+   "human": false,
+   "rule": "carbon-data.ci-api.missing-hour-keeps-position",
+   "source": "pico/ci_api_parse.py#hour_points",
+   "status": "verified",
+   "test": "tests/test_ci_api_parse.py#test_a_null_hour_keeps_the_hours_after_it_in_place",
+   "tests": [
+    "tests/test_ci_api_parse.py#test_a_null_hour_keeps_the_hours_after_it_in_place"
+   ]
+  },
+  "carbon-data.providers.004": {
+   "file": "specs/carbon-data/providers/ci-api-hourly-readings.feature",
+   "fingerprint": "f43047c6b84e",
+   "human": false,
+   "rule": "carbon-data.ci-api.stale-reading-refused",
+   "source": "pico/ci_api_parse.py#stale_error",
+   "status": "verified",
+   "test": "tests/test_ci_api_parse.py#test_fresh_hour_passes",
+   "tests": [
+    "tests/test_ci_api_parse.py#test_fresh_hour_passes",
+    "tests/test_ci_api_parse.py#test_missed_pipeline_run_is_rejected"
+   ]
+  },
+  "carbon-data.providers.005": {
+   "file": "specs/carbon-data/providers/ci-api-hourly-readings.feature",
+   "fingerprint": "e817ea48bd16",
+   "human": false,
+   "rule": "carbon-data.ci-api.window-spans-midnight",
+   "source": "pico/ci_api_parse.py#day_starts",
+   "status": "verified",
+   "test": "tests/test_ci_api_parse.py#test_window_covers_the_day_on_each_side_of_midnight",
+   "tests": [
+    "tests/test_ci_api_parse.py#test_window_covers_the_day_on_each_side_of_midnight"
+   ]
+  },
+  "carbon-data.providers.006": {
+   "file": "specs/carbon-data/providers/ci-api-hourly-readings.feature",
+   "fingerprint": "fef31c0caaec",
+   "human": false,
+   "rule": "carbon-data.ci-api.bidding-zone-requested",
+   "source": "pico/ci_api_parse.py#history_path",
+   "status": "verified",
+   "test": "tests/test_ci_api_parse.py#test_country_and_zone_paths",
+   "tests": [
+    "tests/test_ci_api_parse.py#test_country_and_zone_paths"
+   ]
+  },
+  "carbon-data.providers.007": {
+   "file": "specs/carbon-data/providers/grid-carbon-providers.feature",
+   "fingerprint": "17848e373c52",
+   "human": false,
+   "rule": "carbon-data.providers.credentials-named-when-missing",
+   "source": "pico/providers/base.py#EmissionsProvider",
+   "status": "verified",
+   "test": "tests/test_fw_providers.py#test_the_request_time_guard_still_names_missing_credentials",
+   "tests": [
+    "tests/test_fw_providers.py#test_the_request_time_guard_still_names_missing_credentials",
+    "tests/test_fw_providers.py#test_forcing_a_provider_without_credentials_fails_by_name",
+    "tests/test_fw_providers.py#test_an_enabled_provider_without_its_credentials_is_not_selected"
+   ]
+  },
+  "carbon-data.providers.008": {
+   "file": "specs/carbon-data/providers/grid-carbon-providers.feature",
+   "fingerprint": "a615a551cdfd",
+   "human": false,
+   "rule": "carbon-data.providers.entsoe-area-must-be-mapped",
+   "source": "pico/providers/entsoe.py#EntsoeProvider",
+   "status": "verified",
+   "test": "tests/test_fw_providers.py#test_entsoe_needs_a_mapped_area",
+   "tests": [
+    "tests/test_fw_providers.py#test_entsoe_needs_a_mapped_area",
+    "tests/test_fw_providers.py#test_entsoe_area_override_wins_over_the_country",
+    "tests/test_fw_providers.py#test_forcing_entsoe_for_an_unmapped_area_fails_by_name"
+   ]
+  },
+  "carbon-data.providers.009": {
+   "file": "specs/carbon-data/providers/grid-carbon-providers.feature",
+   "fingerprint": "8d276ab246c8",
+   "human": false,
+   "rule": "carbon-data.providers.entsoe-intensity-from-generation-mix",
+   "source": "pico/providers/entsoe.py#_history_from_buckets",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "carbon-data.providers.010": {
+   "file": "specs/carbon-data/providers/grid-carbon-providers.feature",
+   "fingerprint": "604660ace6a3",
+   "human": false,
+   "rule": "carbon-data.providers.stale-current-reading-refused",
+   "source": "pico/providers/ci_api.py#CiApiProvider",
+   "status": "verified",
+   "test": "tests/test_ci_api_parse.py#test_missed_pipeline_run_is_rejected",
+   "tests": [
+    "tests/test_ci_api_parse.py#test_missed_pipeline_run_is_rejected",
+    "tests/test_ci_api_parse.py#test_fresh_hour_passes"
+   ]
+  },
+  "carbon-data.providers.011": {
+   "file": "specs/carbon-data/providers/grid-carbon-providers.feature",
+   "fingerprint": "f90eeb1e39a8",
+   "human": false,
+   "rule": "carbon-data.providers.sampled-history-builds-from-readings",
+   "source": "pico/providers/base.py#SampledProvider",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "carbon-data.providers.012": {
+   "file": "specs/carbon-data/providers/grid-carbon-providers.feature",
+   "fingerprint": "10ee25d164cd",
+   "human": false,
+   "rule": "carbon-data.providers.watttime-cooldown-after-forbidden",
+   "source": "pico/providers/watttime.py#WattTimeProvider",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "carbon-data.providers.013": {
+   "file": "specs/carbon-data/providers/grid-carbon-providers.feature",
+   "fingerprint": "10ee25d164cd",
+   "human": false,
+   "rule": "carbon-data.providers.watttime-region-configured-or-located",
+   "source": "pico/providers/watttime.py#WattTimeProvider",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "carbon-data.providers.014": {
+   "file": "specs/carbon-data/providers/grid-carbon-providers.feature",
+   "fingerprint": "86366593ea93",
+   "human": false,
+   "rule": "carbon-data.providers.uk-actual-before-forecast",
+   "source": "pico/providers/ukci.py#UkciProvider",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "configuration.app-settings.001": {
+   "file": "specs/configuration/app-settings/desktop-environment-settings.feature",
+   "fingerprint": "90a89f32e9f9",
+   "human": false,
+   "rule": "configuration.app-settings.defaults-when-unset",
+   "source": "common_config.py#_build_dataclass",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "configuration.app-settings.002": {
+   "file": "specs/configuration/app-settings/desktop-environment-settings.feature",
+   "fingerprint": "ecbfb2489e26",
+   "human": false,
+   "rule": "configuration.app-settings.environment-overrides-default",
+   "source": "common_config.py#_value_for_field",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "configuration.app-settings.003": {
+   "file": "specs/configuration/app-settings/desktop-environment-settings.feature",
+   "fingerprint": "a0f68208e7fd",
+   "human": false,
+   "rule": "configuration.app-settings.boolean-flag-words",
+   "source": "common_config.py#_to_bool",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "configuration.app-settings.004": {
+   "file": "specs/configuration/app-settings/desktop-environment-settings.feature",
+   "fingerprint": "90a89f32e9f9",
+   "human": false,
+   "rule": "configuration.app-settings.invalid-number-refuses-start",
+   "source": "common_config.py#_build_dataclass",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "configuration.app-settings.005": {
+   "file": "specs/configuration/app-settings/desktop-environment-settings.feature",
+   "fingerprint": "ecbfb2489e26",
+   "human": false,
+   "rule": "configuration.app-settings.empty-text-overrides-default",
+   "source": "common_config.py#_value_for_field",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "configuration.device-settings.001": {
+   "file": "specs/configuration/device-settings/device-settings-at-boot.feature",
+   "fingerprint": "fd9aff3e2bd6",
+   "human": false,
+   "rule": "device.settings.boot-refused-until-required-values-set",
+   "source": "pico/config.py#SETTINGS_ERROR",
+   "status": "verified",
+   "test": "tests/test_settings.py#test_missing_wifi_fails_by_name",
+   "tests": [
+    "tests/test_settings.py#test_missing_wifi_fails_by_name",
+    "tests/test_settings.py#test_every_missing_value_is_listed_at_once",
+    "tests/test_settings.py#test_whitespace_is_not_a_value",
+    "tests/test_settings.py#test_watttime_needs_both_halves",
+    "tests/test_settings.py#test_a_forced_provider_needs_only_its_own_credentials",
+    "tests/test_settings.py#test_an_unknown_setting_is_an_error_naming_it"
+   ]
+  },
+  "configuration.device-settings.003": {
+   "file": "specs/configuration/device-settings/device-settings-at-boot.feature",
+   "fingerprint": "ee24a5e87de7",
+   "human": false,
+   "rule": "device.settings.out-of-box-defaults",
+   "source": "pico/config.py#CONFIG",
+   "status": "verified",
+   "test": "tests/test_settings.py#test_omitted_values_keep_their_defaults",
+   "tests": [
+    "tests/test_settings.py#test_omitted_values_keep_their_defaults"
+   ]
+  },
+  "configuration.device-settings.005": {
+   "file": "specs/configuration/device-settings/device-settings-file.feature",
+   "fingerprint": "4f3d85926fd8",
+   "human": false,
+   "rule": "configuration.device-settings.file-overrides-defaults",
+   "source": "pico/settings.py#apply",
+   "status": "verified",
+   "test": "tests/test_settings.py#test_nested_values_reach_the_config_tree",
+   "tests": [
+    "tests/test_settings.py#test_nested_values_reach_the_config_tree",
+    "tests/test_settings.py#test_omitted_values_keep_their_defaults"
+   ]
+  },
+  "configuration.device-settings.006": {
+   "file": "specs/configuration/device-settings/device-settings-file.feature",
+   "fingerprint": "ab8b0831b0c1",
+   "human": false,
+   "rule": "configuration.device-settings.unreadable-file-halts-startup",
+   "source": "pico/settings.py#load",
+   "status": "verified",
+   "test": "tests/test_settings.py#test_malformed_json_is_reported_not_skipped",
+   "tests": [
+    "tests/test_settings.py#test_malformed_json_is_reported_not_skipped",
+    "tests/test_settings.py#test_a_json_array_is_refused"
+   ]
+  },
+  "configuration.device-settings.007": {
+   "file": "specs/configuration/device-settings/device-settings-file.feature",
+   "fingerprint": "4f3d85926fd8",
+   "human": false,
+   "rule": "configuration.device-settings.unknown-setting-halts-startup",
+   "source": "pico/settings.py#apply",
+   "status": "verified",
+   "test": "tests/test_settings.py#test_an_unknown_setting_is_an_error_naming_it",
+   "tests": [
+    "tests/test_settings.py#test_an_unknown_setting_is_an_error_naming_it",
+    "tests/test_settings.py#test_the_old_flat_ukci_key_fails_startup_by_name",
+    "tests/test_settings.py#test_a_block_set_to_a_single_value_fails_startup_by_name"
+   ]
+  },
+  "configuration.device-settings.008": {
+   "file": "specs/configuration/device-settings/device-settings-file.feature",
+   "fingerprint": "4f3d85926fd8",
+   "human": false,
+   "rule": "configuration.device-settings.example-file-accepted",
+   "source": "pico/settings.py#apply",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "configuration.device-settings.009": {
+   "file": "specs/configuration/device-settings/device-settings-file.feature",
+   "fingerprint": "3d8f2fe2d480",
+   "human": false,
+   "rule": "configuration.device-settings.missing-required-listed-at-once",
+   "source": "pico/settings.py#require",
+   "status": "verified",
+   "test": "tests/test_settings.py#test_missing_wifi_fails_by_name",
+   "tests": [
+    "tests/test_settings.py#test_missing_wifi_fails_by_name",
+    "tests/test_settings.py#test_every_missing_value_is_listed_at_once",
+    "tests/test_settings.py#test_whitespace_is_not_a_value"
+   ]
+  },
+  "configuration.device-settings.010": {
+   "file": "specs/configuration/device-settings/device-settings-file.feature",
+   "fingerprint": "844e539ce03b",
+   "human": false,
+   "rule": "configuration.device-settings.credentials-only-for-used-providers",
+   "source": "pico/settings.py#required_names",
+   "status": "verified",
+   "test": "tests/test_settings.py#test_only_enabled_providers_need_credentials",
+   "tests": [
+    "tests/test_settings.py#test_only_enabled_providers_need_credentials",
+    "tests/test_settings.py#test_watttime_needs_both_halves",
+    "tests/test_settings.py#test_a_forced_provider_needs_only_its_own_credentials",
+    "tests/test_settings.py#test_force_false_is_unset"
+   ]
+  },
+  "configuration.shared-utilities.001": {
+   "file": "specs/configuration/shared-utilities/provider-timestamps-and-device-text.feature",
+   "fingerprint": "5575d6eaca83",
+   "human": false,
+   "rule": "shared.timestamps.offsets-resolve-to-utc",
+   "source": "pico/textutil.py#iso_z_to_epoch",
+   "status": "verified",
+   "test": "tests/test_textutil.py#test_utc_z",
+   "tests": [
+    "tests/test_textutil.py#test_utc_z",
+    "tests/test_textutil.py#test_fractional_seconds_are_dropped_not_rejected",
+    "tests/test_textutil.py#test_positive_offset_is_subtracted",
+    "tests/test_textutil.py#test_negative_offset_is_added",
+    "tests/test_textutil.py#test_minutes_in_the_offset_count",
+    "tests/test_textutil.py#test_missing_seconds_default_to_zero"
+   ]
+  },
+  "configuration.shared-utilities.002": {
+   "file": "specs/configuration/shared-utilities/provider-timestamps-and-device-text.feature",
+   "fingerprint": "5575d6eaca83",
+   "human": false,
+   "rule": "shared.timestamps.malformed-reading-is-skipped",
+   "source": "pico/textutil.py#iso_z_to_epoch",
+   "status": "verified",
+   "test": "tests/test_textutil.py#test_garbage_is_none_rather_than_an_exception",
+   "tests": [
+    "tests/test_textutil.py#test_garbage_is_none_rather_than_an_exception"
+   ]
+  },
+  "configuration.shared-utilities.003": {
+   "file": "specs/configuration/shared-utilities/provider-timestamps-and-device-text.feature",
+   "fingerprint": "9a807f848b61",
+   "human": false,
+   "rule": "shared.timestamps.compact-offset-ignored",
+   "source": "pico/textutil.py#_split_zone",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "configuration.shared-utilities.004": {
+   "file": "specs/configuration/shared-utilities/provider-timestamps-and-device-text.feature",
+   "fingerprint": "821d94737a74",
+   "human": false,
+   "rule": "shared.query.reserved-characters-escaped",
+   "source": "pico/textutil.py#urlencode_simple",
+   "status": "verified",
+   "test": "tests/test_textutil.py#test_pairs_are_joined_and_both_sides_escaped",
+   "tests": [
+    "tests/test_textutil.py#test_pairs_are_joined_and_both_sides_escaped"
+   ]
+  },
+  "configuration.shared-utilities.005": {
+   "file": "specs/configuration/shared-utilities/provider-timestamps-and-device-text.feature",
+   "fingerprint": "5ecb899cee05",
+   "human": false,
+   "rule": "display.text.error-detail-wraps-between-words",
+   "source": "pico/textutil.py#wrap_lines",
+   "status": "verified",
+   "test": "tests/test_textutil.py#test_breaks_between_words_within_the_width",
+   "tests": [
+    "tests/test_textutil.py#test_breaks_between_words_within_the_width",
+    "tests/test_textutil.py#test_short_text_is_one_line_and_long_text_stops_at_the_limit",
+    "tests/test_textutil.py#test_a_word_longer_than_the_line_is_cut_not_dropped"
+   ]
+  },
+  "configuration.shared-utilities.006": {
+   "file": "specs/configuration/shared-utilities/provider-timestamps-and-device-text.feature",
+   "fingerprint": "5ecb899cee05",
+   "human": false,
+   "rule": "display.text.overflow-beyond-last-line-dropped",
+   "source": "pico/textutil.py#wrap_lines",
+   "status": "verified",
+   "test": "tests/test_textutil.py#test_short_text_is_one_line_and_long_text_stops_at_the_limit",
+   "tests": [
+    "tests/test_textutil.py#test_short_text_is_one_line_and_long_text_stops_at_the_limit"
+   ]
+  },
+  "configuration.shared-utilities.007": {
+   "file": "specs/configuration/shared-utilities/local-time-summer-time.feature",
+   "fingerprint": "4aafcaa672a5",
+   "human": false,
+   "rule": "time.local-clock.eu-summer-time-switches-at-0100-utc",
+   "source": "pico/timeutil.py#is_eu_summer_time",
+   "status": "verified",
+   "test": "tests/test_timeutil.py#test_spring_forward_happens_at_0100_utc_not_midnight",
+   "tests": [
+    "tests/test_timeutil.py#test_spring_forward_happens_at_0100_utc_not_midnight",
+    "tests/test_timeutil.py#test_fall_back_happens_at_0100_utc",
+    "tests/test_timeutil.py#test_months_well_inside_each_season",
+    "tests/test_timeutil.py#test_offset_is_plus_one_in_winter_and_plus_two_in_summer"
+   ]
+  },
+  "configuration.shared-utilities.008": {
+   "file": "specs/configuration/shared-utilities/local-time-summer-time.feature",
+   "fingerprint": "7061570ec3ca",
+   "human": false,
+   "rule": "time.local-clock.configured-zone-offset",
+   "source": "pico/timeutil.py#utc_offset_seconds",
+   "status": "verified",
+   "test": "tests/test_timeutil.py#test_a_zone_that_does_not_observe_dst_never_shifts",
+   "tests": [
+    "tests/test_timeutil.py#test_a_zone_that_does_not_observe_dst_never_shifts",
+    "tests/test_timeutil.py#test_offset_is_plus_one_in_winter_and_plus_two_in_summer"
+   ]
+  },
+  "dashboard.dashboard-ui.001": {
+   "file": "specs/dashboard/dashboard-ui/dashboard-reading-and-controls.feature",
+   "fingerprint": "393eab82fe20",
+   "human": false,
+   "rule": "dashboard.current.shows-device-reading",
+   "source": "web/static/script.js#pollPicoStatus",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "dashboard.dashboard-ui.002": {
+   "file": "specs/dashboard/dashboard-ui/dashboard-reading-and-controls.feature",
+   "fingerprint": "393eab82fe20",
+   "human": false,
+   "rule": "dashboard.current.device-error-shown",
+   "source": "web/static/script.js#pollPicoStatus",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "dashboard.dashboard-ui.003": {
+   "file": "specs/dashboard/dashboard-ui/dashboard-reading-and-controls.feature",
+   "fingerprint": "3cd8289dc5ef",
+   "human": false,
+   "rule": "dashboard.meter.ranks-against-last-week",
+   "source": "web/static/script.js#meterFromWeekDistribution",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "dashboard.dashboard-ui.004": {
+   "file": "specs/dashboard/dashboard-ui/dashboard-reading-and-controls.feature",
+   "fingerprint": "3cd8289dc5ef",
+   "human": false,
+   "rule": "dashboard.meter.needs-baseline",
+   "source": "web/static/script.js#meterFromWeekDistribution",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "dashboard.dashboard-ui.005": {
+   "file": "specs/dashboard/dashboard-ui/dashboard-reading-and-controls.feature",
+   "fingerprint": "c86909c656e5",
+   "human": false,
+   "rule": "dashboard.chart.past-48h-with-last-week-overlay",
+   "source": "web/static/script.js#drawChart",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "dashboard.dashboard-ui.006": {
+   "file": "specs/dashboard/dashboard-ui/dashboard-reading-and-controls.feature",
+   "fingerprint": "6579c8bfbee9",
+   "human": false,
+   "rule": "dashboard.auto-refresh.remembered",
+   "source": "web/static/script.js#startAuto",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "dashboard.dashboard-ui.007": {
+   "file": "specs/dashboard/dashboard-ui/dashboard-reading-and-controls.feature",
+   "fingerprint": "a395d3405d3a",
+   "human": false,
+   "rule": "dashboard.theme.remembered-or-system",
+   "source": "web/static/script.js#applyTheme",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "dashboard.dashboard-ui.008": {
+   "file": "specs/dashboard/dashboard-ui/dashboard-reading-and-controls.feature",
+   "fingerprint": "ece392c17f21",
+   "human": false,
+   "rule": "dashboard.language.english-or-italian",
+   "source": "web/static/script.js#applyI18n",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "dashboard.device-proxy.001": {
+   "file": "specs/dashboard/device-proxy/dashboard-server-lifecycle.feature",
+   "fingerprint": "bdc10110983b",
+   "human": false,
+   "rule": "dashboard.server.loopback-only",
+   "source": "web/server.py#run_server",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "dashboard.device-proxy.002": {
+   "file": "specs/dashboard/device-proxy/dashboard-server-lifecycle.feature",
+   "fingerprint": "f1d3fbaed96c",
+   "human": false,
+   "rule": "dashboard.server.stops-on-signal",
+   "source": "web/server.py#_shutdown",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "dashboard.docs-site.001": {
+   "file": "specs/dashboard/docs-site/docs-site-look.feature",
+   "fingerprint": "91113bea48a8",
+   "human": false,
+   "rule": "docs.site.no-third-party-assets",
+   "source": "docs/stylesheets/extra.css#:root",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "dashboard.docs-site.002": {
+   "file": "specs/dashboard/docs-site/docs-site-look.feature",
+   "fingerprint": "c702704e5aae",
+   "human": false,
+   "rule": "docs.site.no-stand-in-logo",
+   "source": "docs/stylesheets/extra.css#.md-header__button.md-logo",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "developer-tooling.mock-device.001": {
+   "file": "specs/developer-tooling/mock-device/mock-device-endpoints.feature",
+   "fingerprint": "69e50f0ad4d3",
+   "human": false,
+   "rule": "mock-device.status.current-reading-and-recommendation",
+   "source": "mock/handler.py#MockPicoHandler",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "developer-tooling.mock-device.002": {
+   "file": "specs/developer-tooling/mock-device/mock-device-endpoints.feature",
+   "fingerprint": "69e50f0ad4d3",
+   "human": false,
+   "rule": "mock-device.window.history-length",
+   "source": "mock/handler.py#MockPicoHandler",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "developer-tooling.mock-device.003": {
+   "file": "specs/developer-tooling/mock-device/mock-device-endpoints.feature",
+   "fingerprint": "69e50f0ad4d3",
+   "human": false,
+   "rule": "mock-device.overlay.last-week-window",
+   "source": "mock/handler.py#MockPicoHandler",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "developer-tooling.mock-device.004": {
+   "file": "specs/developer-tooling/mock-device/mock-device-endpoints.feature",
+   "fingerprint": "69e50f0ad4d3",
+   "human": false,
+   "rule": "mock-device.summary.compact-summary",
+   "source": "mock/handler.py#MockPicoHandler",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "developer-tooling.mock-device.005": {
+   "file": "specs/developer-tooling/mock-device/mock-device-endpoints.feature",
+   "fingerprint": "69e50f0ad4d3",
+   "human": false,
+   "rule": "mock-device.routing.unknown-path-not-found",
+   "source": "mock/handler.py#MockPicoHandler",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "developer-tooling.mock-device.006": {
+   "file": "specs/developer-tooling/mock-device/mock-device-endpoints.feature",
+   "fingerprint": "69e50f0ad4d3",
+   "human": false,
+   "rule": "mock-device.errors.failure-reported-as-502",
+   "source": "mock/handler.py#MockPicoHandler",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "developer-tooling.mock-device.007": {
+   "file": "specs/developer-tooling/mock-device/mock-device-server.feature",
+   "fingerprint": "efd0c79d6fa8",
+   "human": false,
+   "rule": "tooling.mock-device.listens-on-loopback-at-configured-port",
+   "source": "mock/mock_pico.py#run_server",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "developer-tooling.mock-device.008": {
+   "file": "specs/developer-tooling/mock-device/mock-device-server.feature",
+   "fingerprint": "f1d3fbaed96c",
+   "human": false,
+   "rule": "tooling.mock-device.stops-cleanly-on-interrupt",
+   "source": "mock/mock_pico.py#_shutdown",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-display.intensity-graph.001": {
+   "file": "specs/device-display/intensity-graph/intensity-graph.feature",
+   "fingerprint": "ed94b15f388e",
+   "human": false,
+   "rule": "device-display.intensity-graph.current-solid-last-week-dotted",
+   "source": "pico/fw_graph.py#draw_graph",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-display.intensity-graph.002": {
+   "file": "specs/device-display/intensity-graph/intensity-graph.feature",
+   "fingerprint": "a0ac4d60b789",
+   "human": false,
+   "rule": "device-display.intensity-graph.missing-hours-leave-gaps",
+   "source": "pico/fw_graph.py#draw_series",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-display.intensity-graph.003": {
+   "file": "specs/device-display/intensity-graph/intensity-graph.feature",
+   "fingerprint": "578314c64840",
+   "human": false,
+   "rule": "device-display.intensity-graph.flat-readings-centred",
+   "source": "pico/fw_graph.py#GraphAxes",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-display.intensity-graph.004": {
+   "file": "specs/device-display/intensity-graph/intensity-graph.feature",
+   "fingerprint": "3fe53ed98c68",
+   "human": false,
+   "rule": "device-display.intensity-graph.threshold-bands-at-percentile-cutoffs",
+   "source": "pico/fw_graph.py#draw_threshold_bands",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-display.intensity-graph.005": {
+   "file": "specs/device-display/intensity-graph/intensity-graph.feature",
+   "fingerprint": "45a40f9da689",
+   "human": false,
+   "rule": "device-display.intensity-graph.day-ticks-and-now-marker",
+   "source": "pico/fw_graph.py#draw_day_ticks",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-display.intensity-graph.006": {
+   "file": "specs/device-display/intensity-graph/intensity-graph.feature",
+   "fingerprint": "ed94b15f388e",
+   "human": false,
+   "rule": "device-display.intensity-graph.no-data-empty-frame",
+   "source": "pico/fw_graph.py#draw_graph",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-display.languages.001": {
+   "file": "specs/device-display/languages/device-languages.feature",
+   "fingerprint": "1594d2332f71",
+   "human": false,
+   "rule": "device-display.languages.configured-language-shown",
+   "source": "pico/i18n.py#t",
+   "status": "verified",
+   "test": "tests/test_i18n.py#test_english_by_default",
+   "tests": [
+    "tests/test_i18n.py#test_english_by_default",
+    "tests/test_i18n.py#test_a_shipped_locale",
+    "tests/test_i18n.py#test_formatting_arguments"
+   ]
+  },
+  "device-display.languages.002": {
+   "file": "specs/device-display/languages/device-languages.feature",
+   "fingerprint": "f0f6e4d618ab",
+   "human": false,
+   "rule": "device-display.languages.unknown-language-falls-back-to-english",
+   "source": "pico/i18n.py#set_language",
+   "status": "verified",
+   "test": "tests/test_i18n.py#test_an_unknown_language_falls_back_to_english",
+   "tests": [
+    "tests/test_i18n.py#test_an_unknown_language_falls_back_to_english",
+    "tests/test_i18n.py#test_the_fallback_is_reported_not_silent",
+    "tests/test_i18n.py#test_case_and_whitespace_are_tolerated"
+   ]
+  },
+  "device-display.languages.003": {
+   "file": "specs/device-display/languages/device-languages.feature",
+   "fingerprint": "1594d2332f71",
+   "human": false,
+   "rule": "device-display.languages.never-blank-line",
+   "source": "pico/i18n.py#t",
+   "status": "verified",
+   "test": "tests/test_i18n.py#test_a_missing_key_renders_the_english_default",
+   "tests": [
+    "tests/test_i18n.py#test_a_missing_key_renders_the_english_default",
+    "tests/test_i18n.py#test_an_unknown_key_renders_the_key_not_a_blank"
+   ]
+  },
+  "device-display.languages.004": {
+   "file": "specs/device-display/languages/device-languages.feature",
+   "fingerprint": "1594d2332f71",
+   "human": false,
+   "rule": "device-display.languages.broken-translation-keeps-reading",
+   "source": "pico/i18n.py#t",
+   "status": "verified",
+   "test": "tests/test_i18n.py#test_a_locale_with_broken_placeholders_falls_back_to_english",
+   "tests": [
+    "tests/test_i18n.py#test_a_locale_with_broken_placeholders_falls_back_to_english"
+   ]
+  },
+  "device-display.languages.006": {
+   "file": "specs/device-display/languages/device-languages.feature",
+   "fingerprint": "0a8f90926f29",
+   "human": false,
+   "rule": "device-display.languages.baseline-text-untranslated",
+   "source": "pico/recommendation.py#compute_recommendation",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-display.panel-driver.001": {
+   "file": "specs/device-display/panel-driver/eink-panel-output.feature",
+   "fingerprint": "7e271ed5ce98",
+   "human": false,
+   "rule": "device-display.panel.orientation-fills-whole-panel",
+   "source": "pico/epd_driver.py#EPD_2in13_B_V4_Landscape",
+   "status": "verified",
+   "test": "tests/test_epd_driver.py#test_portrait_constructs_and_sends_its_own_data_entry_mode",
+   "tests": [
+    "tests/test_epd_driver.py#test_portrait_constructs_and_sends_its_own_data_entry_mode",
+    "tests/test_epd_driver.py#test_framebuffers_are_transposed_between_orientations",
+    "tests/test_epd_driver.py#test_framebuffer_geometry_fills_its_buffer_exactly",
+    "tests/test_epd_driver.py#test_init_sequences_differ_only_in_the_data_entry_mode"
+   ]
+  },
+  "device-display.panel-driver.002": {
+   "file": "specs/device-display/panel-driver/eink-panel-output.feature",
+   "fingerprint": "958cf388c74f",
+   "human": false,
+   "rule": "device-display.panel.both-colours-then-refresh",
+   "source": "pico/epd_driver.py#EPD_2in13_B_V4_Portrait",
+   "status": "verified",
+   "test": "tests/test_epd_driver.py#test_display_sends_each_plane_in_its_layouts_order",
+   "tests": [
+    "tests/test_epd_driver.py#test_display_sends_each_plane_in_its_layouts_order"
+   ]
+  },
+  "device-display.screen-layout.001": {
+   "file": "specs/device-display/screen-layout/current-reading-panel.feature",
+   "fingerprint": "dca5ed367605",
+   "human": false,
+   "rule": "display.verdict-panel.colour-follows-verdict",
+   "source": "pico/display.py#draw_current_panel",
+   "status": "verified",
+   "test": "tests/test_fw_render.py#test_the_line_ends_inside_the_panel_interior",
+   "tests": [
+    "tests/test_fw_render.py#test_the_line_ends_inside_the_panel_interior"
+   ]
+  },
+  "device-display.screen-layout.002": {
+   "file": "specs/device-display/screen-layout/current-reading-panel.feature",
+   "fingerprint": "dca5ed367605",
+   "human": false,
+   "rule": "display.reading.co2-line-whole-grams",
+   "source": "pico/display.py#draw_current_panel",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-display.screen-layout.003": {
+   "file": "specs/device-display/screen-layout/current-reading-panel.feature",
+   "fingerprint": "07d830d046d1",
+   "human": false,
+   "rule": "display.led-bar.level-tracks-week-percentile",
+   "source": "pico/display.py#led_level_from_percentile",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-display.screen-layout.004": {
+   "file": "specs/device-display/screen-layout/current-reading-panel.feature",
+   "fingerprint": "cc6aa8a8b646",
+   "human": false,
+   "rule": "display.status-bar.wifi-signal-bars",
+   "source": "pico/display.py#draw_wifi_icon",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-display.screen-layout.005": {
+   "file": "specs/device-display/screen-layout/current-reading-panel.feature",
+   "fingerprint": "a620ab071ab1",
+   "human": false,
+   "rule": "display.status-bar.local-clock",
+   "source": "pico/display.py#draw_time",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-display.screen-layout.007": {
+   "file": "specs/device-display/screen-layout/eink-main-screen.feature",
+   "fingerprint": "13bc03938a70",
+   "human": false,
+   "rule": "device-display.screen.advice-line-wait-or-reason",
+   "source": "pico/fw_render.py#make_next_line",
+   "status": "verified",
+   "test": "tests/test_fw_render.py#test_the_wait_line_obeys_the_same_limit",
+   "tests": [
+    "tests/test_fw_render.py#test_the_wait_line_obeys_the_same_limit",
+    "tests/test_fw_render.py#test_a_short_reason_is_untouched_and_a_missing_one_is_empty"
+   ]
+  },
+  "device-display.screen-layout.008": {
+   "file": "specs/device-display/screen-layout/eink-main-screen.feature",
+   "fingerprint": "ec92bb66c39c",
+   "human": false,
+   "rule": "device-display.screen.advice-line-fits-panel",
+   "source": "pico/fw_render.py#next_line_chars",
+   "status": "verified",
+   "test": "tests/test_fw_render.py#test_the_limit_is_derived_from_the_panel_width",
+   "tests": [
+    "tests/test_fw_render.py#test_the_limit_is_derived_from_the_panel_width",
+    "tests/test_fw_render.py#test_the_line_ends_inside_the_panel_interior",
+    "tests/test_fw_render.py#test_a_long_reason_is_cut_between_words_to_fit",
+    "tests/test_fw_render.py#test_the_wait_line_obeys_the_same_limit",
+    "tests/test_fw_render.py#test_render_screen_fits_the_line_to_the_panel_it_draws_on"
+   ]
+  },
+  "device-display.screen-layout.009": {
+   "file": "specs/device-display/screen-layout/eink-main-screen.feature",
+   "fingerprint": "b374602edb93",
+   "human": false,
+   "rule": "device-display.screen.data-error-screen",
+   "source": "pico/fw_render.py#_display_tick",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-display.screen-layout.010": {
+   "file": "specs/device-display/screen-layout/eink-main-screen.feature",
+   "fingerprint": "b374602edb93",
+   "human": false,
+   "rule": "device-display.screen.periodic-refresh",
+   "source": "pico/fw_render.py#_display_tick",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-display.screen-layout.011": {
+   "file": "specs/device-display/screen-layout/eink-main-screen.feature",
+   "fingerprint": "0d46edadba32",
+   "human": false,
+   "rule": "device-display.screen.led-bar-needs-week-history",
+   "source": "pico/fw_render.py#week_percentile",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-display.screen-layout.012": {
+   "file": "specs/device-display/screen-layout/eink-main-screen.feature",
+   "fingerprint": "2246fda559df",
+   "human": false,
+   "rule": "device-display.screen.missing-intensity-shows-zero",
+   "source": "pico/fw_render.py#render_screen",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-lifecycle.connectivity.001": {
+   "file": "specs/device-lifecycle/connectivity/wifi-connection.feature",
+   "fingerprint": "3e8b5f22bc2e",
+   "human": false,
+   "rule": "device.connectivity.signal-bars-from-strength",
+   "source": "pico/fw_network.py#wifi_signal_bars",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-lifecycle.connectivity.003": {
+   "file": "specs/device-lifecycle/connectivity/wifi-connection.feature",
+   "fingerprint": "29bf13345f97",
+   "human": false,
+   "rule": "device.connectivity.join-gives-up-after-timeout",
+   "source": "pico/fw_network.py#wifi_connect",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-lifecycle.connectivity.004": {
+   "file": "specs/device-lifecycle/connectivity/wifi-connection.feature",
+   "fingerprint": "b367b616e091",
+   "human": false,
+   "rule": "device.connectivity.log-full-interface-on-join",
+   "source": "pico/fw_network.py#_log_interface",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-lifecycle.connectivity.005": {
+   "file": "specs/device-lifecycle/connectivity/wifi-connection.feature",
+   "fingerprint": "944f2c907b72",
+   "human": false,
+   "rule": "device.diagnostics.network-blank-when-offline",
+   "source": "pico/fw_network.py#interface_summary",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-lifecycle.connectivity.006": {
+   "file": "specs/device-lifecycle/connectivity/device-reachability.feature",
+   "fingerprint": "947d76dd8238",
+   "human": false,
+   "rule": "device-lifecycle.connectivity.wifi-reconnect-resumes-service",
+   "source": "pico/http.py#ensure_connected",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-lifecycle.connectivity.008": {
+   "file": "specs/device-lifecycle/connectivity/device-reachability.feature",
+   "fingerprint": "5599ce73c623",
+   "human": false,
+   "rule": "device-lifecycle.connectivity.silent-client-dropped",
+   "source": "pico/http.py#get_connection",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-lifecycle.connectivity.009": {
+   "file": "specs/device-lifecycle/connectivity/device-reachability.feature",
+   "fingerprint": "6578620a7638",
+   "human": false,
+   "rule": "device-lifecycle.connectivity.server-recovers-after-loop-error",
+   "source": "pico/http.py#serve_forever",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-lifecycle.diagnostics.001": {
+   "file": "specs/device-lifecycle/diagnostics/device-logs-and-crash-dumps.feature",
+   "fingerprint": "f9043c96c385",
+   "human": false,
+   "rule": "device.logs.daily-log-file",
+   "source": "pico/config.py#append_log_line",
+   "status": "verified",
+   "test": "tests/test_flash_lock.py#test_a_log_line_waits_for_whoever_holds_the_flash_lock",
+   "tests": [
+    "tests/test_flash_lock.py#test_a_log_line_waits_for_whoever_holds_the_flash_lock"
+   ]
+  },
+  "device-lifecycle.diagnostics.002": {
+   "file": "specs/device-lifecycle/diagnostics/device-logs-and-crash-dumps.feature",
+   "fingerprint": "38ef004fb0b8",
+   "human": false,
+   "rule": "device.logs.two-day-retention",
+   "source": "pico/config.py#prune_old_logs",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-lifecycle.diagnostics.003": {
+   "file": "specs/device-lifecycle/diagnostics/device-logs-and-crash-dumps.feature",
+   "fingerprint": "fb7e8b3e7d62",
+   "human": false,
+   "rule": "device.logs.crash-record-kept",
+   "source": "pico/config.py#write_crashdump",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-lifecycle.diagnostics.004": {
+   "file": "specs/device-lifecycle/diagnostics/boot-diagnostics.feature",
+   "fingerprint": "7a32c349e80b",
+   "human": false,
+   "rule": "device.diagnostics.boot-log-network-location-isp",
+   "source": "pico/diagnostics.py#boot_lines",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-lifecycle.diagnostics.005": {
+   "file": "specs/device-lifecycle/diagnostics/boot-diagnostics.feature",
+   "fingerprint": "15d43eb1e09c",
+   "human": false,
+   "rule": "device.diagnostics.coarse-location-only",
+   "source": "pico/diagnostics.py#geo_summary",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-lifecycle.diagnostics.006": {
+   "file": "specs/device-lifecycle/diagnostics/boot-diagnostics.feature",
+   "fingerprint": "9d602fbcb5eb",
+   "human": false,
+   "rule": "device.diagnostics.no-credentials",
+   "source": "pico/app.py#diagnostics_summary",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-lifecycle.diagnostics.007": {
+   "file": "specs/device-lifecycle/diagnostics/boot-diagnostics.feature",
+   "fingerprint": "14c7abf935e8",
+   "human": false,
+   "rule": "device.diagnostics.location-text",
+   "source": "pico/diagnostics.py#format_location",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-lifecycle.diagnostics.008": {
+   "file": "specs/device-lifecycle/diagnostics/boot-diagnostics.feature",
+   "fingerprint": "7a32c349e80b",
+   "human": false,
+   "rule": "device.diagnostics.missing-details-placeholders",
+   "source": "pico/diagnostics.py#boot_lines",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-lifecycle.diagnostics.009": {
+   "file": "specs/device-lifecycle/diagnostics/device-uptime.feature",
+   "fingerprint": "37885e68509b",
+   "human": false,
+   "rule": "device.uptime.counts-from-boot-without-clock",
+   "source": "pico/uptime.py#Uptime",
+   "status": "verified",
+   "test": "tests/test_uptime.py#test_starts_at_zero",
+   "tests": [
+    "tests/test_uptime.py#test_starts_at_zero",
+    "tests/test_uptime.py#test_counts_elapsed_time",
+    "tests/test_uptime.py#test_accumulates_across_several_samples",
+    "tests/test_uptime.py#test_does_not_depend_on_the_wall_clock"
+   ]
+  },
+  "device-lifecycle.diagnostics.010": {
+   "file": "specs/device-lifecycle/diagnostics/device-uptime.feature",
+   "fingerprint": "37885e68509b",
+   "human": false,
+   "rule": "device.uptime.survives-counter-wrap",
+   "source": "pico/uptime.py#Uptime",
+   "status": "verified",
+   "test": "tests/test_uptime.py#test_survives_the_ticks_wraparound",
+   "tests": [
+    "tests/test_uptime.py#test_survives_the_ticks_wraparound",
+    "tests/test_uptime.py#test_survives_many_wraps_when_sampled_regularly"
+   ]
+  },
+  "device-lifecycle.diagnostics.011": {
+   "file": "specs/device-lifecycle/diagnostics/device-uptime.feature",
+   "fingerprint": "37885e68509b",
+   "human": false,
+   "rule": "device.uptime.never-decreases",
+   "source": "pico/uptime.py#Uptime",
+   "status": "verified",
+   "test": "tests/test_uptime.py#test_a_counter_going_backwards_does_not_shrink_uptime",
+   "tests": [
+    "tests/test_uptime.py#test_a_counter_going_backwards_does_not_shrink_uptime"
+   ]
+  },
+  "device-lifecycle.diagnostics.012": {
+   "file": "specs/device-lifecycle/diagnostics/device-uptime.feature",
+   "fingerprint": "47ac4375bed5",
+   "human": false,
+   "rule": "device.uptime.human-readable-format",
+   "source": "pico/uptime.py#format_uptime",
+   "status": "verified",
+   "test": "tests/test_uptime.py#TestFormat",
+   "tests": [
+    "tests/test_uptime.py#TestFormat"
+   ]
+  },
+  "device-lifecycle.firmware-updates.001": {
+   "file": "specs/device-lifecycle/firmware-updates/boot-update-check.feature",
+   "fingerprint": "02de48d8ef0c",
+   "human": false,
+   "rule": "device-lifecycle.firmware-updates.boot-never-blocked-by-update-check",
+   "source": "pico/boot.py#boot",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-lifecycle.firmware-updates.002": {
+   "file": "specs/device-lifecycle/firmware-updates/boot-update-check.feature",
+   "fingerprint": "02de48d8ef0c",
+   "human": false,
+   "rule": "device-lifecycle.firmware-updates.boot-announces-update-outcome",
+   "source": "pico/boot.py#boot",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-lifecycle.firmware-updates.003": {
+   "file": "specs/device-lifecycle/firmware-updates/firmware-updates.feature",
+   "fingerprint": "c11353bf08c4",
+   "human": false,
+   "rule": "firmware.ota.only-verified-files-are-staged",
+   "source": "pico/ota.py#stage",
+   "status": "verified",
+   "test": "tests/test_ota.py#test_a_corrupt_file_is_discarded_at_staging",
+   "tests": [
+    "tests/test_ota.py#test_a_corrupt_file_is_discarded_at_staging"
+   ]
+  },
+  "device-lifecycle.firmware-updates.004": {
+   "file": "specs/device-lifecycle/firmware-updates/firmware-updates.feature",
+   "fingerprint": "7e79612d2753",
+   "human": false,
+   "rule": "firmware.ota.all-or-nothing-activation",
+   "source": "pico/ota.py#verify",
+   "status": "verified",
+   "test": "tests/test_ota.py#test_a_partial_update_never_activates",
+   "tests": [
+    "tests/test_ota.py#test_a_partial_update_never_activates"
+   ]
+  },
+  "device-lifecycle.firmware-updates.005": {
+   "file": "specs/device-lifecycle/firmware-updates/firmware-updates.feature",
+   "fingerprint": "3712bf77c6b6",
+   "human": false,
+   "rule": "firmware.ota.recovery-code-and-paths-refused",
+   "source": "pico/ota.py#begin",
+   "status": "verified",
+   "test": "tests/test_ota.py#test_the_recovery_code_is_never_updated_over_the_air",
+   "tests": [
+    "tests/test_ota.py#test_the_recovery_code_is_never_updated_over_the_air",
+    "tests/test_ota.py#test_an_update_cannot_write_outside_the_flat_filesystem"
+   ]
+  },
+  "device-lifecycle.firmware-updates.006": {
+   "file": "specs/device-lifecycle/firmware-updates/firmware-updates.feature",
+   "fingerprint": "e692a79a36cb",
+   "human": false,
+   "rule": "firmware.ota.healthy-boot-keeps-update",
+   "source": "pico/ota.py#mark_healthy",
+   "status": "verified",
+   "test": "tests/test_ota.py#test_reaching_the_serving_loop_disarms_the_marker_and_frees_the_backup",
+   "tests": [
+    "tests/test_ota.py#test_reaching_the_serving_loop_disarms_the_marker_and_frees_the_backup",
+    "tests/test_ota.py#test_a_healthy_boot_stops_the_attempt_count_growing",
+    "tests/test_ota.py#test_a_verified_update_replaces_the_firmware_and_arms_the_marker"
+   ]
+  },
+  "device-lifecycle.firmware-updates.007": {
+   "file": "specs/device-lifecycle/firmware-updates/firmware-updates.feature",
+   "fingerprint": "9e686417ee63",
+   "human": false,
+   "rule": "firmware.ota.unhealthy-firmware-rolls-back",
+   "source": "pico/ota.py#boot_check",
+   "status": "verified",
+   "test": "tests/test_ota.py#test_firmware_that_never_gets_healthy_is_rolled_back",
+   "tests": [
+    "tests/test_ota.py#test_firmware_that_never_gets_healthy_is_rolled_back",
+    "tests/test_ota.py#test_rollback_removes_a_file_the_update_added"
+   ]
+  },
+  "device-lifecycle.firmware-updates.008": {
+   "file": "specs/device-lifecycle/firmware-updates/firmware-updates.feature",
+   "fingerprint": "772c9bc17576",
+   "human": false,
+   "rule": "firmware.ota.power-loss-keeps-device-bootable",
+   "source": "pico/ota.py#activate",
+   "status": "verified",
+   "test": "tests/test_ota.py#test_power_loss_mid_write_leaves_the_live_file_intact",
+   "tests": [
+    "tests/test_ota.py#test_power_loss_mid_write_leaves_the_live_file_intact"
+   ]
+  },
+  "device-lifecycle.firmware-updates.009": {
+   "file": "specs/device-lifecycle/firmware-updates/firmware-updates.feature",
+   "fingerprint": "e5eb0a1f7af1",
+   "human": false,
+   "rule": "firmware.ota.unreadable-state-boots-current-firmware",
+   "source": "pico/ota.py#read_state",
+   "status": "verified",
+   "test": "tests/test_ota.py#test_power_loss_before_activation_leaves_an_unarmed_device",
+   "tests": [
+    "tests/test_ota.py#test_power_loss_before_activation_leaves_an_unarmed_device",
+    "tests/test_ota.py#test_a_truncated_state_file_reads_as_no_update_in_flight"
+   ]
+  },
+  "device-lifecycle.firmware-updates.010": {
+   "file": "specs/device-lifecycle/firmware-updates/firmware-updates.feature",
+   "fingerprint": "88f4b6d00ef9",
+   "human": false,
+   "rule": "firmware.ota.outcome-visible-to-operator",
+   "source": "pico/ota.py#status",
+   "status": "verified",
+   "test": "tests/test_ota.py#test_status_reports_what_an_update_did",
+   "tests": [
+    "tests/test_ota.py#test_status_reports_what_an_update_did"
+   ]
+  },
+  "device-lifecycle.startup.001": {
+   "file": "specs/device-lifecycle/startup/device-boot.feature",
+   "fingerprint": "5a10d4870400",
+   "human": false,
+   "rule": "device.startup.invalid-settings-stop-boot",
+   "source": "pico/main.py#main",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-lifecycle.startup.003": {
+   "file": "specs/device-lifecycle/startup/device-boot.feature",
+   "fingerprint": "5a10d4870400",
+   "human": false,
+   "rule": "device.startup.serves-without-network",
+   "source": "pico/main.py#main",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-lifecycle.startup.004": {
+   "file": "specs/device-lifecycle/startup/device-boot.feature",
+   "fingerprint": "5a10d4870400",
+   "human": false,
+   "rule": "device.startup.diagnostics-never-block-serving",
+   "source": "pico/main.py#main",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-lifecycle.startup.005": {
+   "file": "specs/device-lifecycle/startup/device-boot.feature",
+   "fingerprint": "5a10d4870400",
+   "human": false,
+   "rule": "device.firmware-updates.kept-on-healthy-boot",
+   "source": "pico/main.py#main",
+   "status": "verified",
+   "test": "tests/test_ota.py#test_reaching_the_serving_loop_disarms_the_marker_and_frees_the_backup",
+   "tests": [
+    "tests/test_ota.py#test_reaching_the_serving_loop_disarms_the_marker_and_frees_the_backup",
+    "tests/test_ota.py#test_a_healthy_boot_stops_the_attempt_count_growing"
+   ]
+  },
+  "device-lifecycle.startup.006": {
+   "file": "specs/device-lifecycle/startup/device-boot.feature",
+   "fingerprint": "b0acdca038e2",
+   "human": false,
+   "rule": "device.startup.crash-leaves-dump",
+   "source": "pico/main.py",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-web.data-api.001": {
+   "file": "specs/device-web/data-api/device-data-api.feature",
+   "fingerprint": "c68fd66e714a",
+   "human": false,
+   "rule": "device-web.data-api.window-covers-requested-hours",
+   "source": "pico/app.py#handle_em_window",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-web.data-api.002": {
+   "file": "specs/device-web/data-api/device-data-api.feature",
+   "fingerprint": "62b359ee3421",
+   "human": false,
+   "rule": "device-web.data-api.overlay-is-same-timeline-a-week-earlier",
+   "source": "pico/app.py#handle_em_overlay",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-web.data-api.003": {
+   "file": "specs/device-web/data-api/device-data-api.feature",
+   "fingerprint": "30b953e3b2ba",
+   "human": false,
+   "rule": "device-web.data-api.status-reports-latest-hour-and-advice",
+   "source": "pico/app.py#build_status_bundle",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-web.data-api.004": {
+   "file": "specs/device-web/data-api/device-data-api.feature",
+   "fingerprint": "30b953e3b2ba",
+   "human": false,
+   "rule": "device-web.data-api.no-reading-is-an-error",
+   "source": "pico/app.py#build_status_bundle",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-web.data-api.005": {
+   "file": "specs/device-web/data-api/device-data-api.feature",
+   "fingerprint": "30b953e3b2ba",
+   "human": false,
+   "rule": "device-web.data-api.status-includes-resolved-coordinates",
+   "source": "pico/app.py#build_status_bundle",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-web.data-api.006": {
+   "file": "specs/device-web/data-api/device-data-api.feature",
+   "fingerprint": "62b996ab4f44",
+   "human": false,
+   "rule": "device-web.data-api.system-info-shows-device-health",
+   "source": "pico/app.py#handle_system_info",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-web.data-api.007": {
+   "file": "specs/device-web/data-api/device-data-api.feature",
+   "fingerprint": "af5cfe885165",
+   "human": false,
+   "rule": "device-web.data-api.forced-dummy-is-simulated",
+   "source": "pico/app.py#dummy_fetch_window_any",
+   "status": "verified",
+   "test": "tests/test_fw_providers.py#test_force_dummy_is_the_simulated_series",
+   "tests": [
+    "tests/test_fw_providers.py#test_force_dummy_is_the_simulated_series"
+   ]
+  },
+  "device-web.data-api.008": {
+   "file": "specs/device-web/data-api/device-api-token.feature",
+   "fingerprint": "a8155c9955b7",
+   "human": false,
+   "rule": "device-web.access.open-without-token",
+   "source": "pico/http.py#authorized",
+   "status": "verified",
+   "test": "tests/test_http_auth.py#test_no_token_configured_leaves_every_route_open",
+   "tests": [
+    "tests/test_http_auth.py#test_no_token_configured_leaves_every_route_open",
+    "tests/test_http_auth.py#test_a_whitespace_only_token_is_no_token"
+   ]
+  },
+  "device-web.data-api.009": {
+   "file": "specs/device-web/data-api/device-api-token.feature",
+   "fingerprint": "dc5db82fe5c9",
+   "human": false,
+   "rule": "device-web.access.token-required-on-every-route",
+   "source": "pico/http.py#process_http_request",
+   "status": "verified",
+   "test": "tests/test_http_auth.py#test_a_configured_token_is_required_on_every_route",
+   "tests": [
+    "tests/test_http_auth.py#test_a_configured_token_is_required_on_every_route",
+    "tests/test_http_auth.py#test_system_info_discloses_nothing_without_the_token",
+    "tests/test_http_auth.py#test_unknown_paths_are_refused_before_they_are_looked_up",
+    "tests/test_http_auth.py#test_handle_http_request_threads_the_header_through"
+   ]
+  },
+  "device-web.data-api.010": {
+   "file": "specs/device-web/data-api/device-api-token.feature",
+   "fingerprint": "a8155c9955b7",
+   "human": false,
+   "rule": "device-web.access.uniform-refusal",
+   "source": "pico/http.py#authorized",
+   "status": "verified",
+   "test": "tests/test_http_auth.py#test_every_wrong_credential_gets_the_same_answer",
+   "tests": [
+    "tests/test_http_auth.py#test_every_wrong_credential_gets_the_same_answer"
+   ]
+  },
+  "device-web.data-api.011": {
+   "file": "specs/device-web/data-api/device-api-token.feature",
+   "fingerprint": "a8155c9955b7",
+   "human": false,
+   "rule": "device-web.access.token-matching-tolerance",
+   "source": "pico/http.py#authorized",
+   "status": "verified",
+   "test": "tests/test_http_auth.py#test_the_scheme_is_case_insensitive",
+   "tests": [
+    "tests/test_http_auth.py#test_the_scheme_is_case_insensitive",
+    "tests/test_http_auth.py#test_whitespace_around_the_configured_token_is_ignored",
+    "tests/test_http_auth.py#test_a_non_string_token_is_enforced_as_its_text"
+   ]
+  },
+  "device-web.data-api.012": {
+   "file": "specs/device-web/data-api/device-http-routes.feature",
+   "fingerprint": "32fe1d15704c",
+   "human": false,
+   "rule": "device-web.api.published-routes",
+   "source": "pico/http.py#_dispatch",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-web.data-api.013": {
+   "file": "specs/device-web/data-api/device-http-routes.feature",
+   "fingerprint": "32fe1d15704c",
+   "human": false,
+   "rule": "device-web.api.get-only",
+   "source": "pico/http.py#_dispatch",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-web.data-api.014": {
+   "file": "specs/device-web/data-api/device-http-routes.feature",
+   "fingerprint": "32fe1d15704c",
+   "human": false,
+   "rule": "device-web.api.unknown-path-not-found",
+   "source": "pico/http.py#_dispatch",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-web.data-api.015": {
+   "file": "specs/device-web/data-api/device-http-routes.feature",
+   "fingerprint": "753cfed0df76",
+   "human": false,
+   "rule": "device-web.api.internal-error-reported",
+   "source": "pico/http.py#handle_http_request",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-web.data-api.016": {
+   "file": "specs/device-web/data-api/device-http-routes.feature",
+   "fingerprint": "ac31595e7ccb",
+   "human": false,
+   "rule": "device-web.api.cross-origin-readable",
+   "source": "pico/http.py#_send_response",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-web.device-pages.001": {
+   "file": "specs/device-web/device-pages/device-built-in-pages.feature",
+   "fingerprint": "5e9ce9e6363a",
+   "human": false,
+   "rule": "device-web.pages.status-page-shows-current-reading",
+   "source": "pico/pages.py#build_index_html",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-web.device-pages.002": {
+   "file": "specs/device-web/device-pages/device-built-in-pages.feature",
+   "fingerprint": "5e9ce9e6363a",
+   "human": false,
+   "rule": "device-web.pages.verdict-colour",
+   "source": "pico/pages.py#build_index_html",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-web.device-pages.003": {
+   "file": "specs/device-web/device-pages/device-built-in-pages.feature",
+   "fingerprint": "5e9ce9e6363a",
+   "human": false,
+   "rule": "device-web.pages.status-page-refresh",
+   "source": "pico/pages.py#build_index_html",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-web.device-pages.004": {
+   "file": "specs/device-web/device-pages/device-built-in-pages.feature",
+   "fingerprint": "5e9ce9e6363a",
+   "human": false,
+   "rule": "device-web.pages.theme-remembered",
+   "source": "pico/pages.py#build_index_html",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-web.device-pages.005": {
+   "file": "specs/device-web/device-pages/device-built-in-pages.feature",
+   "fingerprint": "fb704005f5c9",
+   "human": false,
+   "rule": "device-web.pages.graph-last-48-hours",
+   "source": "pico/pages.py#GRAPH_HTML",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-web.device-pages.006": {
+   "file": "specs/device-web/device-pages/device-built-in-pages.feature",
+   "fingerprint": "a6a3ab147ea1",
+   "human": false,
+   "rule": "device-web.pages.pages-index",
+   "source": "pico/pages.py#MINI_HTML",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-web.home-automation-export.001": {
+   "file": "specs/device-web/home-automation-export/home-automation-export.feature",
+   "fingerprint": "5d872495e413",
+   "human": false,
+   "rule": "device-web.export.csv-window-format",
+   "source": "pico/export.py#window_csv",
+   "status": "verified",
+   "test": "tests/test_export.py#test_csv_has_a_documented_header_and_one_row_per_point",
+   "tests": [
+    "tests/test_export.py#test_csv_has_a_documented_header_and_one_row_per_point",
+    "tests/test_export.py#test_csv_writes_whole_numbers_without_a_trailing_zero"
+   ]
+  },
+  "device-web.home-automation-export.002": {
+   "file": "specs/device-web/home-automation-export/home-automation-export.feature",
+   "fingerprint": "b7ca984846e3",
+   "human": false,
+   "rule": "device-web.export.csv-drops-incomplete-readings",
+   "source": "pico/export.py#history_rows",
+   "status": "verified",
+   "test": "tests/test_export.py#test_csv_drops_holes_rather_than_emitting_half_a_row",
+   "tests": [
+    "tests/test_export.py#test_csv_drops_holes_rather_than_emitting_half_a_row"
+   ]
+  },
+  "device-web.home-automation-export.003": {
+   "file": "specs/device-web/home-automation-export/home-automation-export.feature",
+   "fingerprint": "5eaf51b70dbc",
+   "human": false,
+   "rule": "device-web.export.non-finite-reading-breaks-export",
+   "source": "pico/export.py#_number",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-web.home-automation-export.004": {
+   "file": "specs/device-web/home-automation-export/home-automation-export.feature",
+   "fingerprint": "b7ca984846e3",
+   "human": false,
+   "rule": "device-web.export.csv-bounded-newest-rows",
+   "source": "pico/export.py#history_rows",
+   "status": "verified",
+   "test": "tests/test_export.py#test_csv_is_bounded_and_keeps_the_newest_rows",
+   "tests": [
+    "tests/test_export.py#test_csv_is_bounded_and_keeps_the_newest_rows"
+   ]
+  },
+  "device-web.home-automation-export.005": {
+   "file": "specs/device-web/home-automation-export/home-automation-export.feature",
+   "fingerprint": "b7ca984846e3",
+   "human": false,
+   "rule": "device-web.export.csv-time-ordered",
+   "source": "pico/export.py#history_rows",
+   "status": "verified",
+   "test": "tests/test_export.py#test_rows_come_out_in_time_order_whatever_the_provider_did",
+   "tests": [
+    "tests/test_export.py#test_rows_come_out_in_time_order_whatever_the_provider_did"
+   ]
+  },
+  "device-web.home-automation-export.006": {
+   "file": "specs/device-web/home-automation-export/home-automation-export.feature",
+   "fingerprint": "5d872495e413",
+   "human": false,
+   "rule": "device-web.export.csv-empty-window-header-only",
+   "source": "pico/export.py#window_csv",
+   "status": "verified",
+   "test": "tests/test_export.py#test_csv_of_an_empty_window_is_a_header_not_an_error",
+   "tests": [
+    "tests/test_export.py#test_csv_of_an_empty_window_is_a_header_not_an_error"
+   ]
+  },
+  "device-web.home-automation-export.007": {
+   "file": "specs/device-web/home-automation-export/home-automation-export.feature",
+   "fingerprint": "caab782ee04a",
+   "human": false,
+   "rule": "device-web.export.summary-flat-verdict",
+   "source": "pico/export.py#summary_from_window",
+   "status": "verified",
+   "test": "tests/test_export.py#test_summary_is_flat_and_carries_no_history",
+   "tests": [
+    "tests/test_export.py#test_summary_is_flat_and_carries_no_history"
+   ]
+  },
+  "device-web.home-automation-export.008": {
+   "file": "specs/device-web/home-automation-export/home-automation-export.feature",
+   "fingerprint": "caab782ee04a",
+   "human": false,
+   "rule": "device-web.export.summary-tolerates-missing-data",
+   "source": "pico/export.py#summary_from_window",
+   "status": "verified",
+   "test": "tests/test_export.py#test_summary_survives_an_empty_window_and_a_missing_recommendation",
+   "tests": [
+    "tests/test_export.py#test_summary_survives_an_empty_window_and_a_missing_recommendation"
+   ]
+  },
+  "device-web.offline-dashboard.003": {
+   "file": "specs/device-web/offline-dashboard/offline-dashboard-serving.feature",
+   "fingerprint": "96523d7df87d",
+   "human": false,
+   "rule": "device-web.static.missing-file-falls-through",
+   "source": "pico/http.py#serve_static_file",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-web.offline-dashboard.005": {
+   "file": "specs/device-web/offline-dashboard/offline-dashboard-hosting.feature",
+   "fingerprint": "32fe1d15704c",
+   "human": false,
+   "rule": "device-web.offline-dashboard.off-by-default",
+   "source": "pico/http.py#_dispatch",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-web.offline-dashboard.006": {
+   "file": "specs/device-web/offline-dashboard/offline-dashboard-hosting.feature",
+   "fingerprint": "a973b361ad5d",
+   "human": false,
+   "rule": "device-web.offline-dashboard.confined-to-static-root",
+   "source": "pico/staticfiles.py#resolve",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-web.offline-dashboard.007": {
+   "file": "specs/device-web/offline-dashboard/offline-dashboard-hosting.feature",
+   "fingerprint": "a973b361ad5d",
+   "human": false,
+   "rule": "device-web.offline-dashboard.root-setting-exposes-flash",
+   "source": "pico/staticfiles.py#resolve",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-web.offline-dashboard.008": {
+   "file": "specs/device-web/offline-dashboard/offline-dashboard-hosting.feature",
+   "fingerprint": "43db612f6082",
+   "human": false,
+   "rule": "device-web.offline-dashboard.only-dashboard-file-types",
+   "source": "pico/staticfiles.py#content_type",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-web.offline-dashboard.009": {
+   "file": "specs/device-web/offline-dashboard/offline-dashboard-hosting.feature",
+   "fingerprint": "96523d7df87d",
+   "human": false,
+   "rule": "device-web.offline-dashboard.asset-served",
+   "source": "pico/http.py#serve_static_file",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "device-web.offline-dashboard.010": {
+   "file": "specs/device-web/offline-dashboard/offline-dashboard-hosting.feature",
+   "fingerprint": "b98bf34ac9ff",
+   "human": false,
+   "rule": "device-web.offline-dashboard.unchanged-asset-not-resent",
+   "source": "pico/staticfiles.py#not_modified",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "recommendation.advice.001": {
+   "file": "specs/recommendation/advice/run-or-wait-advice.feature",
+   "fingerprint": "0a8f90926f29",
+   "human": false,
+   "rule": "recommendation.advice.verdict-by-weekly-percentile",
+   "source": "pico/recommendation.py#compute_recommendation",
+   "status": "verified",
+   "test": "tests/test_recommendation.py#test_compute_recommendation_run_now_for_low_percentile",
+   "tests": [
+    "tests/test_recommendation.py#test_compute_recommendation_run_now_for_low_percentile",
+    "tests/test_recommendation.py#test_compute_recommendation_wait_for_high_percentile"
+   ]
+  },
+  "recommendation.advice.002": {
+   "file": "specs/recommendation/advice/run-or-wait-advice.feature",
+   "fingerprint": "0a8f90926f29",
+   "human": false,
+   "rule": "recommendation.advice.baseline-required",
+   "source": "pico/recommendation.py#compute_recommendation",
+   "status": "verified",
+   "test": "tests/test_recommendation.py#test_compute_recommendation_collecting_baseline",
+   "tests": [
+    "tests/test_recommendation.py#test_compute_recommendation_collecting_baseline"
+   ]
+  },
+  "recommendation.best-time.001": {
+   "file": "specs/recommendation/best-time/best-time-to-run.feature",
+   "fingerprint": "1407e91ed50c",
+   "human": false,
+   "rule": "recommendation.best-time.cleanest-hour-next-12h",
+   "source": "pico/recommendation.py#_compute_next_best",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "recommendation.best-time.002": {
+   "file": "specs/recommendation/best-time/best-time-to-run.feature",
+   "fingerprint": "0a8f90926f29",
+   "human": false,
+   "rule": "recommendation.best-time.run-now-means-now",
+   "source": "pico/recommendation.py#compute_recommendation",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  },
+  "recommendation.best-time.003": {
+   "file": "specs/recommendation/best-time/best-time-to-run.feature",
+   "fingerprint": "1407e91ed50c",
+   "human": false,
+   "rule": "recommendation.best-time.no-forecast-recheck",
+   "source": "pico/recommendation.py#_compute_next_best",
+   "status": "inferred",
+   "test": "",
+   "tests": []
+  }
+ },
+ "taxonomy": {
+  "domains": [
+   {
+    "areas": [
+     {
+      "description": "Integrations with Electricity Maps, CO2 Signal, ENTSO-E, UK Carbon Intensity, WattTime and similar sources, plus a simulated provider.",
+      "slug": "providers",
+      "title": "Data providers"
+     },
+     {
+      "description": "Choosing which provider serves a location, forcing a single provider, and falling back when one fails.",
+      "slug": "provider-selection",
+      "title": "Provider selection and fallback"
+     },
+     {
+      "description": "Refreshing readings off the request path with stale-while-revalidate and time-limited caches.",
+      "slug": "background-fetching",
+      "title": "Background fetching and caching"
+     },
+     {
+      "description": "Working out the device's grid zone from configuration or IP geolocation.",
+      "slug": "location",
+      "title": "Location detection"
+     },
+     {
+      "description": "Assembling past readings and future forecasts into the time windows the product shows.",
+      "slug": "history-forecast",
+      "title": "History and forecast windows"
+     }
+    ],
+    "description": "Getting carbon-intensity readings and forecasts for the device's grid from external providers.",
+    "slug": "carbon-data",
+    "title": "Grid Carbon Data"
+   },
+   {
+    "areas": [
+     {
+      "description": "Classifying the current intensity against recent history and recommending running now or waiting.",
+      "slug": "advice",
+      "title": "Run or wait advice"
+     },
+     {
+      "description": "Finding the cleanest upcoming hour and telling the user when to run.",
+      "slug": "best-time",
+      "title": "Best time to run"
+     }
+    ],
+    "description": "Turning grid carbon intensity into advice on whether to use electricity now or wait.",
+    "slug": "recommendation",
+    "title": "Run/Wait Recommendation"
+   },
+   {
+    "areas": [
+     {
+      "description": "Rendering the current reading, recommendation and status text on the panel.",
+      "slug": "screen-layout",
+      "title": "Screen layout"
+     },
+     {
+      "description": "Drawing the multi-hour intensity plot with threshold bands and day ticks.",
+      "slug": "intensity-graph",
+      "title": "Intensity graph"
+     },
+     {
+      "description": "Driving the e-ink panel hardware and its refresh cycle.",
+      "slug": "panel-driver",
+      "title": "Panel hardware"
+     },
+     {
+      "description": "Showing device text in the configured language with English fallback.",
+      "slug": "languages",
+      "title": "Languages"
+     }
+    ],
+    "description": "What the Pico shows on its physical e-ink panel.",
+    "slug": "device-display",
+    "title": "E-ink Display"
+   },
+   {
+    "areas": [
+     {
+      "description": "JSON endpoints for status, intensity windows, forecast overlays and summaries.",
+      "slug": "data-api",
+      "title": "Data API"
+     },
+     {
+      "description": "Compact summary and CSV exports for tools like Home Assistant and spreadsheets.",
+      "slug": "home-automation-export",
+      "title": "Home automation export"
+     },
+     {
+      "description": "Status, graph and system-info pages the device renders itself.",
+      "slug": "device-pages",
+      "title": "Built-in pages"
+     },
+     {
+      "description": "Serving the dashboard's static files directly from the device safely.",
+      "slug": "offline-dashboard",
+      "title": "Offline dashboard hosting"
+     }
+    ],
+    "description": "What the Pico serves over its own local network connection.",
+    "slug": "device-web",
+    "title": "Device Web & API"
+   },
+   {
+    "areas": [
+     {
+      "description": "The page that shows current intensity, recommendation, charts and translations in the browser.",
+      "slug": "dashboard-ui",
+      "title": "Dashboard interface"
+     },
+     {
+      "description": "The local server that serves the dashboard and forwards allow-listed API calls to the Pico.",
+      "slug": "device-proxy",
+      "title": "Device proxy"
+     },
+     {
+      "description": "Look and feel of the published documentation site.",
+      "slug": "docs-site",
+      "title": "Documentation site styling"
+     }
+    ],
+    "description": "The browser dashboard that visualises the device's data from a desktop.",
+    "slug": "dashboard",
+    "title": "Desktop Dashboard"
+   },
+   {
+    "areas": [
+     {
+      "description": "Booting the firmware and running the refresh-and-serve loop.",
+      "slug": "startup",
+      "title": "Startup and main loop"
+     },
+     {
+      "description": "Joining Wi-Fi, reconnecting, and setting the device time.",
+      "slug": "connectivity",
+      "title": "Wi-Fi and clock"
+     },
+     {
+      "description": "Staged, checksum-verified over-the-air updates with automatic rollback.",
+      "slug": "firmware-updates",
+      "title": "Firmware updates"
+     },
+     {
+      "description": "Boot diagnostics, uptime and system information without leaking secrets or precise location.",
+      "slug": "diagnostics",
+      "title": "Diagnostics"
+     }
+    ],
+    "description": "Bringing the Pico up, keeping it connected and keeping its firmware healthy.",
+    "slug": "device-lifecycle",
+    "title": "Device Lifecycle"
+   },
+   {
+    "areas": [
+     {
+      "description": "Defaults and the on-device settings file for Wi-Fi, provider tokens and preferences.",
+      "slug": "device-settings",
+      "title": "Device settings"
+     },
+     {
+      "description": "Unified desktop configuration loaded from defaults and environment variables.",
+      "slug": "app-settings",
+      "title": "Application settings"
+     },
+     {
+      "description": "Shared time, formatting and parsing helpers behind consistent values across the product.",
+      "slug": "shared-utilities",
+      "title": "Time and text helpers"
+     }
+    ],
+    "description": "How the device and desktop apps are configured.",
+    "slug": "configuration",
+    "title": "Configuration"
+   },
+   {
+    "areas": [
+     {
+      "description": "A simulated Pico serving realistic data so the dashboard can be developed without hardware.",
+      "slug": "mock-device",
+      "title": "Mock device"
+     },
+     {
+      "description": "Make targets, launch script and container image for running the dashboard and mock.",
+      "slug": "build-run",
+      "title": "Build and run"
+     }
+    ],
+    "description": "Building, running and simulating the product without hardware.",
+    "slug": "developer-tooling",
+    "title": "Developer Tooling & Operations"
+   }
+  ]
+ }
+}
