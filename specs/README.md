@@ -4,6 +4,7 @@ What this code does, one atomic Gherkin scenario per behaviour, read from the co
 Tags: `@verified` a test asserts it · `@inferred` read from the code only · `@gap` an entry point no test covers · `@human` written or amended by a person, never rewritten.
 
 ## Grid Carbon Data
+
 Getting carbon-intensity readings and forecasts for the device's grid from external providers.
 
 - **Location detection**: [Working out which grid the device reports on](carbon-data/location/device-location.feature) (3)
@@ -11,6 +12,7 @@ Getting carbon-intensity readings and forecasts for the device's grid from exter
 - **Data providers**: [Reading hourly grid intensity from the Carbon Intensity API](carbon-data/providers/ci-api-hourly-readings.feature) (6), [Reading grid carbon intensity from data providers](carbon-data/providers/grid-carbon-providers.feature) (8)
 
 ## Configuration
+
 How the device and desktop apps are configured.
 
 - **Application settings**: [Configuring the dashboard and mock device through environment variables](configuration/app-settings/desktop-environment-settings.feature) (5)
@@ -18,6 +20,7 @@ How the device and desktop apps are configured.
 - **Time and text helpers**: [Keeping the device clock on local time across summer-time changes](configuration/shared-utilities/local-time-summer-time.feature) (2), [Reading provider timestamps and fitting device text](configuration/shared-utilities/provider-timestamps-and-device-text.feature) (6)
 
 ## Desktop Dashboard
+
 The browser dashboard that visualises the device's data from a desktop.
 
 - **Dashboard interface**: [Watching grid carbon intensity on the desktop dashboard](dashboard/dashboard-ui/dashboard-reading-and-controls.feature) (8)
@@ -25,11 +28,13 @@ The browser dashboard that visualises the device's data from a desktop.
 - **Documentation site styling**: [Browsing the documentation site privately and on-brand](dashboard/docs-site/docs-site-look.feature) (2)
 
 ## Developer Tooling & Operations
+
 Building, running and simulating the product without hardware.
 
 - **Mock device**: [Serving simulated device data to the dashboard](developer-tooling/mock-device/mock-device-endpoints.feature) (6), [Running the mock Pico](developer-tooling/mock-device/mock-device-server.feature) (2)
 
 ## E-ink Display
+
 What the Pico shows on its physical e-ink panel.
 
 - **Intensity graph**: [Drawing the intensity graph on the e-ink panel](device-display/intensity-graph/intensity-graph.feature) (6)
@@ -38,6 +43,7 @@ What the Pico shows on its physical e-ink panel.
 - **Screen layout**: [Showing the current reading and advice on the e-ink panel](device-display/screen-layout/current-reading-panel.feature) (5), [Showing the current reading and advice on the e-ink panel](device-display/screen-layout/eink-main-screen.feature) (6)
 
 ## Device Lifecycle
+
 Bringing the Pico up, keeping it connected and keeping its firmware healthy.
 
 - **Wi-Fi and clock**: [Keeping the device online and reachable](device-lifecycle/connectivity/device-reachability.feature) (3), [Joining Wi-Fi and reporting the connection](device-lifecycle/connectivity/wifi-connection.feature) (4)
@@ -46,6 +52,7 @@ Bringing the Pico up, keeping it connected and keeping its firmware healthy.
 - **Startup and main loop**: [Booting the device](device-lifecycle/startup/device-boot.feature) (5)
 
 ## Device Web & API
+
 What the Pico serves over its own local network connection.
 
 - **Data API**: [Restricting device access with an API token](device-web/data-api/device-api-token.feature) (4), [Reading grid intensity from the device API](device-web/data-api/device-data-api.feature) (7), [Answering requests on the device](device-web/data-api/device-http-routes.feature) (5)
@@ -54,6 +61,7 @@ What the Pico serves over its own local network connection.
 - **Offline dashboard hosting**: [Hosting the dashboard from the device](device-web/offline-dashboard/offline-dashboard-hosting.feature) (6), [Serving the dashboard from the device](device-web/offline-dashboard/offline-dashboard-serving.feature) (1)
 
 ## Run/Wait Recommendation
+
 Turning grid carbon intensity into advice on whether to use electricity now or wait.
 
 - **Run or wait advice**: [Advising whether to run now or wait](recommendation/advice/run-or-wait-advice.feature) (2)
