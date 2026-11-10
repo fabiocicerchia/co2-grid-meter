@@ -24,13 +24,6 @@ Feature: Joining Wi-Fi and reporting the connection
       | not reported by the radio     | 0    |
       | unreadable (the radio errors) | 4    |
 
-  @id:device-lifecycle.connectivity.002 @rule:device.connectivity.offline-icon-has-no-bars @inferred @source:pico/fw_network.py#wifi_ok
-  Scenario: A disconnected device shows an offline Wi-Fi icon with no bars
-    Given the device is not connected to Wi-Fi
-    When the device refreshes its screen
-    Then the Wi-Fi icon in the top bar is drawn in red
-    And the Wi-Fi icon shows 0 bars
-
   @id:device-lifecycle.connectivity.003 @rule:device.connectivity.join-gives-up-after-timeout @inferred @source:pico/fw_network.py#wifi_connect
   Scenario: Joining Wi-Fi gives up after 15 seconds and is retried once at boot
     Given the configured Wi-Fi network does not accept the device

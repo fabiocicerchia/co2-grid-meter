@@ -69,14 +69,3 @@ Feature: Showing the current reading and advice on the e-ink panel
     Given the device's local time is 09:05:42
     When the device refreshes the panel
     Then the top bar shows "09:05"
-
-  @id:device-display.screen-layout.006 @rule:display.layout.orientation-from-settings @inferred @source:pico/display.py#get_epd
-  Scenario Outline: The panel is laid out in landscape or portrait as the device settings say
-    Given the device setting for landscape display is <landscape>
-    When the device starts drawing on the panel
-    Then the panel is laid out <orientation>, <width> pixels wide
-
-    Examples:
-      | landscape | orientation  | width |
-      | on        | in landscape | 250   |
-      | off       | in portrait  | 128   |

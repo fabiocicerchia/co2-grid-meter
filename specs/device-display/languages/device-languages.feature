@@ -52,19 +52,6 @@ Feature: Showing device text in the configured language
     When the device shows a reading of 412 g/kWh
     Then the reading line reads "CO2: 412 g/kWh"
 
-  @id:device-display.languages.005 @rule:device-display.languages.translated-verdict-keeps-styling @inferred @source:pico/display.py#draw_current_panel
-  Scenario Outline: A good verdict in any language is not drawn as a warning
-    Given the device language is set to "<language>"
-    And the verdict is "<verdict>"
-    When the device refreshes its panel
-    Then the verdict panel is drawn <style>
-
-    Examples:
-      | language | verdict | style                         |
-      | it       | ORA     | in black, showing the verdict |
-      | it       | OK      | in black, showing the verdict |
-      | it       | ATTENDI | in red, showing the wait line |
-
   @id:device-display.languages.006 @rule:device-display.languages.baseline-text-untranslated @inferred @source:pico/recommendation.py#compute_recommendation @questionable
   Scenario: While collecting a baseline, the reason line stays in English on a non-English device
     Given the device language is set to "it"

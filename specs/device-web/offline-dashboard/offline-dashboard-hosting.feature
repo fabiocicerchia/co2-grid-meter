@@ -71,6 +71,7 @@ Feature: Hosting the dashboard from the device
     Examples:
       | path           | file          | content_type                   |
       | /              | index.html    | text/html; charset=utf-8       |
+      | /index.html    | index.html    | text/html; charset=utf-8       |
       | /script.js?v=3 | script.js     | text/javascript; charset=utf-8 |
       | /style.css     | style.css     | text/css; charset=utf-8        |
       | /css/style.css | css/style.css | text/css; charset=utf-8        |
@@ -89,15 +90,3 @@ Feature: Hosting the dashboard from the device
       | the same ETag with a W/ prefix                     |
       | "other" followed by the same ETag, comma-separated |
       | *                                                  |
-
-  @id:device-web.offline-dashboard.011 @rule:device-web.offline-dashboard.api-not-shadowed @inferred @source:pico/http.py#serve_static_file
-  Scenario Outline: Turning on dashboard hosting leaves the device API answering as before
-    Given the operator has enabled static file serving
-    When a client requests "<path>" from the device
-    Then the device answers with the <response> it gives when static serving is off
-
-    Examples:
-      | path           | response            |
-      | /status        | JSON status         |
-      | /em/window.csv | CSV window export   |
-      | /html/graph    | built-in graph page |

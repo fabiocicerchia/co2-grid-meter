@@ -14,19 +14,6 @@ Feature: Keeping the device online and reachable
     And it answers web requests again on the configured port
     And if rejoining fails it stops answering and retries about a second later
 
-  @id:device-lifecycle.connectivity.007 @rule:device-lifecycle.connectivity.clock-local-time @inferred @source:pico/http.py#set_time
-  Scenario Outline: The device clock shows local wall-clock time, including EU summer time
-    Given the device's UTC offset is <standard offset> hours
-    And the device <observes> EU summer time
-    When the device sets its clock from network time at <utc instant>
-    Then the device clock reads <local time>
-
-    Examples:
-      | standard offset | observes         | utc instant          | local time |
-      | 1               | observes         | 2026-07-01 12:00 UTC | 14:00      |
-      | 1               | observes         | 2026-01-15 12:00 UTC | 13:00      |
-      | 1               | does not observe | 2026-07-01 12:00 UTC | 13:00      |
-
   @id:device-lifecycle.connectivity.008 @rule:device-lifecycle.connectivity.silent-client-dropped @inferred @source:pico/http.py#get_connection
   Scenario: A client that connects but never sends a request cannot freeze the device
     Given a browser has opened a connection to the device and sends nothing

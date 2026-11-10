@@ -1771,7 +1771,19 @@
   "web/static": [],
   "web/web": []
  },
- "retired": [],
+ "retired": [
+  "configuration.device-settings.002",
+  "configuration.device-settings.004",
+  "device-lifecycle.connectivity.007",
+  "device-lifecycle.connectivity.002",
+  "device-display.screen-layout.006",
+  "device-display.languages.005",
+  "device-lifecycle.startup.002",
+  "device-web.offline-dashboard.001",
+  "device-web.offline-dashboard.002",
+  "device-web.offline-dashboard.004",
+  "device-web.offline-dashboard.011"
+ ],
  "scenarios": {
   "carbon-data.location.001": {
    "file": "specs/carbon-data/location/device-location.feature",
@@ -2133,19 +2145,6 @@
     "tests/test_settings.py#test_an_unknown_setting_is_an_error_naming_it"
    ]
   },
-  "configuration.device-settings.002": {
-   "file": "specs/configuration/device-settings/device-settings-at-boot.feature",
-   "fingerprint": "844e539ce03b",
-   "human": false,
-   "rule": "device.settings.keyless-providers-need-no-credentials",
-   "source": "pico/settings.py#required_names",
-   "status": "verified",
-   "test": "tests/test_settings.py#test_only_enabled_providers_need_credentials",
-   "tests": [
-    "tests/test_settings.py#test_only_enabled_providers_need_credentials",
-    "tests/test_settings.py#test_a_forced_provider_needs_only_its_own_credentials"
-   ]
-  },
   "configuration.device-settings.003": {
    "file": "specs/configuration/device-settings/device-settings-at-boot.feature",
    "fingerprint": "ee24a5e87de7",
@@ -2157,16 +2156,6 @@
    "tests": [
     "tests/test_settings.py#test_omitted_values_keep_their_defaults"
    ]
-  },
-  "configuration.device-settings.004": {
-   "file": "specs/configuration/device-settings/device-settings-at-boot.feature",
-   "fingerprint": "ee24a5e87de7",
-   "human": false,
-   "rule": "device.settings.api-open-without-token",
-   "source": "pico/config.py#CONFIG",
-   "status": "inferred",
-   "test": "",
-   "tests": []
   },
   "configuration.device-settings.005": {
    "file": "specs/configuration/device-settings/device-settings-file.feature",
@@ -2665,16 +2654,6 @@
     "tests/test_i18n.py#test_a_locale_with_broken_placeholders_falls_back_to_english"
    ]
   },
-  "device-display.languages.005": {
-   "file": "specs/device-display/languages/device-languages.feature",
-   "fingerprint": "dca5ed367605",
-   "human": false,
-   "rule": "device-display.languages.translated-verdict-keeps-styling",
-   "source": "pico/display.py#draw_current_panel",
-   "status": "inferred",
-   "test": "",
-   "tests": []
-  },
   "device-display.languages.006": {
    "file": "specs/device-display/languages/device-languages.feature",
    "fingerprint": "0a8f90926f29",
@@ -2764,16 +2743,6 @@
    "test": "",
    "tests": []
   },
-  "device-display.screen-layout.006": {
-   "file": "specs/device-display/screen-layout/current-reading-panel.feature",
-   "fingerprint": "cea620a2c20b",
-   "human": false,
-   "rule": "display.layout.orientation-from-settings",
-   "source": "pico/display.py#get_epd",
-   "status": "inferred",
-   "test": "",
-   "tests": []
-  },
   "device-display.screen-layout.007": {
    "file": "specs/device-display/screen-layout/eink-main-screen.feature",
    "fingerprint": "13bc03938a70",
@@ -2853,16 +2822,6 @@
    "test": "",
    "tests": []
   },
-  "device-lifecycle.connectivity.002": {
-   "file": "specs/device-lifecycle/connectivity/wifi-connection.feature",
-   "fingerprint": "5a2c786a7598",
-   "human": false,
-   "rule": "device.connectivity.offline-icon-has-no-bars",
-   "source": "pico/fw_network.py#wifi_ok",
-   "status": "inferred",
-   "test": "",
-   "tests": []
-  },
   "device-lifecycle.connectivity.003": {
    "file": "specs/device-lifecycle/connectivity/wifi-connection.feature",
    "fingerprint": "29bf13345f97",
@@ -2899,16 +2858,6 @@
    "human": false,
    "rule": "device-lifecycle.connectivity.wifi-reconnect-resumes-service",
    "source": "pico/http.py#ensure_connected",
-   "status": "inferred",
-   "test": "",
-   "tests": []
-  },
-  "device-lifecycle.connectivity.007": {
-   "file": "specs/device-lifecycle/connectivity/device-reachability.feature",
-   "fingerprint": "fcd3f56cff4f",
-   "human": false,
-   "rule": "device-lifecycle.connectivity.clock-local-time",
-   "source": "pico/http.py#set_time",
    "status": "inferred",
    "test": "",
    "tests": []
@@ -3193,16 +3142,6 @@
    "fingerprint": "5a10d4870400",
    "human": false,
    "rule": "device.startup.invalid-settings-stop-boot",
-   "source": "pico/main.py#main",
-   "status": "inferred",
-   "test": "",
-   "tests": []
-  },
-  "device-lifecycle.startup.002": {
-   "file": "specs/device-lifecycle/startup/device-boot.feature",
-   "fingerprint": "5a10d4870400",
-   "human": false,
-   "rule": "device.startup.unknown-language-reported",
    "source": "pico/main.py#main",
    "status": "inferred",
    "test": "",
@@ -3582,41 +3521,11 @@
     "tests/test_export.py#test_summary_survives_an_empty_window_and_a_missing_recommendation"
    ]
   },
-  "device-web.offline-dashboard.001": {
-   "file": "specs/device-web/offline-dashboard/offline-dashboard-serving.feature",
-   "fingerprint": "32fe1d15704c",
-   "human": false,
-   "rule": "device-web.static.off-by-default",
-   "source": "pico/http.py#_dispatch",
-   "status": "inferred",
-   "test": "",
-   "tests": []
-  },
-  "device-web.offline-dashboard.002": {
-   "file": "specs/device-web/offline-dashboard/offline-dashboard-serving.feature",
-   "fingerprint": "96523d7df87d",
-   "human": false,
-   "rule": "device-web.static.dashboard-files-served",
-   "source": "pico/http.py#serve_static_file",
-   "status": "inferred",
-   "test": "",
-   "tests": []
-  },
   "device-web.offline-dashboard.003": {
    "file": "specs/device-web/offline-dashboard/offline-dashboard-serving.feature",
    "fingerprint": "96523d7df87d",
    "human": false,
    "rule": "device-web.static.missing-file-falls-through",
-   "source": "pico/http.py#serve_static_file",
-   "status": "inferred",
-   "test": "",
-   "tests": []
-  },
-  "device-web.offline-dashboard.004": {
-   "file": "specs/device-web/offline-dashboard/offline-dashboard-serving.feature",
-   "fingerprint": "96523d7df87d",
-   "human": false,
-   "rule": "device-web.static.unchanged-file-not-resent",
    "source": "pico/http.py#serve_static_file",
    "status": "inferred",
    "test": "",
@@ -3678,16 +3587,6 @@
    "human": false,
    "rule": "device-web.offline-dashboard.unchanged-asset-not-resent",
    "source": "pico/staticfiles.py#not_modified",
-   "status": "inferred",
-   "test": "",
-   "tests": []
-  },
-  "device-web.offline-dashboard.011": {
-   "file": "specs/device-web/offline-dashboard/offline-dashboard-hosting.feature",
-   "fingerprint": "96523d7df87d",
-   "human": false,
-   "rule": "device-web.offline-dashboard.api-not-shadowed",
-   "source": "pico/http.py#serve_static_file",
    "status": "inferred",
    "test": "",
    "tests": []

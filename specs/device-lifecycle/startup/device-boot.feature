@@ -13,18 +13,6 @@ Feature: Booting the device
     And the device does not join Wi-Fi or start serving
     And no crash dump is written for this failure
 
-  @id:device-lifecycle.startup.002 @rule:device.startup.unknown-language-reported @inferred @source:pico/main.py#main
-  Scenario Outline: An unknown display language falls back to English and the fallback is logged
-    Given the device's configured language is "<configured>", which the device does not support
-    When the device boots
-    Then the panel text is shown in English
-    And the device log shows "Unknown language '<configured>', using en"
-
-    Examples:
-      | configured |
-      | xx         |
-      | klingon    |
-
   @id:device-lifecycle.startup.003 @rule:device.startup.serves-without-network @inferred @source:pico/main.py#main
   Scenario: A device that cannot join Wi-Fi at boot still starts serving, without setting its clock
     Given the configured Wi-Fi network cannot be reached

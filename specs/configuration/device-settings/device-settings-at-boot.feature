@@ -22,18 +22,6 @@ Feature: Starting a device from its settings
       | forces provider "em" without an Electricity Maps token | providers.electricity_maps.token |
       | sets an unknown option "wifi.sid"                      | wifi.sid                         |
 
-  @id:configuration.device-settings.002 @rule:device.settings.keyless-providers-need-no-credentials @verified @source:pico/settings.py#required_names @test:tests/test_settings.py#test_only_enabled_providers_need_credentials @test:tests/test_settings.py#test_a_forced_provider_needs_only_its_own_credentials
-  Scenario Outline: A device that only asks keyless or unasked providers boots without any tokens
-    Given settings.json sets the Wi-Fi name and password
-    And <providers>
-    When the device starts
-    Then the device starts without a settings error
-
-    Examples:
-      | providers                                                      |
-      | only the keyless ci-api provider is enabled                    |
-      | ENTSO-E is enabled without a token but provider "uk" is forced |
-
   @id:configuration.device-settings.003 @rule:device.settings.out-of-box-defaults @verified @source:pico/config.py#CONFIG @test:tests/test_settings.py#test_omitted_values_keep_their_defaults
   Scenario Outline: Settings left out of settings.json take the firmware default
     Given settings.json sets only the Wi-Fi name, password and an ENTSO-E token
@@ -51,9 +39,3 @@ Feature: Starting a device from its settings
       | the green / yellow bands              | up to the 25th / 50th percentile                                  |
       | the timeline                          | 48 hours back and 12 hours ahead                                  |
       | locating by public IP                 | on, rechecked every 24 hours, retried after 15 minutes on failure |
-
-  @id:configuration.device-settings.004 @rule:device.settings.api-open-without-token @inferred @source:pico/config.py#CONFIG
-  Scenario: A device with no API token configured leaves every endpoint open
-    Given settings.json does not set web.api_token
-    When a client on the LAN calls the device API without an Authorization header
-    Then the device answers the request instead of returning 401
