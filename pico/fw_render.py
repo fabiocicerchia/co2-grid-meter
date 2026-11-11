@@ -11,9 +11,6 @@ CLAUDE.md.
 
 import time
 
-# Both forms on purpose: the functions are bound once, but `app._fresh_data` is
-# rewritten on every cache miss, so it has to be read through the module.
-import app
 from app import build_status_bundle, series_points
 from display import (
     EINK_BLACK,
@@ -208,8 +205,13 @@ def render_screen(status_json, window_json, overlay_json):
     current_line, week_line, overlay_values = aligned_lines(window_json, overlay_json, floor_hour_epoch(now))
     percentile_value = week_percentile(current_intensity, overlay_values)
 
-    if app._fresh_data:
-        epd_clear_screen(_epd)
+    # Every frame starts from white. This clears the framebuffers, not the
+    # panel: the B V4 has no partial refresh, so display() redraws every pixel
+    # whether or not they changed, and a cleared buffer costs no extra flicker.
+    # Drawing over the last frame instead left the previous graph, threshold
+    # bands and CO2 figure under the new ones — only the elements that blank
+    # their own area first came out clean.
+    epd_clear_screen(_epd)
 
     draw_leds(
         _epd,

@@ -152,3 +152,25 @@ def test_render_screen_fits_the_line_to_the_panel_it_draws_on(fw_render, screen_
     fw_render.render_screen({"recommendation": {"verdict": "WAIT", "reason": LONG_REASON}}, {}, {})
 
     assert fw_render.draw_current_panel.call_args.args[3] == expected
+
+
+def test_every_render_starts_from_a_blank_frame(fw_render):
+    # The buffers outlive a render, so one drawn over without a clear keeps the
+    # last frame underneath: the graph shifted an hour sat beside its previous
+    # copy, and the CO2 figure was printed over the old one. Clearing used to
+    # depend on a "fresh data" flag that the HTTP handlers also reset, so most
+    # renders skipped it.
+    fw_render.CONFIG.display.render_min_interval_sec = 0
+    fw_render.panel_dimensions.return_value = (LANDSCAPE_W, None)
+    fw_render.aligned_lines = lambda *_args: ([], [], [])
+    calls = mock.Mock()
+    fw_render.get_epd = lambda: calls.epd
+    fw_render.epd_clear_screen = calls.clear
+    fw_render.draw_graph = calls.draw_graph
+    status = {"carbonIntensity": 300, "recommendation": {"verdict": "WAIT"}}
+
+    fw_render.render_screen(status, {}, {})
+    fw_render.render_screen(status, {}, {})
+
+    names = [name for name, _args, _kwargs in calls.mock_calls]
+    assert names == ["clear", "draw_graph", "epd.display"] * 2
