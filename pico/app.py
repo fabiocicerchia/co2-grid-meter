@@ -21,10 +21,6 @@ from utils import (
 
 from config import CONFIG
 
-# Read by fw_render: a window that came from a provider rather than the cache
-# means the panel is redrawn from white instead of over the last frame.
-_fresh_data = False
-
 _cache = TtlCache(CONFIG.cache_refresh_seconds)
 # Provider I/O only. Everything else — status composition, geo lookups — stays
 # on TtlCache: it is cheap and local, and a second thread for it would cost a
@@ -187,14 +183,6 @@ def dummy_fetch_window_any(lat, lon, city, country_code, start_epoch, end_epoch)
     return {"city": "Dummy", "history": history, "_provider": "dummy"}, "dummy"
 
 
-_fresh_data = False
-# The publish time of the reading the screen was last drawn from. A change in
-# it means a new reading arrived, which is when a full e-ink clear is worth its
-# flicker — "did this call do the fetching" stopped being the same question
-# once fetching moved off the request path.
-_last_window_stamp = 0
-
-
 def _fetch_window(lat, lon, city, cc, start_epoch, end_epoch):
     """The cache miss path for `get_window`. Only called through it.
 
@@ -217,7 +205,6 @@ def _fetch_window(lat, lon, city, cc, start_epoch, end_epoch):
 
 
 def get_window(lat, lon, city, cc, start_epoch, end_epoch):
-    global _fresh_data, _last_window_stamp
     key = ("window", round(lat, 4), round(lon, 4), city, cc, start_epoch, end_epoch)
 
     # The fetcher's worker thread is deliberately never started. MicroPython's
@@ -240,10 +227,6 @@ def get_window(lat, lon, city, cc, start_epoch, end_epoch):
         # ASCII only: this string lands on the e-ink, whose framebuf font has
         # no glyph for an em dash.
         raise ProviderError("No reading yet - first fetch still running")
-
-    published_at, _ = _fetcher.published(key)
-    _fresh_data = published_at != _last_window_stamp
-    _last_window_stamp = published_at
     return data
 
 
