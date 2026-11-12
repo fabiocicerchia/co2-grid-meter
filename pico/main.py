@@ -16,6 +16,7 @@ boot.py runs before this and handles the OTA boot marker; see pico/ota.py.
 # =========================
 
 import gc
+import time
 import sys
 from http import serve_forever, set_time
 
@@ -60,7 +61,15 @@ def main():
         connected, ip = wifi_connect()
 
     if connected:
-        set_time()  # local time from CONFIG.defaults, EU summer time included
+        # DNS is often not answering yet right after association (OSError -2,
+        # EAI_NONAME), and a wrong clock must never stop the device serving.
+        for attempt in range(3):
+            try:
+                set_time()  # local time from CONFIG.defaults, EU summer time included
+                break
+            except Exception as error:
+                LOGGER.info("set_time attempt %d failed: %s" % (attempt + 1, error))
+                time.sleep(2)
 
     # After the network, before serving: the diagnostics are most useful in the
     # log above the first request, not interleaved with it.

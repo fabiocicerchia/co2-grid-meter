@@ -184,7 +184,7 @@ def set_time(offset=None, epoch_offset=NTP_EPOCH_OFFSET_SEC, host="pool.ntp.org"
     addr = socket.getaddrinfo(host, 123)[0][-1]
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     try:
-        sock.settimeout(1)
+        sock.settimeout(3)  # first NTP reply after boot often takes >1s
         sock.sendto(ntp_query, addr)
         reply = sock.recv(48)
     finally:
