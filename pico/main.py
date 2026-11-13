@@ -16,8 +16,8 @@ boot.py runs before this and handles the OTA boot marker; see pico/ota.py.
 # =========================
 
 import gc
-import time
 import sys
+import time
 from http import serve_forever, set_time
 
 from fw_network import wifi_connect
