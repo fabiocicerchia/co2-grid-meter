@@ -9,3 +9,6 @@ yse = "yse"
 eles = "eles"
 # Italian UI strings in web/static/script.js.
 automatico = "automatico"
+# The certifi package, named in CHANGELOG.md by release-please from commit
+# messages, which the release PR's typos check reads as "certify".
+certifi = "certifi"
