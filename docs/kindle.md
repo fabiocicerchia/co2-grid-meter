@@ -6,7 +6,7 @@ code is the firmware under `pico/`, unchanged, run by `kindle/run.py` under the
 Kindle's Python with stand-ins for the MicroPython-only modules
 (`kindle/shims/`).
 
-Written for the **Kindle 4 (non-touch), firmware 4.1.4**. Other models of that
+Written for, and run on, a **Kindle 4 (non-touch), firmware 4.1.4**. Other models of that
 era should work with `CO2_SCREEN_W`/`CO2_SCREEN_H` set (see
 [Tuning](#tuning)); none has been tried.
 
@@ -14,28 +14,51 @@ era should work with `CO2_SCREEN_W`/`CO2_SCREEN_H` set (see
 > `http://<pico-ip>/kindle` in the Experimental Browser — see
 > [firmware.md](firmware.md#kindle-as-a-second-display).
 
+Every package below comes from NiLuJe's
+[snapshots thread](https://www.mobileread.com/forums/showthread.php?t=225030),
+except the certificate update. Use the K4 builds. A `.bin` update installs by
+copying it to the root of the Kindle's USB drive, ejecting, and choosing
+Menu → Settings → Menu → **Update Your Kindle**. Keep one `.bin` at the root at
+a time. The K4 does not need MRPI.
+
 ## 1. Jailbreak
 
-Follow the MobileRead wiki's
-[Kindle 4 NT hacking page](https://wiki.mobileread.com/wiki/Kindle4NTHacking).
-The K4 jailbreak covers firmware 4.0.0 through 4.1.4. When it has worked, a
-book called **You are Jailbroken** appears on the home screen.
+From `kindle-k4-jailbreak-*.tar.xz`, copy `data.tar.gz`, `ENABLE_DIAGS` and the
+`diagnostic_logs` folder to the drive's root, eject, and restart the Kindle
+(Menu → Settings → Menu → Restart). In Diagnostics, choose **D) Exit, Reboot or
+Disable Diags**, then **R) Reboot System**. At "Are you sure?" press **left** on
+the 5-way pad; the centre button only asks again. A book called **You are
+Jailbroken** appears when it has worked. Then delete `data.tar.gz` and
+`ENABLE_DIAGS` from the root, or the next restart goes back to Diagnostics.
 
-Get the files from NiLuJe's
-[snapshots thread](https://www.mobileread.com/forums/showthread.php?t=225030),
-the one source for all three of these steps. Use the K4 builds.
+The MobileRead wiki's
+[Kindle 4 NT hacking page](https://wiki.mobileread.com/wiki/Kindle4NTHacking)
+has the full procedure. It covers firmware 4.0.0 through 4.1.4.
 
-## 2. MRPI and KUAL
+## 2. Python 3
 
-From the same thread, install **MRPI** (the package installer) and **KUAL**
-(the launcher this extension adds a menu to). Their READMEs cover the K4.
+Install `Update_python3_*_k4_install.bin` from `kindle-python-*.tar.xz`. It
+ships Python 3.9 as `/mnt/us/python3/bin/python3.9`, with `certifi`, which the
+meter uses for current TLS certificates. `bin/start.sh` finds it there; set
+`CO2_PYTHON` if yours is elsewhere.
 
-## 3. Python 3
+## 3. KUAL
 
-Install NiLuJe's **Python** package through MRPI. It ships Python 3.9 for the
-K4, with `certifi`, which the meter uses for current TLS certificates. It lands
-in `/mnt/us/python3`; if yours is elsewhere, set `CO2_PYTHON` in
-`bin/start.sh`.
+KUAL on the K4 is a kindlet, and needs three things, in this order:
+
+1. **MKK**, the MobileRead Kindlet Kit: `Update_mkk-20141129-k4-ALL_install.bin`
+   from `kindle-mkk-*.tar.xz`. Without it, KUAL says the Kindlet Kit is not
+   installed.
+1. **The certificate update**: `Update_mkk-20250419-k4-ALL_keystore-install.bin`
+   from `DevCerts-20250419-KeyStore.zip`, attached to
+   [NiLuJe's post in the KUAL thread](https://www.mobileread.com/forums/showthread.php?p=4506164).
+   The kindlet signing certificate expired on 17 April 2025, and current KUAL
+   builds are signed with its replacement. MKK ships the old one, so this has to
+   go on *after* MKK. Restart the Kindle afterwards. Skipping it, or installing
+   it before MKK, gives "not signed by an authorized developer".
+1. **KUAL itself**: copy `KUAL-KDK-1.0.azw2` from `KUAL-*.tar.xz` into the
+   drive's `documents` folder. Not the `KDK-2.0` kindlet and not the booklet
+   `.bin`, which are for later models.
 
 ## 4. The meter
 
@@ -46,7 +69,7 @@ kindle/build.sh
 ```
 
 Plug the Kindle in over USB and copy `dist/kindle/extensions/` onto its drive,
-merging with the `extensions` folder KUAL created. Eject.
+creating `extensions` at the root if it is not there. Eject.
 
 The `wifi` block in `settings.json` must be filled in to pass the startup check,
 but the Kindle never uses it: join your network from the Kindle's own settings.
