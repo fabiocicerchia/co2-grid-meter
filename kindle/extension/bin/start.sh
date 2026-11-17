@@ -41,12 +41,10 @@ fi
 
 if [ "$1" != "--detached" ]; then
     # Out of KUAL's process tree first: stopping the framework stops KUAL, and
-    # anything still attached to it goes too.
-    if command -v setsid >/dev/null 2>&1; then
-        setsid "$0" --detached </dev/null >>"$LOG" 2>&1 &
-    else
-        nohup "$0" --detached </dev/null >>"$LOG" 2>&1 &
-    fi
+    # anything still attached to it goes too. The K4's busybox has neither
+    # setsid nor nohup, so Python does the setsid.
+    "$PYTHON" -c 'import os, sys; os.setsid(); os.execv(sys.argv[1], sys.argv[1:])' \
+        "$0" --detached </dev/null >>"$LOG" 2>&1 &
     exit 0
 fi
 
