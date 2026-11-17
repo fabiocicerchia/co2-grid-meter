@@ -84,16 +84,21 @@ KUAL → **CO2 Grid Meter**:
 
 - **Test (one render)** fetches, draws once and stops. Start here: it takes up
   to a couple of minutes, and on failure writes a line on screen and the
-  details to `co2meter.log`.
-- **Start** runs it in the background and keeps the screensaver off.
-- **Stop** ends it and lets the screensaver back.
+  details to `co2meter.log`. The Kindle's own UI stays up during a test, so its
+  status bar can still draw over the top.
+- **Start** stops the Kindle's own UI (the framework), so nothing else draws
+  on the screen, keeps the screensaver off and redraws every
+  `render_min_interval_sec`. KUAL goes with the framework, so **press any key
+  to stop the meter**: the framework comes back, home screen and all, in about
+  half a minute.
 
-The picture is turned a quarter, so the panel's long side runs down the
-Kindle's: stand it on its right edge. Keep it on the charger; with the
+The picture fills the screen, turned a quarter, so the panel's long side runs
+down the Kindle's: stand it on its right edge. Keep it on the charger; with the
 screensaver off and Wi-Fi on, a K4 lasts days, not weeks.
 
-Pressing a button brings the Kindle's own screen back over the reading until
-the next render.
+If a key press does not bring the Kindle back, hold the power switch for about
+20 seconds: it restarts with the framework, and the meter does not start on its
+own.
 
 ## Tuning
 
@@ -119,6 +124,9 @@ CO2_EIPS= CO2_PNG=/tmp/co2.png python3 path/to/kindle/run.py --once
 ## How it differs from the Pico
 
 - No HTTP server: the Kindle is the display, nothing calls it.
+- The frame is the whole screen at `CO2_SCALE`, 266x200 on a K4, instead of
+  the panel's 250x122, and the graph's 90px height cap is lifted, so the plot
+  takes everything below the verdict panel.
 - The clock: the Pico keeps local time in its RTC and the firmware is written
   around that. `run.py` takes the time from NTP (a retired Kindle's own clock
   can be days out) and makes `time.time()` and `localtime()` read local

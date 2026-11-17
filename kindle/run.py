@@ -5,7 +5,8 @@ stands in for the MicroPython-only modules, and shims/epd_driver.py draws to
 the Kindle's screen instead of the Waveshare panel. No HTTP server: the Kindle
 is the display, not an API.
 
-    python3 run.py            # loop forever, a render every render_min_interval_sec
+    python3 run.py            # a render every render_min_interval_sec, until
+                              # any key on the Kindle is pressed
     python3 run.py --once     # until the first real render, then exit; 1 if
                               # none within 2 minutes (CO2_EIPS= for PNG only)
 
@@ -14,11 +15,13 @@ settings.json is read from the current directory, as on the Pico.
 
 import contextlib
 import gc
+import glob
 
 # Before pico/ goes on the path: pico/http.py would otherwise shadow the stdlib
 # package that urllib needs. Once these are in sys.modules, it cannot.
 import http.client  # noqa: F401
 import os
+import select
 import socket
 import struct
 import sys
@@ -80,6 +83,36 @@ def install_device_clock(offset_for):
     time.localtime = device_tuple
 
 
+def open_keys():
+    """The Kindle's input devices, drained of anything already queued.
+
+    With the framework stopped (bin/start.sh), nothing else reads the keys, so
+    a press is the way out. Whatever is queued already — the release of the
+    press that launched this from KUAL — is read off and dropped first. On a
+    desktop the devices are root-only and the list is empty.
+    """
+    fds = []
+    for path in glob.glob("/dev/input/event*"):
+        try:
+            fds.append(os.open(path, os.O_RDONLY | os.O_NONBLOCK))
+        except OSError:
+            continue
+    key_pressed(fds, 0)
+    return fds
+
+
+def key_pressed(fds, timeout):
+    """Wait up to `timeout` seconds; True if any key went down or up meanwhile."""
+    if not fds:
+        time.sleep(timeout)
+        return False
+    ready = select.select(fds, [], [], timeout)[0]
+    for fd in ready:
+        with contextlib.suppress(OSError):
+            os.read(fd, 4096)
+    return bool(ready)
+
+
 def main(argv):
     global _skew
     once = "--once" in argv
@@ -104,10 +137,16 @@ def main(argv):
         print("NTP failed, trusting the Kindle clock: %s" % error)
     install_device_clock(offset_for)
 
+    import fw_graph
     import fw_network
     import fw_render
 
+    # The cap exists for the Pico's portrait layout; here the graph fills
+    # whatever the screen has below the panel.
+    fw_graph.GRAPH_MAX_HEIGHT = 10_000
+
     fw_network.wifi_connect()
+    keys = [] if once else open_keys()
     next_sync = time.time() + 6 * 3600
     give_up = time.time() + 120
     while True:
@@ -119,7 +158,9 @@ def main(argv):
         if once:
             # Only the first fetch is in the background; let the next tick in.
             fw_render._last_display_tick = 0
-        time.sleep(5)
+        if key_pressed(keys, 5):
+            print("Key pressed, stopping")
+            return 0
         if time.time() >= next_sync:
             next_sync = time.time() + 6 * 3600
             with contextlib.suppress(OSError):

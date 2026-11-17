@@ -1,7 +1,9 @@
 #!/bin/sh
-# Started from KUAL. Runs the meter in the background and keeps the screen
-# awake; bin/stop.sh undoes both. Output goes to co2meter.log next to this
-# folder, which is the first place to look when the screen shows nothing.
+# Started from KUAL. Runs the meter with the Kindle's own UI (the framework)
+# stopped, so its status bar cannot draw over the reading, and the screensaver
+# held off. Any key ends the meter and brings the framework back.
+# Output goes to co2meter.log next to this folder, which is the first place to
+# look when the screen shows nothing.
 
 DIR="$(cd "$(dirname "$0")/.." && pwd)"
 PATH="/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
@@ -36,5 +38,23 @@ if [ "$1" = "--once" ]; then
     "$PYTHON" run.py --once >>"$LOG" 2>&1 || eips 2 38 "co2meter: test failed, see co2meter.log"
     exit 0
 fi
-nohup "$PYTHON" run.py >>"$LOG" 2>&1 &
+
+if [ "$1" != "--detached" ]; then
+    # Out of KUAL's process tree first: stopping the framework stops KUAL, and
+    # anything still attached to it goes too.
+    if command -v setsid >/dev/null 2>&1; then
+        setsid "$0" --detached </dev/null >>"$LOG" 2>&1 &
+    else
+        nohup "$0" --detached </dev/null >>"$LOG" 2>&1 &
+    fi
+    exit 0
+fi
+
+FRAMEWORK=/etc/init.d/framework
+[ -x "$FRAMEWORK" ] && "$FRAMEWORK" stop
+"$PYTHON" run.py &
 echo $! >"$PIDFILE"
+wait $!
+rm -f "$PIDFILE"
+lipc-set-prop com.lab126.powerd preventScreenSaver 0 2>/dev/null
+[ -x "$FRAMEWORK" ] && "$FRAMEWORK" start

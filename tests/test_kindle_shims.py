@@ -47,21 +47,22 @@ def test_text_draws_the_micropython_glyph():
     assert fb.pixel(0, 0) == 1
 
 
-def test_landscape_panel_renders_rotated_scaled_png(tmp_path):
+def test_panel_fills_the_kindle_screen_rotated(tmp_path):
     panel = epd.EPD_2in13_B_V4_Landscape()
-    assert (panel.imageblack.width, panel.imageblack.height) == (250, 128)
+    # 800x600 once turned, at scale 3.
+    assert (panel.imageblack.width, panel.imageblack.height) == (266, 200)
     panel.imageblack.fill(1)
     panel.imagered.fill(1)
     panel.imageblack.pixel(0, 0, 0)  # top-left: black
-    panel.imagered.pixel(249, 0, 0)  # top-right: red
+    panel.imagered.pixel(265, 0, 0)  # top-right: red
 
     width, height, rows = _decode(panel.render_png(str(tmp_path / "out.png")))
     assert (width, height) == (epd.SCREEN_W, epd.SCREEN_H)
 
-    # Rotated 90 clockwise: 128x250 at scale 3 is 384x750, centred.
-    left, top = (600 - 384) // 2, (800 - 750) // 2
-    # The panel's top-left lands top-right; its top-right, bottom-right.
-    assert rows[top][left + 383] == epd.BLACK
-    assert rows[top + 749][left + 383] == epd.RED
-    assert rows[top][left] == epd.WHITE
-    assert rows[0][0] == epd.WHITE
+    # Rotated 90 clockwise: 200x266 at scale 3 is 600x798, one spare row above
+    # and below. The panel's top-left lands top-right; its top-right,
+    # bottom-right.
+    assert rows[1][599] == epd.BLACK
+    assert rows[798][599] == epd.RED
+    assert rows[1][0] == epd.WHITE
+    assert rows[0][599] == epd.WHITE

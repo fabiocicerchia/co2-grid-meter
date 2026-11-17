@@ -4,7 +4,9 @@ Same class names and frame attributes, so pico/display.py cannot tell the
 difference. display() turns the two ink planes into an 8-bit grayscale PNG and
 hands it to `eips`, the Kindle's own screen tool.
 
-The panel is 250x122, the Kindle 600x800. The picture is scaled by a whole
+The frames are not the Waveshare panel's 250x122 but the whole Kindle screen
+at SCALE: 266x200 on a K4 turned on its side. pico/ lays out from the frame's
+size, so the graph stretches to fill it. The picture is scaled by a whole
 number, so every 8x8 glyph stays sharp, and turned a quarter so the landscape
 layout runs down the long side: stand the Kindle on its side.
 """
@@ -15,9 +17,6 @@ import subprocess
 import zlib
 
 import framebuf
-
-EPD_WIDTH = 122
-EPD_HEIGHT = 250
 
 # The Kindle 4's screen. Tuning knobs, all overridable from the environment
 # (see kindle/extension/bin/start.sh): a different model, or a scale that
@@ -90,10 +89,19 @@ def place(rows, scale, screen_w, screen_h):
     return out
 
 
+def frame_size(screen_w=SCREEN_W, screen_h=SCREEN_H, scale=SCALE, rotate_by=ROTATE):
+    """The frame that fills the screen once scaled and rotated."""
+    if rotate_by in (90, 270):
+        screen_w, screen_h = screen_h, screen_w
+    return screen_w // scale, screen_h // scale
+
+
 class _KindlePanel:
-    def __init__(self, frame_w, frame_h):
-        self.width = (EPD_WIDTH // 8) * 8 + 8
-        self.height = EPD_HEIGHT
+    # Both orientations get the same full-screen frame: on the Kindle,
+    # orientation is CO2_ROTATE, not the panel class.
+    def __init__(self):
+        frame_w, frame_h = frame_size()
+        self.width, self.height = frame_h, frame_w
         self.imageblack = framebuf.FrameBuffer(None, frame_w, frame_h)
         self.imagered = framebuf.FrameBuffer(None, frame_w, frame_h)
 
@@ -120,10 +128,8 @@ class _KindlePanel:
 
 
 class EPD_2in13_B_V4_Landscape(_KindlePanel):
-    def __init__(self):
-        super().__init__(EPD_HEIGHT, (EPD_WIDTH // 8) * 8 + 8)
+    pass
 
 
 class EPD_2in13_B_V4_Portrait(_KindlePanel):
-    def __init__(self):
-        super().__init__((EPD_WIDTH // 8) * 8 + 8, EPD_HEIGHT)
+    pass

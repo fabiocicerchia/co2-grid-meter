@@ -2,8 +2,7 @@
 PATH="/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
 PIDFILE="/tmp/co2meter.pid"
 
+# Normally a key press stops the meter, since KUAL is not running while it is.
+# This is for a shell (ssh, or a --once run that never stopped the framework).
+# Killing the meter lets start.sh restore the screensaver and the framework.
 [ -f "$PIDFILE" ] && kill "$(cat "$PIDFILE")" 2>/dev/null
-rm -f "$PIDFILE"
-lipc-set-prop com.lab126.powerd preventScreenSaver 0 2>/dev/null
-# The home screen redraws on the next key press.
-eips -c

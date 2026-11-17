@@ -25,6 +25,10 @@ GRAPH_ORIGIN = (5, 60)
 GRAPH_TICK_BAND = 9
 GRAPH_DASH_LEN = 3
 GRAPH_DASH_GAP = 5
+# Tallest the plot grows. Only reached in portrait, where the panel would
+# otherwise give the graph most of its 250px. kindle/run.py lifts it: there the
+# screen is the graph's to fill.
+GRAPH_MAX_HEIGHT = 90
 # Day ticks: hours relative to now, and the label drawn under each.
 GRAPH_DAY_TICKS = ((-48, "-2d"), (-24, "-1d"), (0, "now"))
 # One point is a dot, not a line.
@@ -43,7 +47,7 @@ class GraphAxes:
         screen_w, screen_h = panel_dimensions(epd)
         self.base_x, self.base_y = GRAPH_ORIGIN
         self.width = max(10, screen_w - 10)
-        self.height = max(10, min(90, screen_h - self.base_y - 5))
+        self.height = max(10, min(GRAPH_MAX_HEIGHT, screen_h - self.base_y - 5))
         self.plot_h = max(8, self.height - GRAPH_TICK_BAND)
 
         # Y-scale from min/max over last week + current timeline values.
