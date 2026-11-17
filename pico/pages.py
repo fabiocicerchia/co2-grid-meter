@@ -106,3 +106,58 @@ def build_index_html():
 </body>
 </html>
 """
+
+
+# The Kindle's "Experimental Browser" is a WebKit from around 2012: no fetch,
+# no arrow functions, no CSS grid. So this page is rendered here, on the device,
+# and refreshes itself with a meta tag — nothing on the Kindle has to run JS.
+# Black on white, big type, no colour: that is the whole e-ink palette.
+KINDLE_REFRESH_SECONDS = 300
+
+
+def _esc(value):
+    # No `html` module in MicroPython. `city` and `cc` can come from the query
+    # string, so this is the line between a parameter and markup.
+    text = "--" if value is None else str(value)
+    return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace('"', "&quot;")
+
+
+def build_kindle_html(status, refresh_seconds=KINDLE_REFRESH_SECONDS):
+    rec = status.get("recommendation") or {}
+    return """<!doctype html><html><head><meta charset="utf-8">
+<meta http-equiv="refresh" content="%d">
+<title>CO2 %s</title>
+<style>
+body{margin:0;padding:24px;font-family:serif;background:#fff;color:#000;text-align:center}
+.ci{font-size:120px;font-weight:bold;line-height:1}
+.unit{font-size:28px}
+.verdict{display:inline-block;margin:28px 0;padding:12px 40px;border:6px solid #000;font-size:72px;font-weight:bold}
+.go{background:#000;color:#fff}
+table{margin:0 auto;font-size:26px;border-collapse:collapse}
+td{padding:6px 14px;text-align:left}
+.muted{font-size:20px;color:#555;margin-top:24px}
+</style></head><body>
+<div style="font-size:34px">%s %s</div>
+<div class="ci">%s</div><div class="unit">gCO2/kWh</div>
+<div class="verdict%s">%s</div>
+<table>
+<tr><td>Reason</td><td>%s</td></tr>
+<tr><td>Wait</td><td>%s h</td></tr>
+<tr><td>Next best</td><td>%s</td></tr>
+</table>
+<div class="muted">%s &middot; %s &middot; refreshes every %d min</div>
+</body></html>""" % (
+        refresh_seconds,
+        _esc(status.get("city")),
+        _esc(status.get("city")),
+        _esc(status.get("cc")),
+        _esc(status.get("carbonIntensity")),
+        " go" if rec.get("verdict") == "GO" else "",
+        _esc(rec.get("verdict")),
+        _esc(rec.get("reason")),
+        _esc(rec.get("wait_hours")),
+        _esc(rec.get("next_best")),
+        _esc(status.get("_provider")),
+        _esc(status.get("datetime")),
+        refresh_seconds // 60,
+    )

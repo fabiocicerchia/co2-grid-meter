@@ -599,3 +599,23 @@ adds a file, a truncated state file and a power loss simulated mid-`activate()`.
 None of that is the same as pulling the USB cable out of a Pico halfway
 through, which is the check this needs before you trust it with a device you
 cannot reach.
+
+## Kindle as a second display
+
+An old Kindle (one Amazon no longer supports for books still works fine here)
+can show the status through its Experimental Browser. No jailbreak needed.
+
+1. Connect the Kindle to the same Wi-Fi as the Pico.
+1. Open **Experimental Browser** and go to `http://<pico-ip>/kindle`.
+   Bookmark it.
+1. Keep the screen from sleeping. On most older models you can type `~ds` in
+   the home-screen search bar and press Enter. That lasts until the next
+   reboot.
+
+The page is rendered on the Pico and reloads itself every 5 minutes with a
+`<meta refresh>`. It has no JavaScript, because the Kindle's WebKit is too old
+for the dashboard's. `?city=`, `?cc=`, `?lat=` and `?lon=` work the same as on
+`/status`.
+
+The Kindle can't send an `Authorization` header, so `/kindle` won't load while
+`web.api_token` is set. The same limit applies to the other `/html` pages.

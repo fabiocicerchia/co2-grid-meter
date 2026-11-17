@@ -121,6 +121,9 @@ from Conventional Commit messages — don't edit by hand, see [CONTRIBUTING.md](
 
 ### Added
 
+- `/kindle`: a server-rendered, script-free status page for an old Kindle's
+  Experimental Browser, refreshing itself every 5 minutes.
+
 ### Changed
 
 ### Deprecated

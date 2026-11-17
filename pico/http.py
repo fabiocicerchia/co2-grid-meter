@@ -20,7 +20,7 @@ from app import (
 from display import get_epd
 from fw_network import wifi_connect, wifi_ok
 from fw_render import _display_tick, render_placeholder_screen
-from pages import GRAPH_HTML, MINI_HTML, build_index_html
+from pages import GRAPH_HTML, MINI_HTML, build_index_html, build_kindle_html
 from timeutil import utc_offset_seconds
 from utils import _now_stamp, log
 
@@ -252,6 +252,8 @@ JSON_ROUTES = {
 # once at import — /em/window.csv answers for whatever window was asked for.
 TEXT_ROUTES = {
     "/em/window.csv": ("text/csv", handle_em_window_csv),
+    # Server-rendered for the Kindle's browser, which cannot run the dashboard.
+    "/kindle": ("text/html; charset=utf-8", lambda params: build_kindle_html(handle_status(params))),
 }
 
 # The pages served from flash: path -> (content type, the page). Built once at
