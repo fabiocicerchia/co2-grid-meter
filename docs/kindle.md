@@ -76,13 +76,13 @@ the next render.
 
 Environment variables, set at the top of `bin/start.sh`:
 
-| Variable       | Default                       | What it is                                    |
-| -------------- | ----------------------------- | --------------------------------------------- |
-| `CO2_PYTHON`   | `/mnt/us/python3/bin/python3` | The interpreter                               |
-| `CO2_SCALE`    | `3`                           | Whole-number zoom; 3 keeps the 8x8 font sharp |
-| `CO2_ROTATE`   | `90`                          | `90`, `270` (other edge down) or `0`          |
-| `CO2_SCREEN_W` | `600`                         | Screen width in pixels                        |
-| `CO2_SCREEN_H` | `800`                         | Screen height in pixels                       |
+| Variable       | Default                         | What it is                                    |
+| -------------- | ------------------------------- | --------------------------------------------- |
+| `CO2_PYTHON`   | `/mnt/us/python3/bin/python3.*` | The interpreter                               |
+| `CO2_SCALE`    | `3`                             | Whole-number zoom; 3 keeps the 8x8 font sharp |
+| `CO2_ROTATE`   | `90`                            | `90`, `270` (other edge down) or `0`          |
+| `CO2_SCREEN_W` | `600`                           | Screen width in pixels                        |
+| `CO2_SCREEN_H` | `800`                           | Screen height in pixels                       |
 
 ## Trying it on a desktop
 

@@ -8,9 +8,15 @@ PATH="/usr/sbin:/usr/bin:/sbin:/bin:$PATH"
 LOG="$DIR/co2meter.log"
 PIDFILE="/tmp/co2meter.pid"
 
-# NiLuJe's Python 3 package installs here (MRPI). Override if yours differs.
-PYTHON="${CO2_PYTHON:-/mnt/us/python3/bin/python3}"
-[ -x "$PYTHON" ] || PYTHON="$(command -v python3)"
+# NiLuJe's Python 3 package installs a versioned binary (python3.9 on the K4)
+# in /mnt/us/python3/bin. Override with CO2_PYTHON if yours differs.
+PYTHON="${CO2_PYTHON:-}"
+if [ -z "$PYTHON" ]; then
+    for candidate in /mnt/us/python3/bin/python3.* /mnt/us/python3/bin/python3 /usr/bin/python3; do
+        case "$candidate" in *-config) continue ;; esac
+        [ -e "$candidate" ] && PYTHON="$candidate" && break
+    done
+fi
 if [ -z "$PYTHON" ]; then
     eips 2 38 "co2meter: python3 not found, see docs/kindle.md"
     exit 1
