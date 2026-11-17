@@ -190,7 +190,7 @@ def _ensure_dirs() -> None:
     _safe_mkdir(CRASH_DIR)
 
 
-def _date_from_epoch(epoch: int | None = None) -> str:
+def _date_from_epoch(epoch=None) -> str:
     ts = time.localtime(epoch or time.time())
     return "%04d-%02d-%02d" % (ts[0], ts[1], ts[2])
 

@@ -1,0 +1,13 @@
+{
+  "items": [
+    {
+      "name": "CO2 Grid Meter",
+      "priority": 0,
+      "items": [
+        { "name": "Start", "priority": 1, "action": "bin/start.sh" },
+        { "name": "Stop", "priority": 2, "action": "bin/stop.sh" },
+        { "name": "Test (one render)", "priority": 3, "action": "bin/start.sh", "params": "--once" }
+      ]
+    }
+  ]
+}

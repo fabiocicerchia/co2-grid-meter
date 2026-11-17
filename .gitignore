@@ -34,3 +34,6 @@ site/
 # pico/settings.example.json.
 settings.json
 pico/settings.json
+
+# Kindle extension build (kindle/build.sh); may contain a copied settings.json.
+dist/

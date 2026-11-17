@@ -95,6 +95,26 @@ mypy-init-return = true
 # renaming them would silently fork it from the datasheet and the upstream
 # examples anyone would compare it against.
 "pico/epd_driver.py" = ["N801", "N802", "N803", "N806"]
+# The Kindle runner and its stand-ins for MicroPython's modules. Python 3.9 on
+# the device, and the shims copy MicroPython's API shape, so mostly the same
+# reasons as pico/** above:
+#
+#   ANN, N801, N802 — the shims mirror untyped MicroPython and Waveshare names
+#                     (`EPD_2in13_B_V4_Landscape`, `Clear`) that pico/ calls.
+#   PTH, UP031      — the firmware's idiom, kept so the two read alike.
+#   PLC0415         — run.py imports the firmware only after putting it on the
+#                     path and fixing the clock; that order is the point.
+#   PLW0603, T201   — one process; stdout goes to co2meter.log on the Kindle.
+#   B905            — `zip(strict=)` is 3.10+, and the Kindle has 3.9.
+#   PLR2004         — 90 and 270 are the rotation, not magic.
+#   PLR0913, PLR0917 — `rect(x, y, w, h, c, f)` is framebuf's own signature.
+#   S108            — /tmp is tmpfs on the Kindle, where a per-render PNG belongs.
+#   S310, S603      — URLs come from the provider config, as on the device; eips
+#                     is a fixed argv.
+"kindle/**" = [
+  "ANN", "N801", "N802", "PTH", "UP031", "PLC0415", "PLW0603", "T201",
+  "B905", "PLR2004", "PLR0913", "PLR0917", "S108", "S310", "S603",
+]
 # assert is the point; a magic number in a fixture is the fixture; the fake
 # classes stand in for MicroPython modules and are named as those modules are.
 "tests/**" = [
