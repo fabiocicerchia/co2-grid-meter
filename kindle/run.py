@@ -60,10 +60,10 @@ def install_device_clock(offset_for):
     seconds and localtime() is gmtime(). pico/ is written against that (see
     utils.utc_offset_now), so the provider windows and the clock on screen are
     only right if the Kindle keeps the same convention.
-    """
-    os.environ["TZ"] = "UTC"
-    time.tzset()
 
+    Both tuple functions are replaced rather than TZ set: the Kindle's Python
+    is built without time.tzset().
+    """
     real_gmtime = time.gmtime
 
     def device_time():
