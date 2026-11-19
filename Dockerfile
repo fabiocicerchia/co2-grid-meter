@@ -1,7 +1,7 @@
 # Packages the dashboard server (web/). The mock Pico (mock/) and the
 # firmware (pico/) are not containerized: the mock is a local dev aid and
 # the firmware runs on-device via MicroPython, not this image.
-FROM python:3.14-slim@sha256:cad9a2c871761c413caa6fdd6441c783451e740a48aaeba60ae62a8b53525ef6
+FROM python:3.15-slim@sha256:65a65fc7b30b06cb6df4930fd4650697cb23f4c2698ab81fc87e4b031bc36928
 WORKDIR /app
 
 # requirements.lock is requirements.txt resolved, with a hash per artifact.
