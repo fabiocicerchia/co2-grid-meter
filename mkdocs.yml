@@ -128,4 +128,5 @@ nav:
   - Home: README.md
   - Architecture: architecture.md
   - Firmware and hardware: firmware.md
+  - Kindle: kindle.md
   - Getting Started: getting-started.md

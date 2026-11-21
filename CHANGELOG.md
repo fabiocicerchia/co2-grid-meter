@@ -128,7 +128,16 @@ from Conventional Commit messages — don't edit by hand, see [CONTRIBUTING.md](
 
 ### Added
 
+- `/kindle`: a server-rendered, script-free status page for an old Kindle's
+  Experimental Browser, refreshing itself every 5 minutes.
+- `kindle/`: run the firmware itself on a jailbroken Kindle 4 under Python 3.9,
+  drawing the e-ink layout full-screen with `eips`. Packaged as a KUAL
+  extension by `kindle/build.sh`; see docs/kindle.md.
+
 ### Changed
+
+- `pico/config.py`: no `int | None` annotation, which raises at import on
+  Python 3.9 (the Kindle's). MicroPython ignores annotations either way.
 
 ### Deprecated
 

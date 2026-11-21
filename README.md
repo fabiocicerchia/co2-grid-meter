@@ -64,6 +64,7 @@ make run            # serves the dashboard and the grid poller
 ```
 
 Flashing the Pico W is covered in [`docs/firmware.md`](docs/firmware.md).
+Running it on an old Kindle instead is covered in [`docs/kindle.md`](docs/kindle.md).
 
 ### Make targets
 
